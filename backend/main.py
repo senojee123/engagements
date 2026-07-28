@@ -1,0 +1,421 @@
+import time
+import uuid
+import json
+from typing import List, Optional
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from database import engine, Base, get_db
+import models
+import schemas
+from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions
+
+# Create database tables automatically on startup
+from sqlalchemy import text
+try:
+    with engine.connect() as conn:
+        # Re-create polls, templates and screen_state to ensure all columns & seeds match
+        conn.execute(text("DROP TABLE IF EXISTS polls"))
+        conn.execute(text("DROP TABLE IF EXISTS templates"))
+        conn.execute(text("DROP TABLE IF EXISTS screen_state"))
+        conn.commit()
+except Exception:
+    pass
+
+Base.metadata.create_all(bind=engine)
+
+
+
+app = FastAPI(
+    title="FanForge Engagement OS API",
+    description="High-performance Python FastAPI backend with WebSockets for stadium display screens and fan engagements.",
+    version="1.0.0",
+)
+
+# Enable CORS for frontend applications (Vite dev server at localhost:5174 or production domain)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(organizations.router)
+app.include_router(events.router)
+app.include_router(activities.router)
+app.include_router(notifications.router)
+app.include_router(templates.router)
+app.include_router(brand_kits.router)
+app.include_router(polls.router)
+app.include_router(reactions.router)
+
+
+
+
+# ----------------------------------------------------
+# WEBSOCKET CONNECTION MANAGER
+# ----------------------------------------------------
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        print(f"[WS] Client connected. Total active: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            print(f"[WS] Client disconnected. Total active: {len(self.active_connections)}")
+
+
+    async def broadcast(self, message: dict):
+        """Broadcast a message payload to all connected clients (Stadium Displays & Organizers)."""
+        payload = json.dumps(message)
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_text(payload)
+            except Exception as e:
+                print(f"Error sending WebSocket message: {e}")
+                self.disconnect(connection)
+
+
+manager = ConnectionManager()
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection alive and listen for incoming client ping/messages
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                # Re-broadcast custom client events if needed
+                await manager.broadcast(message)
+            except Exception:
+                pass
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+
+# ----------------------------------------------------
+# INITIAL SEED HELPER
+# ----------------------------------------------------
+def seed_initial_data(db: Session):
+    from sqlalchemy import text
+    try:
+        db.execute(text("ALTER TABLE screen_state ADD COLUMN active_mode VARCHAR DEFAULT 'idle'"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    try:
+        db.execute(text("ALTER TABLE screen_state ADD COLUMN active_poll_id VARCHAR DEFAULT 'poll-mvp'"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    if not db.query(models.ScreenStateModel).filter_by(id="main_screen").first():
+        db.add(models.ScreenStateModel(
+            id="main_screen",
+            is_selfie_wall_active=False,
+            active_brand_id="brand-cocacola",
+            active_mode="idle",
+            active_poll_id="poll-mvp"
+        ))
+
+    if not db.query(models.IdleConfigModel).filter_by(id="default_config").first():
+        db.add(models.IdleConfigModel(
+            id="default_config",
+            event_title="Welcome to Event Day 2026",
+            subtitle="Interactive Experiences Powered by FanForge",
+            event_logo="",
+            message_title="FanZone Engagement Activities starting soon!",
+            sponsor_logos=[]
+        ))
+
+    db.commit()
+
+
+
+@app.on_event("startup")
+def startup_event():
+    db = next(get_db())
+    seed_initial_data(db)
+
+    users.seed_users(db)
+    organizations.seed_organizations(db)
+    events.seed_events(db)
+    activities.seed_activities(db)
+    notifications.seed_notifications(db)
+    templates.seed_templates(db)
+    brand_kits.seed_brand_kits(db)
+    polls.seed_polls(db)
+    reactions.seed_reactions(db)
+
+
+
+
+# ----------------------------------------------------
+# REST API ENDPOINTS: SELFIES
+# ----------------------------------------------------
+@app.get("/api/selfies", response_model=List[schemas.SelfieResponse])
+def get_selfies(status: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    query = db.query(models.SelfieModel)
+    if status:
+        query = query.filter(models.SelfieModel.status == status)
+
+    # Sort approved selfies by approved_at descending so newly approved appear at slot #1
+    if status == "approved":
+        query = query.order_by(models.SelfieModel.approved_at.desc())
+    else:
+        query = query.order_by(models.SelfieModel.created_at.desc())
+
+    records = query.all()
+    # Map DB snake_case columns to camelCase schema
+    return [
+        schemas.SelfieResponse(
+            id=r.id,
+            uploaderName=r.uploader_name,
+            photoUrl=r.photo_url,
+            caption=r.caption,
+            status=r.status,
+            aiSafetyScore=r.ai_safety_score,
+            aiRiskLevel=r.ai_risk_level,
+            aiFlags=r.ai_flags or [],
+            isFeatured=r.is_featured,
+            brandId=r.brand_id,
+            approvedAt=r.approved_at,
+            createdAt=r.created_at
+        ) for r in records
+    ]
+
+
+@app.post("/api/selfies/upload", response_model=schemas.SelfieResponse)
+async def upload_selfie(data: schemas.SelfieCreate, db: Session = Depends(get_db)):
+    selfie_id = f"sf-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
+    now = time.time()
+
+    # Simple AI score logic
+    safety_score = 95
+    risk_level = "Low Risk"
+    flags = []
+
+    new_selfie = models.SelfieModel(
+        id=selfie_id,
+        uploader_name=data.uploaderName or "Stadium Fan",
+        photo_url=data.photoUrl,
+        caption=data.caption or "Live from Metropolis Arena!",
+        status="pending",
+        ai_safety_score=safety_score,
+        ai_risk_level=risk_level,
+        ai_flags=flags,
+        is_featured=False,
+        brand_id=data.brandId or "brand-cocacola",
+        created_at=now
+    )
+
+    db.add(new_selfie)
+    db.commit()
+    db.refresh(new_selfie)
+
+    response_data = schemas.SelfieResponse(
+        id=new_selfie.id,
+        uploaderName=new_selfie.uploader_name,
+        photoUrl=new_selfie.photo_url,
+        caption=new_selfie.caption,
+        status=new_selfie.status,
+        aiSafetyScore=new_selfie.ai_safety_score,
+        aiRiskLevel=new_selfie.ai_risk_level,
+        aiFlags=new_selfie.ai_flags or [],
+        isFeatured=new_selfie.is_featured,
+        brandId=new_selfie.brand_id,
+        approvedAt=new_selfie.approved_at,
+        createdAt=new_selfie.created_at
+    )
+
+    # Broadcast new selfie arrival via WebSocket
+    await manager.broadcast({
+        "type": "SELFIE_SUBMITTED",
+        "payload": response_data.model_dump()
+    })
+
+    return response_data
+
+
+@app.post("/api/selfies/{selfie_id}/approve", response_model=schemas.SelfieResponse)
+async def approve_selfie(selfie_id: str, db: Session = Depends(get_db)):
+    selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
+    if not selfie:
+        raise HTTPException(status_code=404, detail="Selfie not found")
+
+    now = time.time()
+    selfie.status = "approved"
+    selfie.approved_at = now
+    db.commit()
+    db.refresh(selfie)
+
+    response_data = schemas.SelfieResponse(
+        id=selfie.id,
+        uploaderName=selfie.uploader_name,
+        photoUrl=selfie.photo_url,
+        caption=selfie.caption,
+        status=selfie.status,
+        aiSafetyScore=selfie.ai_safety_score,
+        aiRiskLevel=selfie.ai_risk_level,
+        aiFlags=selfie.ai_flags or [],
+        isFeatured=selfie.is_featured,
+        brandId=selfie.brand_id,
+        approvedAt=selfie.approved_at,
+        createdAt=selfie.created_at
+    )
+
+    # Broadcast APPROVED event over WebSocket to all stadium display screens!
+    await manager.broadcast({
+        "type": "SELFIE_APPROVED",
+        "payload": response_data.model_dump()
+    })
+
+    return response_data
+
+
+@app.post("/api/selfies/{selfie_id}/reject", response_model=schemas.SelfieResponse)
+async def reject_selfie(selfie_id: str, db: Session = Depends(get_db)):
+    selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
+    if not selfie:
+        raise HTTPException(status_code=404, detail="Selfie not found")
+
+    selfie.status = "rejected"
+    db.commit()
+    db.refresh(selfie)
+
+    response_data = schemas.SelfieResponse(
+        id=selfie.id,
+        uploaderName=selfie.uploader_name,
+        photoUrl=selfie.photo_url,
+        caption=selfie.caption,
+        status=selfie.status,
+        aiSafetyScore=selfie.ai_safety_score,
+        aiRiskLevel=selfie.ai_risk_level,
+        aiFlags=selfie.ai_flags or [],
+        isFeatured=selfie.is_featured,
+        brandId=selfie.brand_id,
+        approvedAt=selfie.approved_at,
+        createdAt=selfie.created_at
+    )
+
+    await manager.broadcast({"type": "SELFIE_REJECTED", "payload": response_data.model_dump()})
+    return response_data
+
+
+@app.post("/api/selfies/bulk-approve")
+async def bulk_approve(req: schemas.BulkActionRequest, db: Session = Depends(get_db)):
+    now = time.time()
+    db.query(models.SelfieModel).filter(models.SelfieModel.id.in_(req.ids)).update(
+        {"status": "approved", "approved_at": now}, synchronize_session=False
+    )
+    db.commit()
+
+    await manager.broadcast({"type": "SELFIES_UPDATED"})
+    return {"status": "success", "approved_count": len(req.ids)}
+
+
+# ----------------------------------------------------
+# REST API ENDPOINTS: IDLE SCREEN SETTINGS
+# ----------------------------------------------------
+@app.get("/api/idle-config", response_model=schemas.IdleConfigResponse)
+def get_idle_config(db: Session = Depends(get_db)):
+    config = db.query(models.IdleConfigModel).filter_by(id="default_config").first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Idle config not found")
+
+    return schemas.IdleConfigResponse(
+        eventTitle=config.event_title,
+        subtitle=config.subtitle,
+        eventLogo=config.event_logo,
+        messageTitle=config.message_title,
+        sponsorLogos=config.sponsor_logos or []
+    )
+
+
+@app.post("/api/idle-config", response_model=schemas.IdleConfigResponse)
+async def update_idle_config(data: schemas.IdleConfigUpdate, db: Session = Depends(get_db)):
+    config = db.query(models.IdleConfigModel).filter_by(id="default_config").first()
+    if not config:
+        config = models.IdleConfigModel(id="default_config")
+        db.add(config)
+
+    if data.eventTitle is not None:
+        config.event_title = data.eventTitle
+    if data.subtitle is not None:
+        config.subtitle = data.subtitle
+    if data.eventLogo is not None:
+        config.event_logo = data.eventLogo
+    if data.messageTitle is not None:
+        config.message_title = data.messageTitle
+    if data.sponsorLogos is not None:
+        config.sponsor_logos = [item.model_dump() for item in data.sponsorLogos]
+
+    db.commit()
+    db.refresh(config)
+
+    res = schemas.IdleConfigResponse(
+        eventTitle=config.event_title,
+        subtitle=config.subtitle,
+        eventLogo=config.event_logo,
+        messageTitle=config.message_title,
+        sponsorLogos=config.sponsor_logos or []
+    )
+
+    await manager.broadcast({"type": "IDLE_CONFIG_UPDATED", "payload": res.model_dump()})
+    return res
+
+
+# ----------------------------------------------------
+# REST API ENDPOINTS: STADIUM SCREEN ROUTING STATUS
+# ----------------------------------------------------
+@app.get("/api/screen/status")
+def get_screen_status(db: Session = Depends(get_db)):
+    state = db.query(models.ScreenStateModel).filter_by(id="main_screen").first()
+    return {
+        "isSelfieWallActive": state.is_selfie_wall_active if state else False,
+        "activeBrandId": state.active_brand_id if state else "brand-cocacola"
+    }
+
+
+@app.post("/api/screen/status")
+async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = Depends(get_db)):
+    state = db.query(models.ScreenStateModel).filter_by(id="main_screen").first()
+    if not state:
+        state = models.ScreenStateModel(id="main_screen")
+        db.add(state)
+
+    state.is_selfie_wall_active = data.isSelfieWallActive
+    db.commit()
+
+    await manager.broadcast({
+        "type": "STATUS_UPDATED",
+        "isSelfieWallActive": data.isSelfieWallActive
+    })
+
+    return {"isSelfieWallActive": state.is_selfie_wall_active}
+
+
+# ----------------------------------------------------
+# HEALTH CHECK
+# ----------------------------------------------------
+@app.get("/")
+def root():
+    return {
+        "app": "FanForge Engagement OS Backend",
+        "status": "Online 🚀",
+        "docs": "/docs",
+        "websocket": "/ws"
+    }
