@@ -12,15 +12,16 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
   };
 
   const totalVotes = activePoll?.totalVotes || 0;
-  const options = activePoll?.options || [];
+  const options = Array.isArray(activePoll?.options) ? activePoll.options : [];
 
   // Find leading option
   let leadingOptionId = null;
   let maxVotes = -1;
   options.forEach((opt) => {
-    if (opt.votes > maxVotes && opt.votes > 0) {
-      maxVotes = opt.votes;
-      leadingOptionId = opt.id;
+    const votes = opt?.votes || 0;
+    if (votes > maxVotes && votes > 0) {
+      maxVotes = votes;
+      leadingOptionId = opt?.id;
     }
   });
 
@@ -130,14 +131,16 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
 
           {/* Option Progress Bars */}
           <div className="space-y-3.5">
-            {options.map((option) => {
-              const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
-              const isLeading = option.id === leadingOptionId;
-              const styleTheme = getOptionColorClass(option.color, isLeading);
+            {options.map((option, idx) => {
+              const optId = String(option?.id || idx + 1);
+              const optVotes = option?.votes || 0;
+              const percentage = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+              const isLeading = option?.id === leadingOptionId;
+              const styleTheme = getOptionColorClass(option?.color, isLeading);
 
               return (
                 <div
-                  key={option.id}
+                  key={optId}
                   className={`relative rounded-3xl p-4 border transition-all duration-300 ${styleTheme.bg} ${
                     isLeading ? 'ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-900/20' : ''
                   }`}
@@ -158,10 +161,10 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
                       <span
                         className={`w-8 h-8 rounded-xl font-mono font-black text-xs flex items-center justify-center shrink-0 shadow-md ${styleTheme.badge}`}
                       >
-                        {option.id.replace('opt-', '#')}
+                        {optId.startsWith('opt-') ? optId.replace('opt-', '#') : `#${optId}`}
                       </span>
                       <span className="text-base sm:text-lg font-extrabold text-white tracking-tight flex items-center gap-2">
-                        {option.text}
+                        {option?.text || ''}
                         {isLeading && (
                           <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                             <Trophy className="w-3 h-3 fill-slate-950" /> LEADING
@@ -172,7 +175,7 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
 
                     <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 font-mono">
                       <span className="text-xs font-semibold text-slate-400">
-                        {option.votes.toLocaleString()} votes
+                        {optVotes.toLocaleString()} votes
                       </span>
                       <span className={`text-xl sm:text-2xl font-black ${styleTheme.text}`}>
                         {percentage}%

@@ -32,6 +32,16 @@ export default class ErrorBoundary extends React.Component {
             <p className="text-xs text-slate-400 leading-relaxed">
               An unexpected display state occurred. Click below to reset the cache and refresh the view.
             </p>
+            {this.state.error && (
+              <div className="p-3 bg-red-950/80 border border-red-800 rounded-xl text-left text-[11px] font-mono text-red-300 max-h-36 overflow-auto">
+                <p className="font-bold text-red-200">{this.state.error.toString()}</p>
+                {this.state.error.stack && (
+                  <pre className="text-[10px] text-slate-400 mt-1 whitespace-pre-wrap">
+                    {this.state.error.stack.split('\n').slice(0, 4).join('\n')}
+                  </pre>
+                )}
+              </div>
+            )}
             <button
               onClick={this.handleReload}
               className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all"
