@@ -24,7 +24,7 @@ export const LivePollProvider = ({ children }) => {
   const [activePoll, setActivePoll] = useState(INITIAL_FALLBACK_POLL);
   const [isPollActive, setIsPollActiveState] = useState(() => {
     const saved = localStorage.getItem('fanforge_live_poll_active');
-    return saved ? JSON.parse(saved) : true;
+    return saved ? JSON.parse(saved) : false;
   });
 
   const [activeBrand, setActiveBrandState] = useState(() => {
