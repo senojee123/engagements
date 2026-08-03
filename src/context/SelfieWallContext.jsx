@@ -298,10 +298,6 @@ export const SelfieWallProvider = ({ children }) => {
     updateSelfiesState((latest) => latest.map((s) => (ids.includes(s.id) ? { ...s, status: 'rejected' } : s)));
   };
 
-  const resetAllSelfies = () => {
-    updateSelfiesState([]);
-  };
-
   return (
     <SelfieWallContext.Provider
       value={{
