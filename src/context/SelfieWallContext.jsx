@@ -92,54 +92,73 @@ export const SelfieWallProvider = ({ children }) => {
     });
   };
 
-  // 1. Initial Fetch from Backend API
+  // 1. Initial & Background Sync (Fast 3-second Auto-Polling)
   useEffect(() => {
     let isCancelled = false;
-    fetchSelfiesApi()
-      .then((data) => {
-        if (!isCancelled && Array.isArray(data) && data.length > 0) {
-          setSelfies(deduplicateSelfies(data));
-        }
-      })
-      .catch(() => {});
+
+    const loadSelfies = () => {
+      fetchSelfiesApi()
+        .then((data) => {
+          if (!isCancelled && Array.isArray(data)) {
+            setSelfies(deduplicateSelfies(data));
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadSelfies();
+    const interval = setInterval(loadSelfies, 3000); // 3-second auto-poll guarantee
 
     return () => {
       isCancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
-  // 2. Real-Time Listener (WebSocket & BroadcastChannel & Storage)
+  // 2. Real-Time Listener (WebSocket + Auto-Reconnect & Storage)
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
-
     const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
     let socket = null;
+    let reconnectTimer = null;
+    let isComponentMounted = true;
 
-    try {
-      socket = new WebSocket(wsUrl);
-      socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'SELFIE_SUBMITTED' && message.payload) {
-            setSelfies((prev) => deduplicateSelfies([message.payload, ...prev]));
-          } else if (message.type === 'SELFIE_APPROVED' && message.payload) {
-            setSelfies((prev) =>
-              prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
-            );
-          } else if (message.type === 'SELFIE_REJECTED' && message.payload) {
-            setSelfies((prev) =>
-              prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
-            );
-          } else if (message.type === 'SELFIES_UPDATED') {
-            fetchSelfiesApi()
-              .then((data) => {
-                if (Array.isArray(data)) setSelfies(deduplicateSelfies(data));
-              })
-              .catch(() => {});
+    const connectWebSocket = () => {
+      try {
+        socket = new WebSocket(wsUrl);
+
+        socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'SELFIE_SUBMITTED' && message.payload) {
+              setSelfies((prev) => deduplicateSelfies([message.payload, ...prev]));
+            } else if (message.type === 'SELFIE_APPROVED' && message.payload) {
+              setSelfies((prev) =>
+                prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
+              );
+            } else if (message.type === 'SELFIE_REJECTED' && message.payload) {
+              setSelfies((prev) =>
+                prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
+              );
+            } else if (message.type === 'SELFIES_UPDATED') {
+              fetchSelfiesApi()
+                .then((data) => {
+                  if (Array.isArray(data) && isComponentMounted) setSelfies(deduplicateSelfies(data));
+                })
+                .catch(() => {});
+            }
+          } catch (e) {}
+        };
+
+        socket.onclose = () => {
+          if (isComponentMounted) {
+            reconnectTimer = setTimeout(connectWebSocket, 2000);
           }
-        } catch (e) {}
-      };
-    } catch (e) {}
+        };
+      } catch (e) {}
+    };
+
+    connectWebSocket();
 
     // BroadcastChannel Listener
     let channel;
@@ -181,6 +200,8 @@ export const SelfieWallProvider = ({ children }) => {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+      isComponentMounted = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socket) socket.close();
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageChange);
