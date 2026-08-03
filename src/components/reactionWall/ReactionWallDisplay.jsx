@@ -7,6 +7,7 @@ export default function ReactionWallDisplay({ isStandalonePage = false }) {
   const { activeReactions, totalCount, activeBrand, frameConfig } = useReactionWall();
 
   const fanzoneUrl = import.meta.env.VITE_FANZONE_URL || 'https://fan-zone-five.vercel.app/';
+  const qrTargetUrl = fanzoneUrl;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
   const logoSource = frameConfig?.logoUrl || '';
