@@ -6,6 +6,11 @@ import { useLivePoll } from '../../context/LivePollContext';
 export default function LivePollDisplay({ isStandalonePage = false }) {
   const { activePoll, activeBrand } = useLivePoll();
 
+  const brand = activeBrand || {
+    name: 'Coca-Cola',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg',
+  };
+
   const totalVotes = activePoll?.totalVotes || 0;
   const options = activePoll?.options || [];
 
@@ -58,9 +63,8 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
     return item;
   };
 
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-  const qrTargetUrl = `${currentOrigin}/fan-zone`;
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrTargetUrl)}`;
+  const fanzoneUrl = import.meta.env.VITE_FANZONE_URL || 'https://fan-zone-five.vercel.app/';
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
   return (
     <div
@@ -79,12 +83,12 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md p-2 border border-white/20 flex items-center justify-center shrink-0 shadow-lg">
-            <img src={activeBrand.logo} alt={activeBrand.name} className="w-full h-full object-contain" />
+            <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-extrabold tracking-widest text-cyan-400 uppercase font-mono">
-                {activeBrand.name} STADIUM NETWORK
+                {brand.name} STADIUM NETWORK
               </span>
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Radio className="w-3 h-3 animate-pulse text-emerald-400" /> LIVE BROADCAST

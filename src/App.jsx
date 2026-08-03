@@ -5,6 +5,8 @@ import { ToastProvider } from './context/ToastContext';
 import { AppProvider } from './context/AppContext';
 import { TemplateProvider } from './context/TemplateContext';
 import { SelfieWallProvider } from './context/SelfieWallContext';
+import { LivePollProvider } from './context/LivePollContext';
+import { ReactionWallProvider } from './context/ReactionWallContext';
 
 // Layouts
 import AppLayout from './components/layout/AppLayout';
@@ -66,7 +68,9 @@ export default function App() {
             <AppProvider>
               <TemplateProvider>
                 <SelfieWallProvider>
-                  <Routes>
+                  <LivePollProvider>
+                    <ReactionWallProvider>
+                      <Routes>
                     {/* Root Redirect */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -142,8 +146,10 @@ export default function App() {
 
                     {/* 404 Catch-All */}
                     <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </SelfieWallProvider>
+                    </Routes>
+                  </ReactionWallProvider>
+                </LivePollProvider>
+              </SelfieWallProvider>
               </TemplateProvider>
             </AppProvider>
           </AuthProvider>
