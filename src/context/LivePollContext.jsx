@@ -42,55 +42,65 @@ export const LivePollProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  // Initial Fetch from backend
+  // Initial & Background Sync (Fast 2-second Auto-Polling)
   useEffect(() => {
     let isCancelled = false;
-    fetchActivePoll()
-      .then((data) => {
-        if (!isCancelled && data) {
-          setActivePoll(data);
-        }
-      })
-      .catch(() => {});
 
-    fetchPolls()
-      .then((data) => {
-        if (!isCancelled && Array.isArray(data) && data.length > 0) {
-          setPolls(data);
-        }
-      })
-      .catch(() => {});
+    const loadPollData = () => {
+      fetchActivePoll()
+        .then((data) => {
+          if (!isCancelled && data) setActivePoll(data);
+        })
+        .catch(() => {});
+
+      fetchPolls()
+        .then((data) => {
+          if (!isCancelled && Array.isArray(data) && data.length > 0) setPolls(data);
+        })
+        .catch(() => {});
+    };
+
+    loadPollData();
+    const interval = setInterval(loadPollData, 2000);
 
     return () => {
       isCancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
-  // WebSocket & BroadcastChannel Real-Time Listener
+  // WebSocket & BroadcastChannel Real-Time Listener (With Auto-Reconnect)
   useEffect(() => {
     const wsUrl = (import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app').replace(/^http/, 'ws') + '/ws';
-
     let socket = null;
+    let reconnectTimer = null;
+    let isMounted = true;
 
-    try {
-      socket = new WebSocket(wsUrl);
-      socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'POLL_VOTED' && message.poll) {
-            setActivePoll(message.poll);
-            setPolls((prev) => prev.map((p) => (p.id === message.poll.id ? message.poll : p)));
-          } else if (message.type === 'POLL_STATUS_UPDATED') {
-            if (message.poll) {
+    const connectWebSocket = () => {
+      try {
+        socket = new WebSocket(wsUrl);
+        socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'POLL_VOTED' && message.poll) {
               setActivePoll(message.poll);
+              setPolls((prev) => prev.map((p) => (p.id === message.poll.id ? message.poll : p)));
+            } else if (message.type === 'POLL_STATUS_UPDATED') {
+              if (message.poll) setActivePoll(message.poll);
+              if (message.activeMode) setIsPollActiveState(message.activeMode === 'live-poll');
             }
-            if (message.activeMode) {
-              setIsPollActiveState(message.activeMode === 'live-poll');
-            }
+          } catch (e) {}
+        };
+
+        socket.onclose = () => {
+          if (isMounted) {
+            reconnectTimer = setTimeout(connectWebSocket, 2000);
           }
-        } catch (e) {}
-      };
-    } catch (e) {}
+        };
+      } catch (e) {}
+    };
+
+    connectWebSocket();
 
     // BroadcastChannel sync across local browser tabs
     let channel = null;
@@ -110,6 +120,8 @@ export const LivePollProvider = ({ children }) => {
     } catch (e) {}
 
     return () => {
+      isMounted = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socket) socket.close();
       if (channel) channel.close();
     };
