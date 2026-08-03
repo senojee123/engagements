@@ -84,23 +84,6 @@ function FanZoneLandingContent() {
   // Reaction state
   const [floatingEmojis, setFloatingEmojis] = useState([]);
 
-  const samplePhotos = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
-  ];
-
-  // Initialize Camera Stream when Selfie Cam modal opens
-  useEffect(() => {
-    if (activeModal === 'selfie-wall' && selfieStage === 'camera') {
-      startCameraStream();
-    } else {
-      stopCameraStream();
-    }
-    return () => stopCameraStream();
-  }, [activeModal, selfieStage]);
-
   const startCameraStream = async () => {
     setHasCameraError(false);
     try {
@@ -115,7 +98,6 @@ function FanZoneLandingContent() {
     } catch (err) {
       console.warn('Camera access not granted or hardware unavailable:', err);
       setHasCameraError(true);
-      setSelectedPhoto(samplePhotos[0]);
     }
   };
 
@@ -172,7 +154,8 @@ function FanZoneLandingContent() {
     const created = uploadSelfie({
       uploaderName: uploaderName || 'Stadium Fan',
       caption: caption || `${activeBrand.name} Match Day Fan!`,
-      photoUrl: selectedPhoto || samplePhotos[0],
+      photoUrl: selectedPhoto,
+
     });
     setSubmittedSelfieId(created.id);
     setSelfieStage('sent');

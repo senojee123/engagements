@@ -246,7 +246,8 @@ export const SelfieWallProvider = ({ children }) => {
       id: tempId,
       eventId: 'event-01',
       uploaderName: newPhotoData.uploaderName || 'Stadium Fan',
-      photoUrl: newPhotoData.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+      photoUrl: newPhotoData.photoUrl || '',
+
       uploadTime: 'Just now',
       timestamp: Date.now(),
       approvedAt: Date.now(),

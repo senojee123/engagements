@@ -12,18 +12,43 @@ export default function SelfieUploaderModal({ isOpen, onClose }) {
 
   const [uploaderName, setUploaderName] = useState('');
   const [caption, setCaption] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState(
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80'
-  );
+  const [selectedPhoto, setSelectedPhoto] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
-  const samplePhotos = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
-  ];
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 480;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          setSelectedPhoto(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -72,21 +97,13 @@ export default function SelfieUploaderModal({ isOpen, onClose }) {
         />
 
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-2">Select Sample Photo</label>
-          <div className="grid grid-cols-5 gap-2">
-            {samplePhotos.map((url, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setSelectedPhoto(url)}
-                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                  selectedPhoto === url ? 'border-indigo-600 ring-2 ring-indigo-500/20' : 'border-slate-200'
-                }`}
-              >
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
+          <label className="block text-xs font-semibold text-slate-700 mb-2">Upload Photo File</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+          />
         </div>
 
         {/* Selected Photo Preview Box */}
