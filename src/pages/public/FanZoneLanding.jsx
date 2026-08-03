@@ -300,15 +300,16 @@ function FanZoneLandingContent() {
         <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
           POWERED BY
         </p>
-        {fanZoneSettings.poweredByLogo ? (
+        {fanZoneSettings.poweredByLogo && (
           <img
             src={fanZoneSettings.poweredByLogo}
             alt="Powered By Logo"
             className="h-10 max-w-[220px] object-contain mx-auto my-1"
           />
-        ) : (
+        )}
+        {fanZoneSettings.poweredByText && (
           <p className="text-sm font-extrabold text-slate-900 tracking-tight">
-            {fanZoneSettings.poweredByText || `${activeBrand.name} 5G Ultra Stadium Network`}
+            {fanZoneSettings.poweredByText}
           </p>
         )}
       </footer>
