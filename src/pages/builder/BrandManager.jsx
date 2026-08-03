@@ -30,6 +30,68 @@ export default function BrandManager() {
     };
   }, []);
 
+  // FanZone Customization State
+  const DEFAULT_FANZONE = {
+    headerTitle: 'FAN ZONE',
+    headerSubtitle: 'Fan experiences go live throughout the match',
+    headerLogo: '',
+    poweredByText: '',
+    poweredByLogo: '',
+  };
+
+  const [fanZoneSettings, setFanZoneSettings] = useState(() => {
+    const saved = localStorage.getItem('fanforge_fanzone_settings');
+    return saved ? { ...DEFAULT_FANZONE, ...JSON.parse(saved) } : DEFAULT_FANZONE;
+  });
+
+  const handleSaveFanZoneSettings = () => {
+    localStorage.setItem('fanforge_fanzone_settings', JSON.stringify(fanZoneSettings));
+    try {
+      const channel = new BroadcastChannel('fanforge_fanzone_sync');
+      channel.postMessage({ type: 'FANZONE_SETTINGS_UPDATED', payload: fanZoneSettings });
+      channel.close();
+    } catch (e) {}
+    toast.success('FanZone branding & sponsor logo updated!');
+  };
+
+  const handlePoweredByFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image file size should be less than 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result;
+        if (typeof dataUrl === 'string') {
+          setFanZoneSettings((prev) => ({ ...prev, poweredByLogo: dataUrl }));
+          toast.success('Powered By sponsor logo uploaded!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeaderLogoFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image file size should be less than 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result;
+        if (typeof dataUrl === 'string') {
+          setFanZoneSettings((prev) => ({ ...prev, headerLogo: dataUrl }));
+          toast.success('Header logo uploaded!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState(null);
@@ -202,6 +264,137 @@ export default function BrandManager() {
           </Card>
         ))}
       </div>
+
+      {/* FanZone Mobile Portal Customization Card */}
+      <Card className="border-indigo-200 bg-gradient-to-br from-white via-indigo-50/30 to-slate-50">
+        <div className="p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-lg font-bold text-slate-900">FanZone Mobile Portal Customization</h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Customize the mobile FanZone header, "Powered By" sponsor logo, and sponsor tagline.
+              </p>
+            </div>
+            <a
+              href="/fan-zone"
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 shadow-md transition-colors"
+            >
+              <span>Preview FanZone 📱</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: Header Settings */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Header Branding</h4>
+              
+              <Input
+                label="FanZone Title"
+                placeholder="FAN ZONE"
+                value={fanZoneSettings.headerTitle}
+                onChange={(e) => setFanZoneSettings({ ...fanZoneSettings, headerTitle: e.target.value })}
+              />
+
+              <Input
+                label="FanZone Subtitle"
+                placeholder="Fan experiences go live throughout the match"
+                value={fanZoneSettings.headerSubtitle}
+                onChange={(e) => setFanZoneSettings({ ...fanZoneSettings, headerSubtitle: e.target.value })}
+              />
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-900 mb-1">Header Custom Logo (Optional)</label>
+                <div className="flex items-center gap-3">
+                  {fanZoneSettings.headerLogo ? (
+                    <img
+                      src={fanZoneSettings.headerLogo}
+                      alt="Header Logo"
+                      className="w-16 h-16 rounded-xl object-contain bg-slate-900 p-1 border border-slate-700"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                      No Logo
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 shadow-xs">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Upload Logo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleHeaderLogoFileUpload} />
+                    </label>
+                    {fanZoneSettings.headerLogo && (
+                      <button
+                        type="button"
+                        onClick={() => setFanZoneSettings({ ...fanZoneSettings, headerLogo: '' })}
+                        className="block text-xs text-rose-600 hover:underline"
+                      >
+                        Remove Logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Powered By Sponsor Settings */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Sponsor & "Powered By" Logo</h4>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-900 mb-1">"Powered By" Sponsor Logo Image</label>
+                <div className="flex items-center gap-3">
+                  {fanZoneSettings.poweredByLogo ? (
+                    <img
+                      src={fanZoneSettings.poweredByLogo}
+                      alt="Powered By Logo"
+                      className="w-24 h-16 rounded-xl object-contain bg-white p-2 border border-slate-300 shadow-xs"
+                    />
+                  ) : (
+                    <div className="w-24 h-16 rounded-xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-xs font-semibold">
+                      <Image className="w-4 h-4 mb-0.5 text-slate-400" />
+                      <span>Add Logo</span>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 shadow-xs">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Upload Sponsor Logo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePoweredByFileUpload} />
+                    </label>
+                    {fanZoneSettings.poweredByLogo && (
+                      <button
+                        type="button"
+                        onClick={() => setFanZoneSettings({ ...fanZoneSettings, poweredByLogo: '' })}
+                        className="block text-xs text-rose-600 hover:underline"
+                      >
+                        Remove Logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Input
+                label="Sponsor Name / Powered By Text"
+                placeholder="e.g. Coca-Cola 5G Ultra Stadium Network"
+                value={fanZoneSettings.poweredByText}
+                onChange={(e) => setFanZoneSettings({ ...fanZoneSettings, poweredByText: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-indigo-100">
+            <Button onClick={handleSaveFanZoneSettings} icon={CheckCircle2}>
+              Save FanZone Branding
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {/* Create Brand Modal */}
       <Modal

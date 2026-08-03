@@ -26,6 +26,44 @@ function FanZoneLandingContent() {
   const { emitReaction, isReactionWallActive } = useReactionWall();
   const toast = useToast();
 
+  const DEFAULT_FANZONE_SETTINGS = {
+    headerTitle: 'FAN ZONE',
+    headerSubtitle: 'Fan experiences go live throughout the match',
+    headerLogo: '',
+    poweredByText: '',
+    poweredByLogo: '',
+  };
+
+  const [fanZoneSettings, setFanZoneSettings] = useState(() => {
+    const saved = localStorage.getItem('fanforge_fanzone_settings');
+    return saved ? { ...DEFAULT_FANZONE_SETTINGS, ...JSON.parse(saved) } : DEFAULT_FANZONE_SETTINGS;
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('fanforge_fanzone_settings');
+      if (saved) {
+        setFanZoneSettings({ ...DEFAULT_FANZONE_SETTINGS, ...JSON.parse(saved) });
+      }
+    };
+
+    let channel;
+    try {
+      channel = new BroadcastChannel('fanforge_fanzone_sync');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'FANZONE_SETTINGS_UPDATED') {
+          setFanZoneSettings({ ...DEFAULT_FANZONE_SETTINGS, ...event.data.payload });
+        }
+      };
+    } catch (e) {}
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (channel) channel.close();
+    };
+  }, []);
+
   const [activeModal, setActiveModal] = useState(null); // null | 'selfie-wall' | 'live-vote' | 'reaction-wall'
   const [selfieStage, setSelfieStage] = useState('camera'); // 'camera' | 'preview' | 'sent'
   const [uploaderName, setUploaderName] = useState('');
@@ -148,23 +186,21 @@ function FanZoneLandingContent() {
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ---------------------------------------------------- */}
-      {/* TOP BRAND & MATCH DAY HEADER */}
+      {/* TOP BRAND HEADER */}
       {/* ---------------------------------------------------- */}
       <header className="space-y-2 pt-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-red-600 font-mono flex items-center gap-1.5">
-            MATCH DAY • {activeBrand.name.toUpperCase()} FAN ZONE EXPERIENCE
-          </span>
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-300">
-            <Radio className="w-3 h-3 animate-pulse text-emerald-600" /> LIVE STADIUM FEED
-          </span>
-        </div>
-
+        {fanZoneSettings.headerLogo && (
+          <img
+            src={fanZoneSettings.headerLogo}
+            alt="Header Logo"
+            className="h-10 max-w-[200px] object-contain mb-2"
+          />
+        )}
         <h1 className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight uppercase">
-          FAN ZONE
+          {fanZoneSettings.headerTitle || 'FAN ZONE'}
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 font-medium">
-          Fan experiences go live throughout the match
+          {fanZoneSettings.headerSubtitle || 'Fan experiences go live throughout the match'}
         </p>
       </header>
 
@@ -260,13 +296,21 @@ function FanZoneLandingContent() {
       {/* ---------------------------------------------------- */}
       {/* BOTTOM SPONSOR FOOTER */}
       {/* ---------------------------------------------------- */}
-      <footer className="py-6 text-center space-y-1 border-t border-black/10">
+      <footer className="py-6 text-center space-y-2 border-t border-black/10">
         <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
           POWERED BY
         </p>
-        <p className="text-sm font-extrabold text-slate-900 tracking-tight">
-          {activeBrand.name} 5G Ultra Stadium Network
-        </p>
+        {fanZoneSettings.poweredByLogo ? (
+          <img
+            src={fanZoneSettings.poweredByLogo}
+            alt="Powered By Logo"
+            className="h-10 max-w-[220px] object-contain mx-auto my-1"
+          />
+        ) : (
+          <p className="text-sm font-extrabold text-slate-900 tracking-tight">
+            {fanZoneSettings.poweredByText || `${activeBrand.name} 5G Ultra Stadium Network`}
+          </p>
+        )}
       </footer>
 
       {/* ---------------------------------------------------- */}
