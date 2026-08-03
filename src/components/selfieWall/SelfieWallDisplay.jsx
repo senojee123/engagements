@@ -120,8 +120,12 @@ export default function SelfieWallDisplay() {
           </div>
 
           {/* QR Code Graphic Container */}
-          <div className="p-4 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center border-4 border-indigo-600">
-            <QrCode className="w-40 h-40 text-slate-950" />
+          <div className="p-3 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center border-4 border-indigo-600">
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Ffan-zone-five.vercel.app%2F"
+              alt="FanZone QR Code"
+              className="w-40 h-40 object-contain rounded-lg"
+            />
           </div>
 
           {/* Bottom QR Code Instruction Text */}
@@ -129,7 +133,7 @@ export default function SelfieWallDisplay() {
             <p className="text-sm font-black text-cyan-300 uppercase tracking-wide leading-snug">
               Scan the QR and see yourself on big screen
             </p>
-            <p className="text-[11px] text-slate-400 font-mono">fanforge.live/fan-zone</p>
+            <p className="text-[11px] text-slate-400 font-mono">fan-zone-five.vercel.app</p>
           </div>
         </div>
       </main>
