@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_SELFIES } from '../data/selfieWallData';
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
+import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi } from '../lib/api';
 
 const SelfieWallContext = createContext(null);
+
 
 const deduplicateSelfies = (list) => {
   if (!Array.isArray(list)) return [];
@@ -92,9 +94,55 @@ export const SelfieWallProvider = ({ children }) => {
     });
   };
 
-  // Listen for real-time cross-tab updates (BroadcastChannel & window.storage)
+  // 1. Initial Fetch from Backend API
   useEffect(() => {
-    // 1. BroadcastChannel Listener
+    let isCancelled = false;
+    fetchSelfiesApi()
+      .then((data) => {
+        if (!isCancelled && Array.isArray(data) && data.length > 0) {
+          setSelfies((prev) => deduplicateSelfies([...data, ...prev]));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  // 2. Real-Time Listener (WebSocket & BroadcastChannel & Storage)
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
+    let socket = null;
+
+    try {
+      socket = new WebSocket(wsUrl);
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'SELFIE_SUBMITTED' && message.payload) {
+            setSelfies((prev) => deduplicateSelfies([message.payload, ...prev]));
+          } else if (message.type === 'SELFIE_APPROVED' && message.payload) {
+            setSelfies((prev) =>
+              prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
+            );
+          } else if (message.type === 'SELFIE_REJECTED' && message.payload) {
+            setSelfies((prev) =>
+              prev.map((s) => (s.id === message.payload.id ? { ...s, ...message.payload } : s))
+            );
+          } else if (message.type === 'SELFIES_UPDATED') {
+            fetchSelfiesApi()
+              .then((data) => {
+                if (Array.isArray(data)) setSelfies(deduplicateSelfies(data));
+              })
+              .catch(() => {});
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    // BroadcastChannel Listener
     let channel;
     try {
       channel = new BroadcastChannel('fanforge_selfie_sync');
@@ -111,7 +159,7 @@ export const SelfieWallProvider = ({ children }) => {
       };
     } catch (e) {}
 
-    // 2. Window Storage Listener
+    // Window Storage Listener
     const handleStorageChange = (e) => {
       if (e.key === 'fanforge_selfie_wall' && e.newValue) {
         try {
@@ -134,6 +182,7 @@ export const SelfieWallProvider = ({ children }) => {
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
+      if (socket) socket.close();
       if (channel) channel.close();
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -168,12 +217,13 @@ export const SelfieWallProvider = ({ children }) => {
     return { safetyScore, riskLevel, flags };
   };
 
-  // Upload Action (Fan Phone Upload -> Strictly Pending Queue, reading latest storage)
+  // Upload Action (Fan Phone Upload -> Strictly Pending Queue, reading latest storage + Backend API)
   const uploadSelfie = (newPhotoData) => {
     const aiResult = analyzeImageWithAi(newPhotoData.uploaderName || 'Fan Guest', newPhotoData.caption || '');
 
+    const tempId = `sf-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
     const createdSelfie = {
-      id: `sf-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      id: tempId,
       eventId: 'event-01',
       uploaderName: newPhotoData.uploaderName || 'Stadium Fan',
       photoUrl: newPhotoData.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
@@ -190,6 +240,23 @@ export const SelfieWallProvider = ({ children }) => {
     };
 
     updateSelfiesState((latest) => [createdSelfie, ...latest]);
+
+    // Send to Cloud Backend API (so Dashboard picks it up over WebSocket)
+    uploadSelfieApi({
+      uploaderName: createdSelfie.uploaderName,
+      photoUrl: createdSelfie.photoUrl,
+      caption: createdSelfie.caption,
+      brandId: createdSelfie.brandId,
+    })
+      .then((backendSelfie) => {
+        if (backendSelfie) {
+          setSelfies((prev) =>
+            prev.map((s) => (s.id === tempId ? { ...s, ...backendSelfie } : s))
+          );
+        }
+      })
+      .catch(() => {});
+
     return createdSelfie;
   };
 
@@ -199,10 +266,12 @@ export const SelfieWallProvider = ({ children }) => {
     updateSelfiesState((latest) =>
       latest.map((s) => (s.id === id ? { ...s, status: 'approved', approvedAt: now } : s))
     );
+    approveSelfieApi(id).catch(() => {});
   };
 
   const rejectSelfie = (id) => {
     updateSelfiesState((latest) => latest.map((s) => (s.id === id ? { ...s, status: 'rejected' } : s)));
+    rejectSelfieApi(id).catch(() => {});
   };
 
   const toggleFeatured = (id) => {

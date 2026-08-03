@@ -72,4 +72,11 @@ export const emitReactionApi = (emoji, fanName) => request('POST', '/api/reactio
 export const fetchReactionsApi = () => request('GET', '/api/reactions/recent');
 export const clearReactionsApi = () => request('POST', '/api/reactions/clear');
 
+// Selfie Wall
+export const fetchSelfiesApi = (status) => request('GET', `/api/selfies${status ? `?status=${status}` : ''}`);
+export const uploadSelfieApi = (data) => request('POST', '/api/selfies/upload', data);
+export const approveSelfieApi = (id) => request('POST', `/api/selfies/${id}/approve`);
+export const rejectSelfieApi = (id) => request('POST', `/api/selfies/${id}/reject`);
+
+
 
