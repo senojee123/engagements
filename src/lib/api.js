@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
+
 
 async function request(method, path, body) {
   const res = await fetch(`${API_BASE}${path}`, {

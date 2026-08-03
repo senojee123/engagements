@@ -86,7 +86,8 @@ export const ReactionWallProvider = ({ children }) => {
 
   // WebSocket & BroadcastChannel Listener
   useEffect(() => {
-    const wsUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/^http/, 'ws') + '/ws';
+    const wsUrl = (import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app').replace(/^http/, 'ws') + '/ws';
+
     let socket = null;
 
     try {

@@ -17,11 +17,8 @@ const deduplicateSelfies = (list) => {
 };
 
 export const SelfieWallProvider = ({ children }) => {
-  const [selfies, setSelfies] = useState(() => {
-    const saved = localStorage.getItem('fanforge_selfie_wall');
-    const loaded = saved ? JSON.parse(saved) : INITIAL_SELFIES;
-    return deduplicateSelfies(loaded);
-  });
+  const [selfies, setSelfies] = useState([]);
+
 
   const [activeBrand, setActiveBrandState] = useState(() => {
     const saved = localStorage.getItem('fanforge_active_brand');
@@ -112,7 +109,8 @@ export const SelfieWallProvider = ({ children }) => {
 
   // 2. Real-Time Listener (WebSocket & BroadcastChannel & Storage)
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiBase = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
+
     const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
     let socket = null;
 
