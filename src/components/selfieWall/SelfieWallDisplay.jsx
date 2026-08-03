@@ -122,7 +122,7 @@ export default function SelfieWallDisplay() {
           {/* QR Code Graphic Container */}
           <div className="p-3 bg-white rounded-2xl shadow-xl flex flex-col items-center justify-center border-4 border-indigo-600">
             <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Ffan-zone-five.vercel.app%2F"
+              src="/fanzone-qr.png"
               alt="FanZone QR Code"
               className="w-40 h-40 object-contain rounded-lg"
             />
