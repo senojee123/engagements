@@ -66,35 +66,20 @@ export const SelfieWallProvider = ({ children }) => {
     setIsSelfieWallActive(false);
   };
 
-  // Sync state changes reading latest storage state & deduplicating IDs
+  // Sync state changes using API as single source of truth
   const updateSelfiesState = (updaterFn) => {
     setSelfies((prevSelfies) => {
-      let currentStorageSelfies = prevSelfies;
-      const saved = localStorage.getItem('fanforge_selfie_wall');
-      if (saved) {
-        try {
-          currentStorageSelfies = JSON.parse(saved);
-        } catch (e) {}
-      }
-
-      const rawNext = typeof updaterFn === 'function' ? updaterFn(currentStorageSelfies) : updaterFn;
-      const nextSelfies = deduplicateSelfies(rawNext);
-
-      localStorage.setItem('fanforge_selfie_wall', JSON.stringify(nextSelfies));
-
-      try {
-        const channel = new BroadcastChannel('fanforge_selfie_sync');
-        channel.postMessage({ type: 'SELFIES_UPDATED', payload: nextSelfies });
-        channel.close();
-      } catch (e) {}
-
-      return nextSelfies;
+      const rawNext = typeof updaterFn === 'function' ? updaterFn(prevSelfies) : updaterFn;
+      return deduplicateSelfies(rawNext);
     });
   };
 
   // 1. Initial & Background Sync (Fast 3-second Auto-Polling)
   useEffect(() => {
     let isCancelled = false;
+    try {
+      localStorage.removeItem('fanforge_selfie_wall');
+    } catch (e) {}
 
     const loadSelfies = () => {
       fetchSelfiesApi()
