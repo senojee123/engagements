@@ -210,7 +210,21 @@ export const ReactionWallProvider = ({ children }) => {
 export const useReactionWall = () => {
   const context = useContext(ReactionWallContext);
   if (!context) {
-    throw new Error('useReactionWall must be used within a ReactionWallProvider');
+    return {
+      activeReactions: [],
+      totalCount: 0,
+      isReactionWallActive: false,
+      activeBrand: DEFAULT_BRAND_KITS[0],
+      frameConfig: {},
+      updateFrameConfig: () => {},
+      setActiveBrand: () => {},
+      setIsReactionWallActive: () => {},
+      launchReactionWall: () => {},
+      stopReactionWall: () => {},
+      emitReaction: async () => {},
+      clearReactions: () => {},
+      resetTotalCount: () => {},
+    };
   }
   return context;
 };

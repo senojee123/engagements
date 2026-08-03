@@ -271,7 +271,30 @@ export const SelfieWallProvider = ({ children }) => {
 export const useSelfieWall = () => {
   const context = useContext(SelfieWallContext);
   if (!context) {
-    throw new Error('useSelfieWall must be used within a SelfieWallProvider');
+    return {
+      selfies: [],
+      approvedSelfies: INITIAL_SELFIES,
+      pendingSelfies: [],
+      flaggedSelfies: [],
+      activeBrand: DEFAULT_BRAND_KITS[0],
+      displayMode: 'grid',
+      carouselSpeed: 4,
+      aiAutoApprove: false,
+      aiSensitivity: 80,
+      isLiveStreamConnected: true,
+      isSelfieWallActive: false,
+      setIsSelfieWallActive: () => {},
+      launchSelfieWall: () => {},
+      stopSelfieWall: () => {},
+      uploadSelfie: () => {},
+      approveSelfie: () => {},
+      rejectSelfie: () => {},
+      toggleFeatured: () => {},
+      deleteSelfie: () => {},
+      bulkApprove: () => {},
+      bulkReject: () => {},
+      resetAllSelfies: () => {},
+    };
   }
   return context;
 };

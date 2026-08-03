@@ -6,9 +6,8 @@ import { useReactionWall } from '../../context/ReactionWallContext';
 export default function ReactionWallDisplay({ isStandalonePage = false }) {
   const { activeReactions, totalCount, activeBrand, frameConfig } = useReactionWall();
 
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-  const qrTargetUrl = `${currentOrigin}/fan-zone`;
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrTargetUrl)}`;
+  const fanzoneUrl = import.meta.env.VITE_FANZONE_URL || 'https://fan-zone-five.vercel.app/';
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
   const logoSource = frameConfig?.logoUrl || '';
 
@@ -56,7 +55,7 @@ export default function ReactionWallDisplay({ isStandalonePage = false }) {
               TOTAL FAN REACTIONS
             </span>
             <span className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-tight flex items-center justify-end gap-1.5">
-              🔥 {totalCount.toLocaleString()}
+              🔥 {(totalCount || 0).toLocaleString()}
             </span>
           </div>
         </div>
@@ -74,7 +73,7 @@ export default function ReactionWallDisplay({ isStandalonePage = false }) {
               {frameConfig?.headerTagline || '🔥 LIVE FAN ENERGY'}
             </div>
             <span className="text-xs text-slate-400 font-mono font-semibold">
-              {activeReactions.length} active particles on screen
+              {(activeReactions || []).length} active particles on screen
             </span>
           </div>
 

@@ -259,7 +259,19 @@ export const LivePollProvider = ({ children }) => {
 export const useLivePoll = () => {
   const context = useContext(LivePollContext);
   if (!context) {
-    throw new Error('useLivePoll must be used within a LivePollProvider');
+    return {
+      polls: [INITIAL_FALLBACK_POLL],
+      activePoll: INITIAL_FALLBACK_POLL,
+      isPollActive: false,
+      activeBrand: DEFAULT_BRAND_KITS[0],
+      setActiveBrand: () => {},
+      setIsPollActive: () => {},
+      launchLivePoll: () => {},
+      stopLivePoll: () => {},
+      submitVote: async () => {},
+      createPoll: async () => {},
+      resetPoll: async () => {},
+    };
   }
   return context;
 };
