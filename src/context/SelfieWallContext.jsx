@@ -100,7 +100,7 @@ export const SelfieWallProvider = ({ children }) => {
     fetchSelfiesApi()
       .then((data) => {
         if (!isCancelled && Array.isArray(data) && data.length > 0) {
-          setSelfies((prev) => deduplicateSelfies([...data, ...prev]));
+          setSelfies(deduplicateSelfies(data));
         }
       })
       .catch(() => {});
