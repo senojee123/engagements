@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   SwitchCamera,
   Smile,
+  Brain,
+  Trophy,
 } from 'lucide-react';
 import { useSelfieWall } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
@@ -25,6 +27,47 @@ function FanZoneLandingContent() {
   const { activePoll, submitVote, isPollActive } = useLivePoll();
   const { emitReaction, isReactionWallActive } = useReactionWall();
   const toast = useToast();
+
+  // Memory Challenge Game State
+  const EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
+  const [memoryCards, setMemoryCards] = useState([]);
+  const [flippedCards, setFlippedCards] = useState([]);
+  const [matchedPairs, setMatchedPairs] = useState([]);
+  const [moveCount, setMoveCount] = useState(0);
+
+  const resetMemoryGame = () => {
+    const shuffled = [...EMOJI_PAIRS, ...EMOJI_PAIRS]
+      .sort(() => Math.random() - 0.5)
+      .map((emoji, index) => ({ id: index, emoji }));
+    setMemoryCards(shuffled);
+    setFlippedCards([]);
+    setMatchedPairs([]);
+    setMoveCount(0);
+  };
+
+  const handleCardClick = (index) => {
+    if (flippedCards.length === 2 || flippedCards.includes(index) || matchedPairs.includes(memoryCards[index]?.emoji)) {
+      return;
+    }
+
+    const nextFlipped = [...flippedCards, index];
+    setFlippedCards(nextFlipped);
+
+    if (nextFlipped.length === 2) {
+      setMoveCount((m) => m + 1);
+      const [firstIdx, secondIdx] = nextFlipped;
+      if (memoryCards[firstIdx]?.emoji === memoryCards[secondIdx]?.emoji) {
+        const matchedEmoji = memoryCards[firstIdx]?.emoji;
+        setMatchedPairs((prev) => [...prev, matchedEmoji]);
+        setFlippedCards([]);
+        toast.success(`Match found! ${matchedEmoji}`);
+      } else {
+        setTimeout(() => {
+          setFlippedCards([]);
+        }, 800);
+      }
+    }
+  };
 
   const DEFAULT_FANZONE_SETTINGS = {
     headerTitle: 'FAN ZONE',
@@ -285,6 +328,30 @@ function FanZoneLandingContent() {
             isSelfieWallActive ? 'bg-red-600 text-white shadow-lg ring-2 ring-red-500/30' : 'bg-white/60 text-slate-700'
           }`}>
             <Camera className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* 4. MEMORY CHALLENGE CARD */}
+        <div
+          onClick={() => {
+            resetMemoryGame();
+            setActiveModal('memory-challenge');
+          }}
+          className="group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-90 hover:opacity-100"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-purple-600">
+              FAN GAME • FEATURED
+            </span>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
+              Memory Challenge
+            </h3>
+            <span className="text-xs font-semibold flex items-center gap-1 text-emerald-700 font-bold">
+              ● PLAY NOW • Match stadium icon pairs & win points!
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 bg-purple-600 text-white shadow-lg ring-2 ring-purple-500/30">
+            <Brain className="w-6 h-6" />
           </div>
         </div>
       </main>
@@ -623,6 +690,90 @@ function FanZoneLandingContent() {
                   </button>
                 ))}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* MODAL 4: MEMORY CHALLENGE MATCHING GAME */}
+        {/* ---------------------------------------------------- */}
+        {activeModal === 'memory-challenge' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-left relative overflow-hidden"
+            >
+              <button
+                onClick={() => setActiveModal(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md font-bold">
+                  <Brain className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-lg">Memory Challenge</h3>
+                  <p className="text-xs text-purple-600 font-semibold">Match all stadium icon pairs!</p>
+                </div>
+              </div>
+
+              {/* Game Score & Move Count */}
+              <div className="flex items-center justify-between px-4 py-2 rounded-2xl bg-purple-50 border border-purple-100 text-xs font-extrabold text-purple-900">
+                <span>Moves: {moveCount}</span>
+                <span>Matched: {matchedPairs.length} / {EMOJI_PAIRS.length}</span>
+              </div>
+
+              {/* Card Grid */}
+              <div className="grid grid-cols-4 gap-2.5 py-2">
+                {memoryCards.map((card, idx) => {
+                  const isFlipped = flippedCards.includes(idx) || matchedPairs.includes(card.emoji);
+                  const isMatched = matchedPairs.includes(card.emoji);
+
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={() => handleCardClick(idx)}
+                      disabled={isMatched}
+                      className={`aspect-square rounded-2xl text-2xl font-bold flex items-center justify-center transition-all duration-300 transform shadow-sm ${
+                        isMatched
+                          ? 'bg-emerald-100 border-2 border-emerald-400 text-emerald-800 scale-95 opacity-80'
+                          : isFlipped
+                          ? 'bg-purple-600 text-white border-2 border-purple-400 scale-105 shadow-md'
+                          : 'bg-slate-100 hover:bg-slate-200 border border-slate-300 text-transparent active:scale-95'
+                      }`}
+                    >
+                      {isFlipped ? card.emoji : '❓'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Victory Banner */}
+              {matchedPairs.length === EMOJI_PAIRS.length && (
+                <div className="p-4 rounded-2xl bg-emerald-500 text-white text-center space-y-2 animate-bounce shadow-xl">
+                  <div className="flex items-center justify-center gap-2">
+                    <Trophy className="w-6 h-6 text-amber-300 fill-amber-300" />
+                    <span className="font-black text-base">CHALLENGE COMPLETED!</span>
+                  </div>
+                  <p className="text-xs font-semibold">You completed the challenge in {moveCount} moves! 🎉</p>
+                  <button
+                    onClick={resetMemoryGame}
+                    className="px-4 py-1.5 rounded-xl bg-white text-emerald-900 font-extrabold text-xs shadow-md"
+                  >
+                    Play Again 🔄
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
