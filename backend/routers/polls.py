@@ -194,6 +194,23 @@ async def reset_poll_votes(poll_id: str, db: Session = Depends(get_db)):
     return res
 
 
+@router.delete("/{poll_id}")
+async def delete_poll(poll_id: str, db: Session = Depends(get_db)):
+    poll = db.query(models.PollModel).filter(models.PollModel.id == poll_id).first()
+    if poll:
+        db.delete(poll)
+        db.commit()
+        try:
+            from main import manager
+            await manager.broadcast({
+                "type": "POLL_DELETED",
+                "pollId": poll_id
+            })
+        except Exception:
+            pass
+    return {"status": "deleted", "pollId": poll_id}
+
+
 def seed_polls(db: Session):
     from sqlalchemy import text
     try:

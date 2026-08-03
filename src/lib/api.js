@@ -67,6 +67,7 @@ export const submitVoteApi = (pollId, optionId) => request('POST', '/api/polls/v
 export const createPollApi = (data) => request('POST', '/api/polls/', data);
 export const activatePollApi = (pollId) => request('POST', `/api/polls/${pollId}/activate`);
 export const resetPollApi = (pollId) => request('POST', `/api/polls/${pollId}/reset`);
+export const deletePollApi = (pollId) => request('DELETE', `/api/polls/${pollId}`);
 
 // Reaction Wall
 export const emitReactionApi = (emoji, fanName) => request('POST', '/api/reactions/emit', { emoji, fanName });

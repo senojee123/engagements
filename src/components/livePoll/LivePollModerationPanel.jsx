@@ -11,6 +11,7 @@ import {
   Sparkles,
   Zap,
   Check,
+  Trash2,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -25,6 +26,7 @@ export default function LivePollModerationPanel() {
     switchActivePoll,
     createPoll,
     resetPoll,
+    deletePoll,
     submitVote,
     isPollActive,
     launchLivePoll,
@@ -108,6 +110,23 @@ export default function LivePollModerationPanel() {
           >
             Reset Vote Counts
           </Button>
+
+          {activePoll && (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Trash2}
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete poll: "${activePoll.question}"?`)) {
+                  deletePoll(activePoll.id);
+                  toast.success('Poll deleted.');
+                }
+              }}
+              className="text-rose-600 border-rose-200 hover:bg-rose-50"
+            >
+              Delete Poll
+            </Button>
+          )}
 
           {isPollActive ? (
             <Button
@@ -325,8 +344,21 @@ export default function LivePollModerationPanel() {
                       {poll.question}
                     </h4>
                     <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100 mt-2 font-mono">
-                      <span>{poll.options?.length || 0} Options</span>
-                      <span className="font-semibold text-slate-700">{poll.totalVotes || 0} Votes</span>
+                      <span>{poll.options?.length || 0} Options • {poll.totalVotes || 0} Votes</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Delete poll: "${poll.question}"?`)) {
+                            deletePoll(poll.id);
+                            toast.success('Poll deleted.');
+                          }
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Delete Poll"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 );

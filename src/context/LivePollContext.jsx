@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchPolls, fetchActivePoll, submitVoteApi, createPollApi, activatePollApi, resetPollApi } from '../lib/api';
+import { fetchPolls, fetchActivePoll, submitVoteApi, createPollApi, activatePollApi, resetPollApi, deletePollApi } from '../lib/api';
+
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 
 const LivePollContext = createContext(null);
@@ -236,6 +237,14 @@ export const LivePollProvider = ({ children }) => {
     } catch (e) {}
   };
 
+  const deletePoll = async (pollId) => {
+    setPolls((prev) => prev.filter((p) => p.id !== pollId));
+    setActivePoll((prev) => (prev?.id === pollId ? null : prev));
+    try {
+      await deletePollApi(pollId);
+    } catch (e) {}
+  };
+
   const launchLivePoll = () => {
     setIsPollActiveState(true);
     localStorage.setItem('fanforge_live_poll_active', JSON.stringify(true));
@@ -260,6 +269,7 @@ export const LivePollProvider = ({ children }) => {
         switchActivePoll,
         createPoll,
         resetPoll,
+        deletePoll,
         launchLivePoll,
         stopLivePoll,
       }}
