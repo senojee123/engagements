@@ -130,8 +130,21 @@ function FanZoneLandingContent() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      const width = video.videoWidth || 640;
-      const height = video.videoHeight || 640;
+
+      const maxDim = 480;
+      let width = video.videoWidth || 640;
+      let height = video.videoHeight || 640;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
       canvas.width = width;
       canvas.height = height;
 
@@ -141,11 +154,11 @@ function FanZoneLandingContent() {
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, width, height);
 
-      const capturedUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const capturedUrl = canvas.toDataURL('image/jpeg', 0.6);
       setSelectedPhoto(capturedUrl);
       stopCameraStream();
       setSelfieStage('preview');
-      toast.success('Selfie captured! Add your caption & send.');
+      toast.success('Selfie captured! Tap SEND to submit.');
     } else if (hasCameraError) {
       setSelfieStage('preview');
     }
