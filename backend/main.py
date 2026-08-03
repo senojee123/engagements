@@ -19,6 +19,7 @@ try:
         conn.execute(text("DROP TABLE IF EXISTS polls"))
         conn.execute(text("DROP TABLE IF EXISTS templates"))
         conn.execute(text("DROP TABLE IF EXISTS screen_state"))
+        conn.execute(text("DROP TABLE IF EXISTS selfies"))
         conn.commit()
 except Exception:
     pass
