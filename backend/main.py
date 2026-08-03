@@ -327,6 +327,25 @@ async def bulk_approve(req: schemas.BulkActionRequest, db: Session = Depends(get
     return {"status": "success", "approved_count": len(req.ids)}
 
 
+@app.delete("/api/selfies/clear")
+async def clear_all_selfies(db: Session = Depends(get_db)):
+    db.query(models.SelfieModel).delete()
+    db.commit()
+    await manager.broadcast({"type": "SELFIES_UPDATED"})
+    return {"status": "cleared"}
+
+
+@app.delete("/api/selfies/{selfie_id}")
+async def delete_selfie(selfie_id: str, db: Session = Depends(get_db)):
+    selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
+    if selfie:
+        db.delete(selfie)
+        db.commit()
+        await manager.broadcast({"type": "SELFIES_UPDATED"})
+    return {"status": "deleted", "id": selfie_id}
+
+
+
 # ----------------------------------------------------
 # REST API ENDPOINTS: IDLE SCREEN SETTINGS
 # ----------------------------------------------------

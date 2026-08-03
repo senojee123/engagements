@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_SELFIES } from '../data/selfieWallData';
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
-import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi } from '../lib/api';
+import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi, deleteSelfieApi, clearSelfiesApi } from '../lib/api';
+
 
 const SelfieWallContext = createContext(null);
 
@@ -278,6 +279,12 @@ export const SelfieWallProvider = ({ children }) => {
 
   const deleteSelfie = (id) => {
     updateSelfiesState((latest) => latest.filter((s) => s.id !== id));
+    deleteSelfieApi(id).catch(() => {});
+  };
+
+  const resetAllSelfies = () => {
+    updateSelfiesState([]);
+    clearSelfiesApi().catch(() => {});
   };
 
   const bulkApprove = (ids) => {

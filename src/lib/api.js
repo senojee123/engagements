@@ -78,6 +78,9 @@ export const fetchSelfiesApi = (status) => request('GET', `/api/selfies${status 
 export const uploadSelfieApi = (data) => request('POST', '/api/selfies/upload', data);
 export const approveSelfieApi = (id) => request('POST', `/api/selfies/${id}/approve`);
 export const rejectSelfieApi = (id) => request('POST', `/api/selfies/${id}/reject`);
+export const deleteSelfieApi = (id) => request('DELETE', `/api/selfies/${id}`);
+export const clearSelfiesApi = () => request('DELETE', '/api/selfies/clear');
+
 
 
 
