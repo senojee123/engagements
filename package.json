@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:fanzone": "vite --config vite.config.fanzone.js",
     "build": "vite build",
+    "build:fanzone": "vite build --config vite.config.fanzone.js && node -e \"import('node:fs').then(fs => fs.copyFileSync('dist-fanzone/fanzone.html', 'dist-fanzone/index.html'))\"",
+    "preview:fanzone": "vite preview --config vite.config.fanzone.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -13,6 +16,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.27.0",
+    "phaser": "^4.2.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

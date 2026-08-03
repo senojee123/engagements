@@ -4,13 +4,43 @@ import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 
 const ReactionWallContext = createContext(null);
 
+const DEFAULT_FRAME_CONFIG = {
+  networkTitle: 'STADIUM FAN NETWORK',
+  headerTagline: '🔥 LIVE FAN ENERGY',
+  footerText: 'FAN REACTION STREAM • LIVE STADIUM FAN FEED',
+  poweredByText: 'POWERED BY FanForge Engagement OS ⚡',
+  qrTitle: 'SCAN & SEND REACTIONS',
+  qrSubtitle: 'Point your phone camera at the QR code to burst emojis live on the big screen!',
+  logoUrl: '',
+};
+
 export const ReactionWallProvider = ({ children }) => {
   const [activeReactions, setActiveReactions] = useState([]);
-  const [totalCount, setTotalCount] = useState(1480);
+  const [totalCount, setTotalCount] = useState(() => {
+    const saved = localStorage.getItem('fanforge_reaction_total_count');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
   const [isReactionWallActive, setIsReactionWallActiveState] = useState(() => {
     const saved = localStorage.getItem('fanforge_reaction_wall_active');
     return saved ? JSON.parse(saved) : false;
   });
+
+  const [frameConfig, setFrameConfigState] = useState(() => {
+    const saved = localStorage.getItem('fanforge_reaction_frame_config');
+    return saved ? JSON.parse(saved) : DEFAULT_FRAME_CONFIG;
+  });
+
+  const updateFrameConfig = (newConfig) => {
+    const updated = { ...frameConfig, ...newConfig };
+    setFrameConfigState(updated);
+    localStorage.setItem('fanforge_reaction_frame_config', JSON.stringify(updated));
+    try {
+      const channel = new BroadcastChannel('fanforge_reaction_sync');
+      channel.postMessage({ type: 'FRAME_CONFIG_UPDATED', payload: updated });
+      channel.close();
+    } catch (e) {}
+  };
 
   const [activeBrand, setActiveBrandState] = useState(() => {
     const saved = localStorage.getItem('fanforge_active_brand');
@@ -42,7 +72,11 @@ export const ReactionWallProvider = ({ children }) => {
     };
 
     setActiveReactions((prev) => [...prev.slice(-40), newItem]);
-    setTotalCount((prev) => prev + 1);
+    setTotalCount((prev) => {
+      const next = prev + 1;
+      localStorage.setItem('fanforge_reaction_total_count', next.toString());
+      return next;
+    });
 
     // Auto-prune floating emoji particle after 4 seconds
     setTimeout(() => {
@@ -75,13 +109,20 @@ export const ReactionWallProvider = ({ children }) => {
     try {
       channel = new BroadcastChannel('fanforge_reaction_sync');
       channel.onmessage = (event) => {
-        const { type, reaction, isActive } = event.data;
+        const { type, reaction, isActive, payload } = event.data;
         if (type === 'REACTION_EMITTED' && reaction) {
           addFloatingEmoji(reaction);
         } else if (type === 'REACTION_STATUS_TOGGLED') {
           setIsReactionWallActiveState(isActive);
         } else if (type === 'REACTION_CLEARED') {
           setActiveReactions([]);
+        } else if (type === 'TOTAL_COUNT_RESET') {
+          setTotalCount(0);
+          localStorage.setItem('fanforge_reaction_total_count', '0');
+        } else if (type === 'FRAME_CONFIG_UPDATED' && payload) {
+          setFrameConfigState(payload);
+        } else if (type === 'BRAND_UPDATED' && payload) {
+          setActiveBrandState(payload);
         }
       };
     } catch (e) {}
@@ -138,6 +179,12 @@ export const ReactionWallProvider = ({ children }) => {
     } catch (e) {}
   };
 
+  const resetTotalCount = () => {
+    setTotalCount(0);
+    localStorage.setItem('fanforge_reaction_total_count', '0');
+    broadcastLocally({ type: 'TOTAL_COUNT_RESET' });
+  };
+
   return (
     <ReactionWallContext.Provider
       value={{
@@ -146,10 +193,13 @@ export const ReactionWallProvider = ({ children }) => {
         isReactionWallActive,
         activeBrand,
         setActiveBrand,
+        frameConfig,
+        updateFrameConfig,
         emitReaction,
         launchReactionWall,
         stopReactionWall,
         clearReactions,
+        resetTotalCount,
       }}
     >
       {children}

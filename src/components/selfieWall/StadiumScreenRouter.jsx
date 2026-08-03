@@ -8,9 +8,9 @@ import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWal
 import IdleScreenDisplay from '../../pages/public/IdleScreenDisplay';
 
 function DynamicScreen() {
-  const { isSelfieWallActive } = useSelfieWall();
-  const { isPollActive } = useLivePoll();
   const { isReactionWallActive } = useReactionWall();
+  const { isPollActive } = useLivePoll();
+  const { isSelfieWallActive } = useSelfieWall();
 
   if (isReactionWallActive) {
     return <ReactionWallDisplay isStandalonePage={true} />;
@@ -28,7 +28,6 @@ function DynamicScreen() {
 }
 
 export default function StadiumScreenRouter({ forceMode = null }) {
-  // If forceMode is set (e.g., explicit /idle-display, /selfie-wall/display, /poll-display, /reaction-display route)
   if (forceMode === 'idle') {
     return <IdleScreenDisplay />;
   }
@@ -62,6 +61,3 @@ export default function StadiumScreenRouter({ forceMode = null }) {
     </LivePollProvider>
   );
 }
-
-
-

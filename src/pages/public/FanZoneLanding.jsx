@@ -20,14 +20,11 @@ import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useToast } from '../../context/ToastContext';
 
-
 function FanZoneLandingContent() {
-  const { uploadSelfie, activeBrand, selfies } = useSelfieWall();
-  const { activePoll, submitVote } = useLivePoll();
-  const { emitReaction } = useReactionWall();
+  const { uploadSelfie, activeBrand, selfies, isSelfieWallActive } = useSelfieWall();
+  const { activePoll, submitVote, isPollActive } = useLivePoll();
+  const { emitReaction, isReactionWallActive } = useReactionWall();
   const toast = useToast();
-
-
 
   const [activeModal, setActiveModal] = useState(null); // null | 'selfie-wall' | 'live-vote' | 'reaction-wall'
   const [selfieStage, setSelfieStage] = useState('camera'); // 'camera' | 'preview' | 'sent'
@@ -145,7 +142,6 @@ function FanZoneLandingContent() {
     toast.info(`Broadcasted ${emoji} reaction to big screen!`);
   };
 
-
   return (
     <div className="min-h-screen bg-[#f4f2ee] text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 max-w-2xl mx-auto selection:bg-rose-500 selection:text-white">
       {/* Hidden Canvas for Camera Snapshot */}
@@ -179,20 +175,26 @@ function FanZoneLandingContent() {
         {/* 1. LIVE VOTE CARD */}
         <div
           onClick={() => setActiveModal('live-vote')}
-          className="group bg-[#eae7e1] hover:bg-[#e2ded6] p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between border border-black/5 hover:border-black/15 shadow-2xs"
+          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
+            isPollActive
+              ? 'bg-[#eae7e1] border-2 border-indigo-500 hover:border-indigo-600 shadow-md ring-1 ring-indigo-500/20'
+              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
+          }`}
         >
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
-              LIVE VOTE
+            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isPollActive ? 'text-indigo-600' : 'text-slate-500'}`}>
+              LIVE VOTE {isPollActive && '• FEATURED'}
             </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
               Cast your vote on the live match question
             </h3>
-            <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-              ● LIVE NOW
+            <span className={`text-xs font-semibold flex items-center gap-1 ${isPollActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+              {isPollActive ? '● LIVE NOW' : '○ STANDBY'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-slate-700 group-hover:scale-105 transition-transform shrink-0">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+            isPollActive ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-500/30' : 'bg-white/60 text-slate-700'
+          }`}>
             <Vote className="w-6 h-6" />
           </div>
         </div>
@@ -200,44 +202,56 @@ function FanZoneLandingContent() {
         {/* 2. REACTION WALL CARD */}
         <div
           onClick={() => setActiveModal('reaction-wall')}
-          className="group bg-[#eae7e1] hover:bg-[#e2ded6] p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between border border-black/5 hover:border-black/15 shadow-2xs"
+          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
+            isReactionWallActive
+              ? 'bg-[#eae7e1] border-2 border-amber-500 hover:border-amber-600 shadow-md ring-1 ring-amber-500/20'
+              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
+          }`}
         >
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
-              REACTION WALL
+            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isReactionWallActive ? 'text-amber-600' : 'text-slate-500'}`}>
+              REACTION WALL {isReactionWallActive && '• FEATURED'}
             </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
               Send your emoji reaction to the big screen
             </h3>
-            <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-              ● LIVE NOW
+            <span className={`text-xs font-semibold flex items-center gap-1 ${isReactionWallActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+              {isReactionWallActive ? '● LIVE NOW' : '○ STANDBY'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center text-slate-700 group-hover:scale-105 transition-transform shrink-0">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+            isReactionWallActive ? 'bg-amber-500 text-slate-950 shadow-lg ring-2 ring-amber-500/30' : 'bg-white/60 text-slate-700'
+          }`}>
             <Radio className="w-6 h-6" />
           </div>
         </div>
 
-        {/* 3. SELFIE CAM / SELFIE WALL CARD (FLAGSHIP ACTIVE) */}
+        {/* 3. SELFIE CAM CARD */}
         <div
           onClick={() => {
             setActiveModal('selfie-wall');
             setSelfieStage('camera');
           }}
-          className="group bg-[#eae7e1] hover:bg-[#e2ded6] p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between border-2 border-red-500/30 hover:border-red-500 shadow-md relative overflow-hidden"
+          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
+            isSelfieWallActive
+              ? 'bg-[#eae7e1] border-2 border-red-500 hover:border-red-600 shadow-md ring-1 ring-red-500/20'
+              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
+          }`}
         >
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 font-mono flex items-center gap-1">
-              SELFIE CAM • FEATURED
+            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isSelfieWallActive ? 'text-red-600' : 'text-slate-500'}`}>
+              SELFIE CAM {isSelfieWallActive && '• FEATURED'}
             </span>
             <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
               Capture your moment and appear on the big screen
             </h3>
-            <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-              ● LIVE NOW • Tap to Open Selfie Camera
+            <span className={`text-xs font-semibold flex items-center gap-1 ${isSelfieWallActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+              {isSelfieWallActive ? '● LIVE NOW • Tap to Open Selfie Camera' : '○ STANDBY'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+            isSelfieWallActive ? 'bg-red-600 text-white shadow-lg ring-2 ring-red-500/30' : 'bg-white/60 text-slate-700'
+          }`}>
             <Camera className="w-6 h-6" />
           </div>
         </div>
