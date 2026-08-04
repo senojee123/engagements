@@ -336,8 +336,7 @@ function FanZoneLandingContent() {
         {/* 4. MEMORY CHALLENGE CARD */}
         <div
           onClick={() => {
-            resetMemoryGame();
-            setActiveModal('memory-challenge');
+            // Memory challenge link destination (can be configured by user)
           }}
           className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
             isMemoryChallengeActive
@@ -353,7 +352,7 @@ function FanZoneLandingContent() {
               Match stadium icon pairs and win points
             </h3>
             <span className={`text-xs font-semibold flex items-center gap-1 ${isMemoryChallengeActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-              {isMemoryChallengeActive ? '● LIVE NOW • Tap to Play Memory Challenge' : '○ STANDBY'}
+              {isMemoryChallengeActive ? '● LIVE NOW' : '○ STANDBY'}
             </span>
           </div>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
