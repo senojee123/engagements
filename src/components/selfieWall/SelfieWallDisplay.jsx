@@ -7,6 +7,7 @@ export default function SelfieWallDisplay() {
   const { approvedSelfies = [], activeBrand } = useSelfieWall();
   const [spotlightQueue, setSpotlightQueue] = useState([]);
   const [currentSpotlight, setCurrentSpotlight] = useState(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const prevApprovedIdsRef = useRef(new Set(approvedSelfies.map((s) => s.id)));
 
   // 1. Detect newly approved selfies and add to spotlight queue
@@ -46,13 +47,33 @@ export default function SelfieWallDisplay() {
     }
   }, [currentSpotlight]);
 
+  // 4. Auto-rotate / slide pages every 5 seconds when there are > 6 selfies and no active spotlight popup
+  const totalPages = Math.max(1, Math.ceil(approvedSelfies.length / 6));
+
+  useEffect(() => {
+    if (approvedSelfies.length <= 6) {
+      setPageIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (!currentSpotlight) {
+        setPageIndex((prev) => (prev + 1) % Math.ceil(approvedSelfies.length / 6));
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [approvedSelfies.length, currentSpotlight]);
+
   const brand = activeBrand || {
     name: 'Coca-Cola',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg',
   };
 
-  // Always render exactly 6 boxes for selfies
-  const displayBoxes = Array.from({ length: 6 }, (_, index) => approvedSelfies[index] || null);
+  // Slice exactly 6 boxes for current page
+  const safePageIndex = pageIndex % totalPages;
+  const currentChunk = approvedSelfies.slice(safePageIndex * 6, safePageIndex * 6 + 6);
+  const displayBoxes = Array.from({ length: 6 }, (_, index) => currentChunk[index] || null);
 
   return (
     <div className="w-full min-h-screen bg-black text-white font-sans flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden">
@@ -81,13 +102,14 @@ export default function SelfieWallDisplay() {
       <main className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 max-w-7xl mx-auto w-full my-auto z-20">
         {/* 6-BOX GRID (3 COLUMNS x 2 ROWS) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 flex-1 w-full max-w-4xl">
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {displayBoxes.map((photo, idx) => (
               <motion.div
-                key={photo ? photo.id : `empty-${idx}`}
-                initial={{ scale: 0.8, opacity: 0 }}
+                key={photo ? `${photo.id}-${safePageIndex}` : `empty-${idx}-${safePageIndex}`}
+                initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
                 className="relative aspect-square rounded-3xl overflow-hidden border-2 border-white/20 bg-slate-950 shadow-2xl flex flex-col items-center justify-center group"
               >
                 {photo ? (
@@ -160,7 +182,14 @@ export default function SelfieWallDisplay() {
       {/* ---------------------------------------------------- */}
       <footer className="mt-4 border-t border-white/10 pt-3 flex items-center justify-between text-xs text-slate-500 font-mono z-20">
         <span>POWERED BY FANFORGE ENGAGEMENT OS</span>
-        <span className="text-cyan-400 font-extrabold">{approvedSelfies.length} FAN PHOTOS BROADCASTED LIVE</span>
+        <div className="flex items-center gap-3">
+          {totalPages > 1 && (
+            <span className="text-amber-400 font-bold bg-amber-950/80 px-2.5 py-0.5 rounded-full border border-amber-800/60 animate-pulse">
+              PAGE {safePageIndex + 1} OF {totalPages}
+            </span>
+          )}
+          <span className="text-cyan-400 font-extrabold">{approvedSelfies.length} FAN PHOTOS BROADCASTED LIVE</span>
+        </div>
       </footer>
 
       {/* ---------------------------------------------------- */}
