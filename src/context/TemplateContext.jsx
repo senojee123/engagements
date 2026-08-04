@@ -4,6 +4,31 @@ import { fetchTemplates, createTemplateApi } from '../lib/api';
 
 const DEFAULT_FALLBACK_TEMPLATES = [
   {
+    id: 'lane-daze',
+    title: 'Lane Daze',
+    category: 'Games',
+    description:
+      'High-energy 3-lane arcade endless runner engagement template (Subway Surfers style) for stadium big screens and venue mobile fan portals. Fans switch lanes to dodge hurdles, collect power-ups, and build massive combo streaks.',
+    thumbnail: '/lane_daze.png',
+    duration: '1-3 mins',
+    difficulty: 'Medium',
+    audienceSize: '100 - 100,000+',
+    popularity: 4.94,
+    ratingCount: 275,
+    tags: ['Subway Surfers Style', '3-Lane Runner', 'Arcade Game', 'Sponsor Power-Ups', 'Fan Engagement'],
+    status: 'Active Backend',
+    isFeatured: true,
+    supportedOutputs: ['Mobile Web', 'LED Screen', 'Projector', 'TV Display', 'Jumbotron'],
+    defaultBrand: 'coca-cola',
+    playerJourney: [
+      '1. Scan QR Code displayed on venue Jumbotron or stadium screen.',
+      '2. Launch Lane Daze high-speed arcade runner on mobile.',
+      '3. Tap Left, Center, or Right lane buttons to navigate the neon track.',
+      '4. Collect sponsor items and nitro boosts while dodging obstacles.',
+      '5. Achieve a top score on the stadium leaderboard to win instant sponsor rewards.',
+    ],
+  },
+  {
     id: 'memory-challenge',
     title: 'Memory Challenge',
     category: 'Games',

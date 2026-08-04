@@ -45,6 +45,7 @@ import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
+import { updateScreenStatusApi } from '../../lib/api';
 
 
 
@@ -1089,14 +1090,45 @@ export default function TemplateDetails() {
             >
               {favorited ? 'Bookmarked' : 'Favorite'}
             </Button>
-            <Button
-              onClick={() => navigate('/builder')}
-              variant="primary"
-              icon={Sparkles}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg"
-            >
-              Customize in Visual Studio
-            </Button>
+            {template.id === 'lane-daze' ? (
+              localStorage.getItem('fanforge_active_mode') === 'lane-daze' ? (
+                <Button
+                  onClick={() => {
+                    localStorage.setItem('fanforge_active_mode', 'idle');
+                    window.dispatchEvent(new Event('storage'));
+                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => {});
+                    toast.info('Lane Daze broadcast stopped. Screen returned to Idle.');
+                  }}
+                  variant="outline"
+                  className="bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 font-bold"
+                >
+                  ● Live: Stop Broadcast (Return to Idle)
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    localStorage.setItem('fanforge_active_mode', 'lane-daze');
+                    window.dispatchEvent(new Event('storage'));
+                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'lane-daze' }).catch(() => {});
+                    toast.success('Lane Daze launched live on active display screen!');
+                  }}
+                  variant="primary"
+                  icon={Tv}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-lg"
+                >
+                  🚀 Launch on Screen
+                </Button>
+              )
+            ) : (
+              <Button
+                onClick={() => navigate('/builder')}
+                variant="primary"
+                icon={Sparkles}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg"
+              >
+                Customize in Visual Studio
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -1123,7 +1155,7 @@ export default function TemplateDetails() {
       )}
 
       {/* Interactive Brand Switcher & Gameplay Preview */}
-      {template.id !== 'memory-challenge' && (
+      {template.id !== 'memory-challenge' && template.id !== 'lane-daze' && (
         <div className="space-y-6">
           <BrandSwitcher activeBrand={selectedBrand} onSelectBrand={setSelectedBrand} />
           {selectedBrand && <GameplayMockup brand={selectedBrand} templateId={template.id} />}

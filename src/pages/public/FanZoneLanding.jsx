@@ -74,6 +74,7 @@ function FanZoneLandingContent() {
   const activeReactionComputed = isReactionWallActive || remoteActiveMode === 'reaction-wall';
   const activeSelfieComputed = isSelfieWallActive || remoteActiveMode === 'selfie-wall';
   const activeMemoryComputed = isMemoryChallengeActive || remoteActiveMode === 'memory-challenge';
+  const activeLaneDazeComputed = remoteActiveMode === 'lane-daze';
 
   // Memory Challenge Game State
   const EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
@@ -355,6 +356,20 @@ function FanZoneLandingContent() {
             bgColor: 'bg-emerald-600',
             icon: Brain,
             statusText: activeMemoryComputed ? '● LIVE NOW' : '○ STANDBY',
+          },
+          {
+            id: 'lane-daze',
+            title: '3-lane arcade runner — switch lanes & collect power-ups',
+            label: 'LANE DAZE',
+            isActive: activeLaneDazeComputed,
+            onClick: () => {},
+            color: 'cyan',
+            borderColor: 'border-cyan-600',
+            textColor: 'text-cyan-600',
+            ringColor: 'ring-cyan-500/30',
+            bgColor: 'bg-cyan-600',
+            icon: Trophy,
+            statusText: activeLaneDazeComputed ? '● LIVE NOW' : '○ STANDBY',
           },
         ]
           .sort((a, b) => (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0))

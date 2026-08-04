@@ -90,6 +90,8 @@ export default function App() {
                     <Route path="/reaction-wall/display" element={<StadiumScreenRouter forceMode="reaction-wall" />} />
                     <Route path="/memory-display" element={<StadiumScreenRouter forceMode="memory-challenge" />} />
                     <Route path="/memory-challenge/display" element={<StadiumScreenRouter forceMode="memory-challenge" />} />
+                    <Route path="/lane-daze-display" element={<StadiumScreenRouter forceMode="lane-daze" />} />
+                    <Route path="/lane-daze/display" element={<StadiumScreenRouter forceMode="lane-daze" />} />
 
                     {/* Dynamic Stadium Broadcast Screen (Switches automatically between Idle Screen, Selfie Wall, Live Poll & Reaction Wall) */}
                     <Route path="/display" element={<StadiumScreenRouter />} />

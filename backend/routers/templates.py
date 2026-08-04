@@ -69,6 +69,36 @@ def create_template(data: schemas.TemplateCreate, db: Session = Depends(get_db))
 
 
 def seed_templates(db: Session):
+    if not db.query(models.TemplateModel).filter_by(id="lane-daze").first():
+        db.add(models.TemplateModel(
+            id="lane-daze",
+            title="Lane Daze",
+            category="Games",
+            description=(
+                "High-energy 3-lane arcade endless runner engagement template (Subway Surfers style) for stadium big screens and venue mobile fan portals. "
+                "Fans switch lanes to dodge hurdles, collect power-ups, and build massive combo streaks."
+            ),
+            thumbnail="/lane_daze.png",
+            duration="1-3 mins",
+            difficulty="Medium",
+            audience_size="100 - 100,000+",
+            popularity=4.94,
+            rating_count=275,
+            tags=["Subway Surfers Style", "3-Lane Runner", "Arcade Game", "Sponsor Power-Ups", "Fan Engagement"],
+            status="Active Backend",
+            is_featured=True,
+            supported_outputs=["Mobile Web", "LED Screen", "Projector", "TV Display", "Jumbotron"],
+            default_brand="coca-cola",
+            player_journey=[
+                "1. Scan QR Code displayed on venue Jumbotron or stadium screen.",
+                "2. Launch Lane Daze high-speed arcade runner on mobile.",
+                "3. Tap Left, Center, or Right lane buttons to navigate the neon track.",
+                "4. Collect sponsor items and nitro boosts while dodging obstacles.",
+                "5. Achieve a top score on the stadium leaderboard to win instant sponsor rewards.",
+            ],
+            created_by_user_id=None,
+        ))
+
     if not db.query(models.TemplateModel).filter_by(id="selfie-wall").first():
         db.add(models.TemplateModel(
             id="selfie-wall",

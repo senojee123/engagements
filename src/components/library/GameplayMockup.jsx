@@ -289,8 +289,10 @@ export default function GameplayMockup({ brand, templateId = 'product-rush' }) {
         </div>
       )}
 
+
+
       {/* ---------------------------------------------------- */}
-      {/* 4. PRODUCT RUSH / DEFAULT RUNNER GAME MOCKUP */}
+      {/* 5. PRODUCT RUSH / DEFAULT RUNNER GAME MOCKUP */}
       {/* ---------------------------------------------------- */}
       {templateId === 'product-rush' && (
         <div className="p-6 relative flex flex-col justify-between" style={{ minHeight: '340px' }}>

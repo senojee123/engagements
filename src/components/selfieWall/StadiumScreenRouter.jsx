@@ -4,10 +4,13 @@ import SelfieWallDisplay from './SelfieWallDisplay';
 import LivePollDisplay from '../livePoll/LivePollDisplay';
 import ReactionWallDisplay from '../reactionWall/ReactionWallDisplay';
 import MemoryChallengeDisplay from '../memoryChallenge/MemoryChallengeDisplay';
+import LaneDazeDisplay from '../laneDaze/LaneDazeDisplay';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import IdleScreenDisplay from '../../pages/public/IdleScreenDisplay';
+
+import { fetchScreenStatusApi } from '../../lib/api';
 
 function DynamicScreen() {
   const { isChallengeActive } = useMemoryChallenge();
@@ -15,19 +18,52 @@ function DynamicScreen() {
   const { isPollActive } = useLivePoll();
   const { isSelfieWallActive } = useSelfieWall();
 
-  if (isChallengeActive) {
+  const [remoteMode, setRemoteMode] = React.useState(() => {
+    return localStorage.getItem('fanforge_active_mode') || 'idle';
+  });
+
+  React.useEffect(() => {
+    const checkStatus = () => {
+      const saved = localStorage.getItem('fanforge_active_mode');
+      if (saved) setRemoteMode(saved);
+
+      fetchScreenStatusApi()
+        .then((data) => {
+          if (data && data.activeMode) {
+            setRemoteMode(data.activeMode);
+            localStorage.setItem('fanforge_active_mode', data.activeMode);
+          }
+        })
+        .catch(() => {});
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 1500);
+    window.addEventListener('storage', checkStatus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkStatus);
+    };
+  }, []);
+
+  if (remoteMode === 'lane-daze') {
+    return <LaneDazeDisplay isStandalonePage={true} />;
+  }
+
+  if (isChallengeActive || remoteMode === 'memory-challenge') {
     return <MemoryChallengeDisplay isStandalonePage={true} />;
   }
 
-  if (isReactionWallActive) {
+  if (isReactionWallActive || remoteMode === 'reaction-wall') {
     return <ReactionWallDisplay isStandalonePage={true} />;
   }
 
-  if (isPollActive) {
+  if (isPollActive || remoteMode === 'live-poll') {
     return <LivePollDisplay isStandalonePage={true} />;
   }
 
-  if (isSelfieWallActive) {
+  if (isSelfieWallActive || remoteMode === 'selfie-wall') {
     return <SelfieWallDisplay isStandalonePage={true} />;
   }
 
@@ -61,6 +97,10 @@ export default function StadiumScreenRouter({ forceMode = null }) {
 
   if (forceMode === 'memory-challenge') {
     return <MemoryChallengeDisplay isStandalonePage={true} />;
+  }
+
+  if (forceMode === 'lane-daze') {
+    return <LaneDazeDisplay isStandalonePage={true} />;
   }
 
   // Dynamic Live Screen: Automatically routes between Memory Challenge, Reaction Wall, Live Poll, Selfie Wall & Idle Screen
