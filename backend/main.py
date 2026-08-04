@@ -404,10 +404,18 @@ async def update_idle_config(data: schemas.IdleConfigUpdate, db: Session = Depen
 @app.get("/api/screen/status")
 def get_screen_status(db: Session = Depends(get_db)):
     state = db.query(models.ScreenStateModel).filter_by(id="main_screen").first()
+    idle_config = None
+    if state and hasattr(state, "idle_config_json") and state.idle_config_json:
+        try:
+            idle_config = json.loads(state.idle_config_json)
+        except Exception:
+            pass
+
     return {
         "isSelfieWallActive": state.is_selfie_wall_active if state else False,
         "activeMode": state.active_mode if (state and hasattr(state, "active_mode")) else "idle",
-        "activeBrandId": state.active_brand_id if state else "brand-cocacola"
+        "activeBrandId": state.active_brand_id if state else "brand-cocacola",
+        "idleConfig": idle_config
     }
 
 
@@ -422,18 +430,29 @@ async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = D
         state.is_selfie_wall_active = data.isSelfieWallActive
     if data.activeMode is not None:
         state.active_mode = data.activeMode
+    if data.idleConfig is not None:
+        state.idle_config_json = json.dumps(data.idleConfig)
 
     db.commit()
+
+    idle_config = None
+    if state.idle_config_json:
+        try:
+            idle_config = json.loads(state.idle_config_json)
+        except Exception:
+            pass
 
     await manager.broadcast({
         "type": "STATUS_UPDATED",
         "isSelfieWallActive": state.is_selfie_wall_active,
-        "activeMode": state.active_mode
+        "activeMode": state.active_mode,
+        "idleConfig": idle_config
     })
 
     return {
         "isSelfieWallActive": state.is_selfie_wall_active,
-        "activeMode": state.active_mode
+        "activeMode": state.active_mode,
+        "idleConfig": idle_config
     }
 
 

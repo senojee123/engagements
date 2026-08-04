@@ -12,6 +12,8 @@ import {
   fetchNotifications,
   markNotificationReadApi,
   markAllNotificationsReadApi,
+  fetchScreenStatusApi,
+  updateScreenStatusApi,
 } from '../lib/api';
 
 const AppContext = createContext(null);
@@ -47,20 +49,69 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([fetchOrganizations(), fetchEvents(), fetchActivities(), fetchNotifications()])
-      .then(([orgs, evts, acts, notifs]) => {
+    // Fetch backend data & screen status config
+    Promise.all([fetchOrganizations(), fetchEvents(), fetchActivities(), fetchNotifications(), fetchScreenStatusApi()])
+      .then(([orgs, evts, acts, notifs, statusData]) => {
         if (cancelled) return;
         setOrganizations(orgs);
         setEvents(evts);
         setActivities(acts);
         setNotifications(notifs);
+
+        if (statusData && statusData.idleConfig) {
+          setIdleScreenConfig(statusData.idleConfig);
+          localStorage.setItem('fanforge_idle_config', JSON.stringify(statusData.idleConfig));
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
       });
 
+    // Real-Time Cross-Tab / Cross-Browser Sync Listeners
+    let channel = null;
+    try {
+      channel = new BroadcastChannel('fanforge_idle_sync');
+      channel.onmessage = (e) => {
+        if (e.data && e.data.idleConfig) {
+          setIdleScreenConfig(e.data.idleConfig);
+          localStorage.setItem('fanforge_idle_config', JSON.stringify(e.data.idleConfig));
+        }
+      };
+    } catch (e) {}
+
+    const handleStorage = (e) => {
+      if (e.key === 'fanforge_idle_config' && e.newValue) {
+        try {
+          setIdleScreenConfig(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // Periodic polling to keep cross-browser sessions up to date
+    const interval = setInterval(() => {
+      fetchScreenStatusApi()
+        .then((data) => {
+          if (!cancelled && data && data.idleConfig) {
+            setIdleScreenConfig((prev) => {
+              const strPrev = JSON.stringify(prev);
+              const strNew = JSON.stringify(data.idleConfig);
+              if (strPrev !== strNew) {
+                localStorage.setItem('fanforge_idle_config', strNew);
+                return data.idleConfig;
+              }
+              return prev;
+            });
+          }
+        })
+        .catch(() => {});
+    }, 2500);
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+      if (channel) channel.close();
     };
   }, []);
 
@@ -73,7 +124,20 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateIdleConfig = (updatedFields) => {
-    setIdleScreenConfig((prev) => ({ ...prev, ...updatedFields }));
+    setIdleScreenConfig((prev) => {
+      const updated = { ...prev, ...updatedFields };
+      localStorage.setItem('fanforge_idle_config', JSON.stringify(updated));
+      window.dispatchEvent(new Event('storage'));
+
+      try {
+        const channel = new BroadcastChannel('fanforge_idle_sync');
+        channel.postMessage({ idleConfig: updated });
+        channel.close();
+      } catch (e) {}
+
+      updateScreenStatusApi({ idleConfig: updated }).catch(() => {});
+      return updated;
+    });
   };
 
   const addSponsorLogo = (sponsor) => {
@@ -82,17 +146,19 @@ export const AppProvider = ({ children }) => {
       name: sponsor.name || 'Sponsor',
       logo: sponsor.logo || 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&w=200&q=80',
     };
-    setIdleScreenConfig((prev) => ({
-      ...prev,
-      sponsorLogos: [...prev.sponsorLogos, newSponsor],
-    }));
+    const updated = {
+      ...idleScreenConfig,
+      sponsorLogos: [...(idleScreenConfig.sponsorLogos || []), newSponsor],
+    };
+    updateIdleConfig(updated);
   };
 
   const removeSponsorLogo = (id) => {
-    setIdleScreenConfig((prev) => ({
-      ...prev,
-      sponsorLogos: prev.sponsorLogos.filter((sp) => sp.id !== id),
-    }));
+    const updated = {
+      ...idleScreenConfig,
+      sponsorLogos: (idleScreenConfig.sponsorLogos || []).filter((sp) => sp.id !== id),
+    };
+    updateIdleConfig(updated);
   };
 
   // Organization CRUD

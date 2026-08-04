@@ -69,6 +69,7 @@ class ScreenStateModel(Base):
     active_brand_id = Column(String, default="brand-cocacola")
     active_mode = Column(String, default="idle") # "idle" | "selfie-wall" | "live-poll"
     active_poll_id = Column(String, default="poll-mvp")
+    idle_config_json = Column(Text, nullable=True)
 
 
 class PollModel(Base):
