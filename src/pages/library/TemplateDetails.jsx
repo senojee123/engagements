@@ -602,7 +602,7 @@ function MemoryChallengeEngagementView({ template }) {
             </p>
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-cyan-300 font-semibold pt-1 font-mono">
-              <span>● Broadcast Status: {isChallengeActive ? 'Active on Stadium Screen (http://localhost:5173/display)' : 'Paused / Idle'}</span>
+              <span>● Status: {isChallengeActive ? 'Broadcast Live on Jumbotron' : 'Paused / Idle'}</span>
             </div>
           </div>
         </div>
@@ -610,17 +610,18 @@ function MemoryChallengeEngagementView({ template }) {
         {/* Action Buttons Toolbar Row */}
         <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-xs text-indigo-200/70 font-medium">
-            Target Display: <span className="font-bold text-white font-mono">http://localhost:5173/display</span>
+            Active Venue: <span className="font-bold text-white">Metropolis Arena Stadium</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/display')}
-              className="border-white/20 text-cyan-300 hover:bg-white/10 font-bold"
+            <a
+              href="/fan-zone"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2.5 rounded-xl bg-white/10 text-cyan-300 border border-white/20 hover:bg-white/20 font-bold text-xs flex items-center gap-1.5 transition-colors"
             >
-              📺 Open Screen Display
-            </Button>
+              <span>Open Fan Zone Mobile Portal 📱</span>
+            </a>
 
             {isChallengeActive ? (
               <Button
@@ -639,7 +640,7 @@ function MemoryChallengeEngagementView({ template }) {
                 icon={Tv}
                 onClick={() => {
                   launchChallenge();
-                  toast.success('Memory Challenge launched to http://localhost:5173/display!');
+                  toast.success('Memory Challenge launched live to stadium display screen!');
                 }}
               >
                 🚀 Launch Challenge to Screen
@@ -682,7 +683,7 @@ function MemoryChallengeEngagementView({ template }) {
                 <Sparkles className="w-5 h-5 text-indigo-600" /> Custom Screen Headlines, Logos & Copy
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Customize the titles, descriptions, sponsor logos, and broadcast wordings rendered on <code className="text-indigo-600 font-mono">http://localhost:5173/display</code>.
+                Customize the titles, descriptions, sponsor logos, and broadcast wordings rendered on the stadium display screen.
               </p>
             </div>
             <Button
