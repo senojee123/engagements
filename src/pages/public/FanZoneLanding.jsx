@@ -49,8 +49,7 @@ function FanZoneLandingContent() {
     syncStatus();
     const timer = setInterval(syncStatus, 2000);
 
-    const apiBase = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
-    const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
+    const wsUrl = 'wss://engagements-production.up.railway.app/ws';
     let socket = null;
     try {
       socket = new WebSocket(wsUrl);

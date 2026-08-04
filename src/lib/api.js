@@ -86,9 +86,35 @@ export const rejectSelfieApi = (id) => request('POST', `/api/selfies/${id}/rejec
 export const deleteSelfieApi = (id) => request('DELETE', `/api/selfies/${id}`);
 export const clearSelfiesApi = () => request('DELETE', '/api/selfies/clear');
 
-// Screen Status & Mode Routing
-export const fetchScreenStatusApi = () => request('GET', '/api/screen/status');
-export const updateScreenStatusApi = (data) => request('POST', '/api/screen/status', data);
+// Screen Status & Mode Routing (Syncs both local and Railway Cloud backend for Vercel live deployments)
+export const fetchScreenStatusApi = async () => {
+  try {
+    const data = await request('GET', '/api/screen/status');
+    if (data && data.activeMode) return data;
+  } catch (e) {}
+
+  try {
+    const res = await fetch('https://engagements-production.up.railway.app/api/screen/status');
+    return await res.json();
+  } catch (e) {
+    return { isSelfieWallActive: false, activeMode: 'idle' };
+  }
+};
+
+export const updateScreenStatusApi = async (data) => {
+  // Always update Railway Cloud backend so Vercel deployment (fan-zone-five.vercel.app) updates in real-time
+  try {
+    await fetch('https://engagements-production.up.railway.app/api/screen/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch (e) {}
+
+  try {
+    return await request('POST', '/api/screen/status', data);
+  } catch (e) {}
+};
 
 
 
