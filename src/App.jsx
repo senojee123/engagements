@@ -7,6 +7,7 @@ import { TemplateProvider } from './context/TemplateContext';
 import { SelfieWallProvider } from './context/SelfieWallContext';
 import { LivePollProvider } from './context/LivePollContext';
 import { ReactionWallProvider } from './context/ReactionWallContext';
+import { MemoryChallengeProvider } from './context/MemoryChallengeContext';
 
 // Layouts
 import AppLayout from './components/layout/AppLayout';
@@ -70,7 +71,8 @@ export default function App() {
                 <SelfieWallProvider>
                   <LivePollProvider>
                     <ReactionWallProvider>
-                      <Routes>
+                      <MemoryChallengeProvider>
+                        <Routes>
                     {/* Root Redirect */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -86,6 +88,8 @@ export default function App() {
                     <Route path="/live-poll/display" element={<StadiumScreenRouter forceMode="live-poll" />} />
                     <Route path="/reaction-display" element={<StadiumScreenRouter forceMode="reaction-wall" />} />
                     <Route path="/reaction-wall/display" element={<StadiumScreenRouter forceMode="reaction-wall" />} />
+                    <Route path="/memory-display" element={<StadiumScreenRouter forceMode="memory-challenge" />} />
+                    <Route path="/memory-challenge/display" element={<StadiumScreenRouter forceMode="memory-challenge" />} />
 
                     {/* Dynamic Stadium Broadcast Screen (Switches automatically between Idle Screen, Selfie Wall, Live Poll & Reaction Wall) */}
                     <Route path="/display" element={<StadiumScreenRouter />} />
@@ -147,9 +151,10 @@ export default function App() {
                     {/* 404 Catch-All */}
                     <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </ReactionWallProvider>
-                </LivePollProvider>
-              </SelfieWallProvider>
+                      </MemoryChallengeProvider>
+                    </ReactionWallProvider>
+                  </LivePollProvider>
+                </SelfieWallProvider>
               </TemplateProvider>
             </AppProvider>
           </AuthProvider>

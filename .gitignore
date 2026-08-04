@@ -9,8 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-fanzone
 dist-ssr
 *.local
+.env
+*.db
+__pycache__/
 
 # Editor directories and files
 .vscode/*

@@ -13,6 +13,7 @@ import {
   BarChart2,
   Gamepad2,
   CheckCircle2,
+  Brain,
 } from 'lucide-react';
 import { useBuilder } from '../../context/BuilderContext';
 import { useToast } from '../../context/ToastContext';
@@ -26,6 +27,7 @@ export default function LeftPanelNav({ activeTab, setActiveTab, onOpenJsonModal 
     { id: 'reaction-wall', name: 'Reaction Wall', icon: Heart },
     { id: 'live-poll', name: 'Live Poll', icon: BarChart2 },
     { id: 'product-rush', name: 'Product Rush', icon: Gamepad2 },
+    { id: 'memory-challenge', name: 'Memory Challenge', icon: Brain },
   ];
 
   const navItems = [
@@ -43,6 +45,8 @@ export default function LeftPanelNav({ activeTab, setActiveTab, onOpenJsonModal 
       ? 'Live Crowd Reaction Wall'
       : activeTemplateId === 'live-poll'
       ? 'Real-Time Stadium Live Poll'
+      : activeTemplateId === 'memory-challenge'
+      ? 'Memory Challenge'
       : 'Product Rush';
 
   return (

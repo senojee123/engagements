@@ -20,12 +20,14 @@ import {
 import { useSelfieWall } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
+import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
 
 function FanZoneLandingContent() {
   const { uploadSelfie, activeBrand, selfies, isSelfieWallActive } = useSelfieWall();
   const { activePoll, submitVote, isPollActive } = useLivePoll();
   const { emitReaction, isReactionWallActive } = useReactionWall();
+  const { isChallengeActive: isMemoryChallengeActive } = useMemoryChallenge();
   const toast = useToast();
 
   // Memory Challenge Game State
@@ -337,20 +339,26 @@ function FanZoneLandingContent() {
             resetMemoryGame();
             setActiveModal('memory-challenge');
           }}
-          className="group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-90 hover:opacity-100"
+          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
+            isMemoryChallengeActive
+              ? 'bg-[#eae7e1] border-2 border-indigo-500 hover:border-indigo-600 shadow-md ring-1 ring-indigo-500/20'
+              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
+          }`}
         >
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider font-mono text-purple-600">
-              FAN GAME • FEATURED
+            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isMemoryChallengeActive ? 'text-indigo-600' : 'text-slate-500'}`}>
+              MEMORY CHALLENGE {isMemoryChallengeActive && '• FEATURED'}
             </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
-              Memory Challenge
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+              Match stadium icon pairs and win points
             </h3>
-            <span className="text-xs font-semibold flex items-center gap-1 text-emerald-700 font-bold">
-              ● PLAY NOW • Match stadium icon pairs & win points!
+            <span className={`text-xs font-semibold flex items-center gap-1 ${isMemoryChallengeActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
+              {isMemoryChallengeActive ? '● LIVE NOW • Tap to Play Memory Challenge' : '○ STANDBY'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 bg-purple-600 text-white shadow-lg ring-2 ring-purple-500/30">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+            isMemoryChallengeActive ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-500/30' : 'bg-white/60 text-slate-700'
+          }`}>
             <Brain className="w-6 h-6" />
           </div>
         </div>
@@ -786,7 +794,9 @@ export default function FanZoneLanding() {
   return (
     <LivePollProvider>
       <ReactionWallProvider>
-        <FanZoneLandingContent />
+        <MemoryChallengeProvider>
+          <FanZoneLandingContent />
+        </MemoryChallengeProvider>
       </ReactionWallProvider>
     </LivePollProvider>
   );

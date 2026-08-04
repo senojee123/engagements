@@ -1,12 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Zap, Shield, Sparkles, Camera, CheckCircle2, QrCode, Hourglass, Check, X } from 'lucide-react';
+import { Trophy, Zap, Shield, Sparkles, Camera, CheckCircle2, QrCode, Hourglass, Check, X, RotateCcw, Brain } from 'lucide-react';
 
 export default function GameplayMockup({ brand, templateId = 'product-rush' }) {
   // Runner Game State
   const [score, setScore] = useState(1450);
   const [powerUpActive, setPowerUpActive] = useState(false);
   const [comboMultiplier, setComboMultiplier] = useState(3);
+
+  // Memory Challenge State
+  const initialMemoryCards = [
+    { id: 1, icon: brand.collectibleIcon || '🥤', symbol: 'Brand' },
+    { id: 2, icon: '⚽', symbol: 'Ball' },
+    { id: 3, icon: '🏆', symbol: 'Trophy' },
+    { id: 4, icon: '⚡', symbol: 'Zap' },
+    { id: 5, icon: '👟', symbol: 'Sneaker' },
+    { id: 6, icon: '🚀', symbol: 'Rocket' },
+    { id: 7, icon: brand.collectibleIcon || '🥤', symbol: 'Brand' },
+    { id: 8, icon: '⚽', symbol: 'Ball' },
+    { id: 9, icon: '🏆', symbol: 'Trophy' },
+    { id: 10, icon: '⚡', symbol: 'Zap' },
+    { id: 11, icon: '👟', symbol: 'Sneaker' },
+    { id: 12, icon: '🚀', symbol: 'Rocket' },
+  ];
+  const [memoryCards, setMemoryCards] = useState(initialMemoryCards);
+  const [flippedIndices, setFlippedIndices] = useState([0, 6]); // Start with 1 pair pre-matched/revealed for visual impact
+  const [matchedIndices, setMatchedIndices] = useState([0, 6]);
+  const [memoryScore, setMemoryScore] = useState(1200);
+  const [memoryMoves, setMemoryMoves] = useState(4);
+
+  const handleCardClick = (index) => {
+    if (flippedIndices.includes(index) || matchedIndices.includes(index) || flippedIndices.length % 2 !== 0) {
+      if (flippedIndices.length % 2 !== 0) {
+        // One card is open, flip second
+        const newFlipped = [...flippedIndices, index];
+        setFlippedIndices(newFlipped);
+        setMemoryMoves((prev) => prev + 1);
+
+        const firstIndex = flippedIndices[flippedIndices.length - 1];
+        if (memoryCards[firstIndex].symbol === memoryCards[index].symbol) {
+          setMatchedIndices((prev) => [...prev, firstIndex, index]);
+          setMemoryScore((prev) => prev + 350);
+        } else {
+          setTimeout(() => {
+            setFlippedIndices((prev) => prev.filter((i) => i !== firstIndex && i !== index));
+          }, 900);
+        }
+      }
+      return;
+    }
+    setFlippedIndices((prev) => [...prev, index]);
+  };
+
+  const resetMemoryGame = () => {
+    setFlippedIndices([0, 6]);
+    setMatchedIndices([0, 6]);
+    setMemoryScore(1200);
+    setMemoryMoves(4);
+  };
 
   // Selfie Wall Mock State
   const [pendingSelfie, setPendingSelfie] = useState({

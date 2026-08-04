@@ -157,7 +157,7 @@ export default function BigScreenStadiumFrame() {
                     <img src={customBrand.logo} alt="Brand" className="w-full h-full object-contain" />
                   </div>
                   <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                    {activeBrand.name} Stadium Product Rush
+                    {activeBrand.name} {activeTemplateId === 'memory-challenge' ? 'Memory Challenge' : activeTemplateId === 'reaction-wall' ? 'Crowd Reaction Wall' : activeTemplateId === 'live-poll' ? 'Stadium Live Poll' : 'Product Rush'}
                   </h2>
                   <p className="text-sm text-indigo-200 leading-relaxed">
                     Scan the QR code with your smartphone camera to join 45,000+ fans in real-time.

@@ -3,14 +3,21 @@ import { useSelfieWall } from '../../context/SelfieWallContext';
 import SelfieWallDisplay from './SelfieWallDisplay';
 import LivePollDisplay from '../livePoll/LivePollDisplay';
 import ReactionWallDisplay from '../reactionWall/ReactionWallDisplay';
+import MemoryChallengeDisplay from '../memoryChallenge/MemoryChallengeDisplay';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
+import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import IdleScreenDisplay from '../../pages/public/IdleScreenDisplay';
 
 function DynamicScreen() {
+  const { isChallengeActive } = useMemoryChallenge();
   const { isReactionWallActive } = useReactionWall();
   const { isPollActive } = useLivePoll();
   const { isSelfieWallActive } = useSelfieWall();
+
+  if (isChallengeActive) {
+    return <MemoryChallengeDisplay isStandalonePage={true} />;
+  }
 
   if (isReactionWallActive) {
     return <ReactionWallDisplay isStandalonePage={true} />;
@@ -52,12 +59,10 @@ export default function StadiumScreenRouter({ forceMode = null }) {
     );
   }
 
-  // Dynamic Live Screen: Automatically routes between Reaction Wall, Live Poll, Selfie Wall & Idle Screen
-  return (
-    <LivePollProvider>
-      <ReactionWallProvider>
-        <DynamicScreen />
-      </ReactionWallProvider>
-    </LivePollProvider>
-  );
+  if (forceMode === 'memory-challenge') {
+    return <MemoryChallengeDisplay isStandalonePage={true} />;
+  }
+
+  // Dynamic Live Screen: Automatically routes between Memory Challenge, Reaction Wall, Live Poll, Selfie Wall & Idle Screen
+  return <DynamicScreen />;
 }

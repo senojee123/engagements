@@ -157,9 +157,40 @@ def seed_templates(db: Session):
             ],
             created_by_user_id=None,
         ))
+
+    if not db.query(models.TemplateModel).filter_by(id="memory-challenge").first():
+        db.add(models.TemplateModel(
+            id="memory-challenge",
+            title="Memory Challenge",
+            category="Games",
+            description=(
+                "Interactive tile-matching memory game for stadium big screens and venue mobile apps. "
+                "Fans memorize brand icons and card locations under time pressure to unlock instant prizes and dynamic leaderboard ranks."
+            ),
+            thumbnail="https://images.unsplash.com/photo-1611996575749-79a3a250f948?auto=format&fit=crop&w=600&q=80",
+            duration="1-3 mins",
+            difficulty="Medium",
+            audience_size="100 - 100,000+",
+            popularity=4.91,
+            rating_count=340,
+            tags=["Memory Game", "Tile Matching", "Gamification", "Sponsor Rewards", "Fan Engagement"],
+            status="Active Backend",
+            is_featured=True,
+            supported_outputs=["Mobile Web", "LED Screen", "Projector", "TV Display", "Jumbotron"],
+            default_brand="coca-cola",
+            player_journey=[
+                "1. Scan QR Code displayed on venue screens or access inside match-day mobile app.",
+                "2. A grid of hidden sponsor & team cards is displayed briefly for 5 seconds.",
+                "3. Cards flip face down, initiating the memory challenge countdown timer.",
+                "4. Tap matching pairs in succession to build dynamic combo multipliers and score points.",
+                "5. Complete the grid before time expires to claim instant sponsor coupon rewards!",
+            ],
+            created_by_user_id=None,
+        ))
         db.commit()
 
     db.commit()
+
 
 
 

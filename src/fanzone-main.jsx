@@ -5,6 +5,7 @@ import FanZoneLanding from './pages/public/FanZoneLanding';
 import { SelfieWallProvider } from './context/SelfieWallContext';
 import { LivePollProvider } from './context/LivePollContext';
 import { ReactionWallProvider } from './context/ReactionWallContext';
+import { MemoryChallengeProvider } from './context/MemoryChallengeContext';
 import { ToastProvider } from './context/ToastContext';
 import './index.css';
 
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <SelfieWallProvider>
           <LivePollProvider>
             <ReactionWallProvider>
-              <FanZoneLanding />
+              <MemoryChallengeProvider>
+                <FanZoneLanding />
+              </MemoryChallengeProvider>
             </ReactionWallProvider>
           </LivePollProvider>
         </SelfieWallProvider>
