@@ -5,29 +5,46 @@ import { useSelfieWall } from '../../context/SelfieWallContext';
 
 export default function SelfieWallDisplay() {
   const { approvedSelfies = [], activeBrand } = useSelfieWall();
-  const [spotlightSelfie, setSpotlightSelfie] = useState(null);
+  const [spotlightQueue, setSpotlightQueue] = useState([]);
+  const [currentSpotlight, setCurrentSpotlight] = useState(null);
   const prevApprovedIdsRef = useRef(new Set(approvedSelfies.map((s) => s.id)));
 
-  // 1. Detect newly approved selfies
+  // 1. Detect newly approved selfies and add to spotlight queue
   useEffect(() => {
     const currentApprovedIds = new Set(approvedSelfies.map((s) => s.id));
     const newSelfies = approvedSelfies.filter((s) => !prevApprovedIdsRef.current.has(s.id));
 
     if (newSelfies.length > 0) {
-      setSpotlightSelfie(newSelfies[0]);
+      setSpotlightQueue((prevQueue) => {
+        const existingIds = new Set([
+          ...prevQueue.map((s) => s.id),
+          ...(currentSpotlight ? [currentSpotlight.id] : []),
+        ]);
+        const toAdd = newSelfies.filter((s) => !existingIds.has(s.id));
+        return [...prevQueue, ...toAdd];
+      });
     }
     prevApprovedIdsRef.current = currentApprovedIds;
   }, [approvedSelfies]);
 
-  // 2. Dismiss spotlight pop-up after 3 seconds guaranteed
+  // 2. Process queue sequentially (one photo at a time)
   useEffect(() => {
-    if (spotlightSelfie) {
+    if (!currentSpotlight && spotlightQueue.length > 0) {
+      const nextSelfie = spotlightQueue[0];
+      setCurrentSpotlight(nextSelfie);
+      setSpotlightQueue((prev) => prev.slice(1));
+    }
+  }, [currentSpotlight, spotlightQueue]);
+
+  // 3. Display each spotlight selfie for 3.5 seconds guaranteed before advancing
+  useEffect(() => {
+    if (currentSpotlight) {
       const timer = setTimeout(() => {
-        setSpotlightSelfie(null);
-      }, 3000);
+        setCurrentSpotlight(null);
+      }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [spotlightSelfie]);
+  }, [currentSpotlight]);
 
   const brand = activeBrand || {
     name: 'Coca-Cola',
@@ -149,30 +166,59 @@ export default function SelfieWallDisplay() {
       {/* ---------------------------------------------------- */}
       {/* NEWLY ACCEPTED SELFIE SPOTLIGHT POP-UP ANIMATION */}
       {/* ---------------------------------------------------- */}
-      <AnimatePresence>
-        {spotlightSelfie && (
+      <AnimatePresence mode="wait">
+        {currentSpotlight && (
           <motion.div
+            key={currentSpotlight.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSpotlightSelfie(null)}
+            onClick={() => setCurrentSpotlight(null)}
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-6 cursor-pointer"
           >
             <motion.div
-              initial={{ scale: 0.1, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.3, opacity: 0 }}
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
-              className="bg-black rounded-3xl max-w-xl w-full p-3 text-center border-4 border-cyan-400 shadow-[0_0_80px_rgba(34,211,238,0.6)] relative overflow-hidden"
+              initial={{ scale: 0.2, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.3, opacity: 0, y: -30 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-black rounded-3xl max-w-xl w-full p-4 text-center border-4 border-cyan-400 shadow-[0_0_90px_rgba(34,211,238,0.7)] relative overflow-hidden space-y-3"
             >
-              {/* Clean Spotlight Photo ONLY */}
+              {/* Top Banner */}
+              <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" />
+                  <span className="text-xs font-black tracking-widest text-cyan-300 uppercase">
+                    JUST APPROVED ON STADIUM SCREEN
+                  </span>
+                </div>
+                {spotlightQueue.length > 0 && (
+                  <span className="text-[11px] font-bold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full font-mono">
+                    +{spotlightQueue.length} next
+                  </span>
+                )}
+              </div>
+
+              {/* Spotlight Photo */}
               <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black">
                 <img
-                  src={spotlightSelfie.photoUrl}
+                  src={currentSpotlight.photoUrl}
                   alt="Spotlight Selfie"
                   className="w-full h-full object-cover"
                 />
               </div>
+
+              {/* Fan details overlay */}
+              {currentSpotlight.uploaderName && (
+                <div className="flex items-center justify-between px-2 text-left pt-1">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white">{currentSpotlight.uploaderName}</h3>
+                    {currentSpotlight.caption && (
+                      <p className="text-[11px] text-cyan-300 font-medium">{currentSpotlight.caption}</p>
+                    )}
+                  </div>
+                  <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
