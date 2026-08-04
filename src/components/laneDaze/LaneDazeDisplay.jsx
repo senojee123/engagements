@@ -13,8 +13,33 @@ const DEFAULT_LEADERBOARD = [
 export default function LaneDazeDisplay({ isStandalonePage = false }) {
   const [leaderboard, setLeaderboard] = useState(DEFAULT_LEADERBOARD);
 
-  // Periodic score simulation for live stadium dynamic feeling
+  // Active Brand Identity & Logo
+  const [activeBrand, setActiveBrand] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fanforge_active_brand');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      name: 'FanForge Stadium',
+      logoUrl: '',
+      primaryColor: '#4f46e5',
+    };
+  });
+
+  const fanzoneUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/';
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
+
+  // Listen for brand changes & score updates
   useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'fanforge_active_brand' && e.newValue) {
+        try {
+          setActiveBrand(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
     const interval = setInterval(() => {
       setLeaderboard((prev) =>
         prev.map((player) =>
@@ -24,7 +49,11 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
         )
       );
     }, 2500);
-    return () => clearInterval(interval);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -37,8 +66,12 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
       {/* Top Header Banner */}
       <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-indigo-800/50 pb-6">
         <div className="flex items-center gap-4 text-left">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-slate-950 shadow-xl shadow-indigo-500/20 font-black text-2xl">
-            🏎️
+          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md p-2.5 border border-white/20 flex items-center justify-center text-slate-950 shadow-xl shadow-indigo-500/20 font-black text-2xl shrink-0">
+            {activeBrand?.logoUrl ? (
+              <img src={activeBrand.logoUrl} alt={activeBrand.name} className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-3xl">🏎️</span>
+            )}
           </div>
           <div>
             <div className="flex items-center gap-3">
@@ -50,7 +83,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-indigo-200/80 font-medium mt-0.5">
-              Metropolis Arena Stadium — 3-Lane Arcade Runner Championship
+              {activeBrand?.name || 'FanForge Stadium'} — 3-Lane Arcade Runner Championship
             </p>
           </div>
         </div>
@@ -171,12 +204,13 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
             {/* QR Code Container */}
             <div className="bg-white p-5 rounded-2xl shadow-2xl inline-block mx-auto border-4 border-indigo-500/30 group hover:scale-105 transition-transform duration-300">
               <img
-                src="/fanzone-qr.png"
+                src={qrImageUrl}
+                onError={(e) => { e.currentTarget.src = '/fanzone-qr.png'; }}
                 alt="Lane Daze QR Code"
                 className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
               />
               <div className="mt-2 text-slate-900 font-mono text-xs font-black tracking-wider uppercase">
-                fanforge.live/lane-daze
+                {fanzoneUrl.replace('https://', '').replace('http://', '')}
               </div>
             </div>
 
