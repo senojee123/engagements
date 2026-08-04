@@ -107,8 +107,8 @@ export const SelfieWallProvider = ({ children }) => {
 
   // 2. Real-Time Listener (WebSocket + Auto-Reconnect & Storage)
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
-    const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
+    // Always connect to Railway backend (single source of truth for fan zone + dashboard)
+    const wsUrl = 'wss://engagements-production.up.railway.app/ws';
     let socket = null;
     let reconnectTimer = null;
     let isComponentMounted = true;

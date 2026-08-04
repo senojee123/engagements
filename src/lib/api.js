@@ -78,13 +78,32 @@ export const emitReactionApi = (emoji, fanName) => request('POST', '/api/reactio
 export const fetchReactionsApi = () => request('GET', '/api/reactions/recent');
 export const clearReactionsApi = () => request('POST', '/api/reactions/clear');
 
-// Selfie Wall
-export const fetchSelfiesApi = (status) => request('GET', `/api/selfies${status ? `?status=${status}` : ''}`);
-export const uploadSelfieApi = (data) => request('POST', '/api/selfies/upload', data);
-export const approveSelfieApi = (id) => request('POST', `/api/selfies/${id}/approve`);
-export const rejectSelfieApi = (id) => request('POST', `/api/selfies/${id}/reject`);
-export const deleteSelfieApi = (id) => request('DELETE', `/api/selfies/${id}`);
-export const clearSelfiesApi = () => request('DELETE', '/api/selfies/clear');
+
+// Selfie Wall — always use Railway (single source of truth shared between fan zone + dashboard)
+const SELFIE_API = 'https://engagements-production.up.railway.app';
+
+const selfieRequest = async (method, path, body) => {
+  const res = await fetch(`${SELFIE_API}${path}`, {
+    method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const d = await res.json(); detail = d.detail || detail; } catch (e) {}
+    throw new Error(detail);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+};
+
+export const fetchSelfiesApi = (status) => selfieRequest('GET', `/api/selfies${status ? `?status=${status}` : ''}`);
+export const uploadSelfieApi = (data) => selfieRequest('POST', '/api/selfies/upload', data);
+export const approveSelfieApi = (id) => selfieRequest('POST', `/api/selfies/${id}/approve`);
+export const rejectSelfieApi = (id) => selfieRequest('POST', `/api/selfies/${id}/reject`);
+export const deleteSelfieApi = (id) => selfieRequest('DELETE', `/api/selfies/${id}`);
+export const clearSelfiesApi = () => selfieRequest('DELETE', '/api/selfies/clear');
+
 
 // Screen Status & Mode Routing (Syncs both local and Railway Cloud backend for Vercel live deployments)
 export const fetchScreenStatusApi = async () => {
