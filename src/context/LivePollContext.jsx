@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchPolls, fetchActivePoll, submitVoteApi, createPollApi, activatePollApi, resetPollApi, deletePollApi } from '../lib/api';
+import { fetchPolls, fetchActivePoll, submitVoteApi, createPollApi, activatePollApi, resetPollApi, deletePollApi, updateScreenStatusApi } from '../lib/api';
 
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 
@@ -261,6 +261,7 @@ export const LivePollProvider = ({ children }) => {
     localStorage.setItem('fanforge_live_poll_active', JSON.stringify(true));
     window.dispatchEvent(new Event('storage'));
     try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'live-poll' }).catch(() => {});
       const channel = new BroadcastChannel('fanforge_poll_sync');
       channel.postMessage({ type: 'STATUS_UPDATED', isPollActive: true });
       channel.close();
@@ -272,6 +273,7 @@ export const LivePollProvider = ({ children }) => {
     localStorage.setItem('fanforge_live_poll_active', JSON.stringify(false));
     window.dispatchEvent(new Event('storage'));
     try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => {});
       const channel = new BroadcastChannel('fanforge_poll_sync');
       channel.postMessage({ type: 'STATUS_UPDATED', isPollActive: false });
       channel.close();

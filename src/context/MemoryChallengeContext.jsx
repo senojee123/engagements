@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { updateScreenStatusApi } from '../lib/api';
 
 const MemoryChallengeContext = createContext(null);
 
@@ -73,12 +74,18 @@ export const MemoryChallengeProvider = ({ children }) => {
     setIsChallengeActive(true);
     localStorage.setItem('fanforge_memory_challenge_active', JSON.stringify(true));
     window.dispatchEvent(new Event('storage'));
+    try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'memory-challenge' }).catch(() => {});
+    } catch (e) {}
   };
 
   const stopChallenge = () => {
     setIsChallengeActive(false);
     localStorage.setItem('fanforge_memory_challenge_active', JSON.stringify(false));
     window.dispatchEvent(new Event('storage'));
+    try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => {});
+    } catch (e) {}
   };
 
   const setCustomization = (newCustomization) => {

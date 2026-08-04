@@ -86,6 +86,10 @@ export const rejectSelfieApi = (id) => request('POST', `/api/selfies/${id}/rejec
 export const deleteSelfieApi = (id) => request('DELETE', `/api/selfies/${id}`);
 export const clearSelfiesApi = () => request('DELETE', '/api/selfies/clear');
 
+// Screen Status & Mode Routing
+export const fetchScreenStatusApi = () => request('GET', '/api/screen/status');
+export const updateScreenStatusApi = (data) => request('POST', '/api/screen/status', data);
+
 
 
 

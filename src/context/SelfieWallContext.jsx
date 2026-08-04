@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_SELFIES } from '../data/selfieWallData';
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
-import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi, deleteSelfieApi, clearSelfiesApi } from '../lib/api';
+import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi, deleteSelfieApi, clearSelfiesApi, updateScreenStatusApi } from '../lib/api';
 
 
 const SelfieWallContext = createContext(null);
@@ -53,6 +53,10 @@ export const SelfieWallProvider = ({ children }) => {
     localStorage.setItem('fanforge_selfie_wall_active', JSON.stringify(isActive));
     window.dispatchEvent(new Event('storage'));
     try {
+      updateScreenStatusApi({
+        isSelfieWallActive: isActive,
+        activeMode: isActive ? 'selfie-wall' : 'idle',
+      }).catch(() => {});
       const channel = new BroadcastChannel('fanforge_selfie_sync');
       channel.postMessage({ type: 'STATUS_UPDATED', isSelfieWallActive: isActive });
       channel.close();

@@ -22,6 +22,7 @@ import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
+import { fetchScreenStatusApi } from '../../lib/api';
 
 function FanZoneLandingContent() {
   const { uploadSelfie, activeBrand, selfies, isSelfieWallActive } = useSelfieWall();
@@ -29,6 +30,51 @@ function FanZoneLandingContent() {
   const { emitReaction, isReactionWallActive } = useReactionWall();
   const { isChallengeActive: isMemoryChallengeActive } = useMemoryChallenge();
   const toast = useToast();
+
+  const [remoteActiveMode, setRemoteActiveMode] = useState(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const syncStatus = () => {
+      fetchScreenStatusApi()
+        .then((data) => {
+          if (!isCancelled && data && data.activeMode) {
+            setRemoteActiveMode(data.activeMode);
+          }
+        })
+        .catch(() => {});
+    };
+
+    syncStatus();
+    const timer = setInterval(syncStatus, 2000);
+
+    const apiBase = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
+    const wsUrl = apiBase.replace(/^http/, 'ws') + '/ws';
+    let socket = null;
+    try {
+      socket = new WebSocket(wsUrl);
+      socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'STATUS_UPDATED' && msg.activeMode) {
+            setRemoteActiveMode(msg.activeMode);
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    return () => {
+      isCancelled = true;
+      clearInterval(timer);
+      if (socket) socket.close();
+    };
+  }, []);
+
+  const activePollComputed = isPollActive || remoteActiveMode === 'live-poll';
+  const activeReactionComputed = isReactionWallActive || remoteActiveMode === 'reaction-wall';
+  const activeSelfieComputed = isSelfieWallActive || remoteActiveMode === 'selfie-wall';
+  const activeMemoryComputed = isMemoryChallengeActive || remoteActiveMode === 'memory-challenge';
 
   // Memory Challenge Game State
   const EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
@@ -256,7 +302,7 @@ function FanZoneLandingContent() {
             id: 'live-poll',
             title: 'Cast your vote on the live match question',
             label: 'LIVE VOTE',
-            isActive: isPollActive,
+            isActive: activePollComputed,
             onClick: () => setActiveModal('live-vote'),
             color: 'indigo',
             borderColor: 'border-indigo-600',
@@ -264,13 +310,13 @@ function FanZoneLandingContent() {
             ringColor: 'ring-indigo-500/30',
             bgColor: 'bg-indigo-600',
             icon: Vote,
-            statusText: isPollActive ? '● LIVE NOW • Tap to Vote' : '○ STANDBY',
+            statusText: activePollComputed ? '● LIVE NOW • Tap to Vote' : '○ STANDBY',
           },
           {
             id: 'reaction-wall',
             title: 'Send your emoji reaction to the big screen',
             label: 'REACTION WALL',
-            isActive: isReactionWallActive,
+            isActive: activeReactionComputed,
             onClick: () => setActiveModal('reaction-wall'),
             color: 'amber',
             borderColor: 'border-amber-500',
@@ -278,13 +324,13 @@ function FanZoneLandingContent() {
             ringColor: 'ring-amber-500/30',
             bgColor: 'bg-amber-500',
             icon: Radio,
-            statusText: isReactionWallActive ? '● LIVE NOW • Tap to Send Emojis' : '○ STANDBY',
+            statusText: activeReactionComputed ? '● LIVE NOW • Tap to Send Emojis' : '○ STANDBY',
           },
           {
             id: 'selfie-wall',
             title: 'Capture your moment and appear on the big screen',
             label: 'SELFIE CAM',
-            isActive: isSelfieWallActive,
+            isActive: activeSelfieComputed,
             onClick: () => {
               setActiveModal('selfie-wall');
               setSelfieStage('camera');
@@ -295,13 +341,13 @@ function FanZoneLandingContent() {
             ringColor: 'ring-red-500/30',
             bgColor: 'bg-red-600',
             icon: Camera,
-            statusText: isSelfieWallActive ? '● LIVE NOW • Tap to Open Camera' : '○ STANDBY',
+            statusText: activeSelfieComputed ? '● LIVE NOW • Tap to Open Camera' : '○ STANDBY',
           },
           {
             id: 'memory-challenge',
             title: 'Match stadium icon pairs and win points',
             label: 'MEMORY CHALLENGE',
-            isActive: isMemoryChallengeActive,
+            isActive: activeMemoryComputed,
             onClick: () => {},
             color: 'emerald',
             borderColor: 'border-emerald-600',
@@ -309,7 +355,7 @@ function FanZoneLandingContent() {
             ringColor: 'ring-emerald-500/30',
             bgColor: 'bg-emerald-600',
             icon: Brain,
-            statusText: isMemoryChallengeActive ? '● LIVE NOW' : '○ STANDBY',
+            statusText: activeMemoryComputed ? '● LIVE NOW' : '○ STANDBY',
           },
         ]
           .sort((a, b) => (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0))

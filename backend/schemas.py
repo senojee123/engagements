@@ -74,7 +74,8 @@ class BrandKitSchema(BaseModel):
 # SCREEN LAUNCH SCHEMAS
 # ----------------------------------------------------
 class ScreenStatusUpdate(BaseModel):
-    isSelfieWallActive: bool
+    isSelfieWallActive: Optional[bool] = False
+    activeMode: Optional[str] = "idle"
 
 
 # ----------------------------------------------------

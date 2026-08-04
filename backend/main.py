@@ -406,6 +406,7 @@ def get_screen_status(db: Session = Depends(get_db)):
     state = db.query(models.ScreenStateModel).filter_by(id="main_screen").first()
     return {
         "isSelfieWallActive": state.is_selfie_wall_active if state else False,
+        "activeMode": state.active_mode if (state and hasattr(state, "active_mode")) else "idle",
         "activeBrandId": state.active_brand_id if state else "brand-cocacola"
     }
 
@@ -417,15 +418,23 @@ async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = D
         state = models.ScreenStateModel(id="main_screen")
         db.add(state)
 
-    state.is_selfie_wall_active = data.isSelfieWallActive
+    if data.isSelfieWallActive is not None:
+        state.is_selfie_wall_active = data.isSelfieWallActive
+    if data.activeMode is not None:
+        state.active_mode = data.activeMode
+
     db.commit()
 
     await manager.broadcast({
         "type": "STATUS_UPDATED",
-        "isSelfieWallActive": data.isSelfieWallActive
+        "isSelfieWallActive": state.is_selfie_wall_active,
+        "activeMode": state.active_mode
     })
 
-    return {"isSelfieWallActive": state.is_selfie_wall_active}
+    return {
+        "isSelfieWallActive": state.is_selfie_wall_active,
+        "activeMode": state.active_mode
+    }
 
 
 # ----------------------------------------------------

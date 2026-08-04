@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { emitReactionApi, fetchReactionsApi, clearReactionsApi } from '../lib/api';
+import { emitReactionApi, fetchReactionsApi, clearReactionsApi, updateScreenStatusApi } from '../lib/api';
 import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 
 const ReactionWallContext = createContext(null);
@@ -175,6 +175,9 @@ export const ReactionWallProvider = ({ children }) => {
     setIsReactionWallActiveState(true);
     localStorage.setItem('fanforge_reaction_wall_active', JSON.stringify(true));
     window.dispatchEvent(new Event('storage'));
+    try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'reaction-wall' }).catch(() => {});
+    } catch (e) {}
     broadcastLocally({ type: 'REACTION_STATUS_TOGGLED', isActive: true });
   };
 
@@ -182,6 +185,9 @@ export const ReactionWallProvider = ({ children }) => {
     setIsReactionWallActiveState(false);
     localStorage.setItem('fanforge_reaction_wall_active', JSON.stringify(false));
     window.dispatchEvent(new Event('storage'));
+    try {
+      updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => {});
+    } catch (e) {}
     broadcastLocally({ type: 'REACTION_STATUS_TOGGLED', isActive: false });
   };
 
