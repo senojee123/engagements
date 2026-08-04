@@ -178,12 +178,16 @@ export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
           </div>
 
           {/* QR Code Prominent Visual Card */}
-          <div className="bg-white p-4 rounded-3xl border-4 border-cyan-400/60 shadow-2xl flex items-center justify-center my-auto group hover:scale-[1.02] transition-transform flex-1">
+          <div className="bg-white p-4 rounded-3xl border-4 border-cyan-400/60 shadow-2xl flex flex-col items-center justify-center my-auto group hover:scale-[1.02] transition-transform flex-1">
             <img
-              src="/fanzone-qr.png"
+              src={qrCodeImageUrl}
+              onError={(e) => { e.target.src = '/fanzone-qr.png'; }}
               alt="Scan QR Code to Play"
-              className="w-64 h-64 sm:w-72 sm:h-72 object-contain rounded-xl group-hover:scale-105 transition-transform"
+              className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl group-hover:scale-105 transition-transform"
             />
+            <p className="text-[11px] font-bold text-slate-800 mt-2 flex items-center gap-1 font-mono">
+              <Smartphone className="w-3.5 h-3.5 text-indigo-600" /> SCAN ON YOUR MOBILE PHONE
+            </p>
           </div>
         </div>
       </div>
