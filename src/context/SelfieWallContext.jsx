@@ -51,6 +51,7 @@ export const SelfieWallProvider = ({ children }) => {
   const setIsSelfieWallActive = (isActive) => {
     setIsSelfieWallActiveState(isActive);
     localStorage.setItem('fanforge_selfie_wall_active', JSON.stringify(isActive));
+    window.dispatchEvent(new Event('storage'));
     try {
       const channel = new BroadcastChannel('fanforge_selfie_sync');
       channel.postMessage({ type: 'STATUS_UPDATED', isSelfieWallActive: isActive });

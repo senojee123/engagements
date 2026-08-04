@@ -245,16 +245,37 @@ export const LivePollProvider = ({ children }) => {
     } catch (e) {}
   };
 
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem('fanforge_live_poll_active');
+      if (saved !== null) {
+        setIsPollActiveState(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   const launchLivePoll = () => {
     setIsPollActiveState(true);
     localStorage.setItem('fanforge_live_poll_active', JSON.stringify(true));
-    broadcastLocally({ type: 'POLL_STATUS_TOGGLED', isActive: true });
+    window.dispatchEvent(new Event('storage'));
+    try {
+      const channel = new BroadcastChannel('fanforge_poll_sync');
+      channel.postMessage({ type: 'STATUS_UPDATED', isPollActive: true });
+      channel.close();
+    } catch (e) {}
   };
 
   const stopLivePoll = () => {
     setIsPollActiveState(false);
     localStorage.setItem('fanforge_live_poll_active', JSON.stringify(false));
-    broadcastLocally({ type: 'POLL_STATUS_TOGGLED', isActive: false });
+    window.dispatchEvent(new Event('storage'));
+    try {
+      const channel = new BroadcastChannel('fanforge_poll_sync');
+      channel.postMessage({ type: 'STATUS_UPDATED', isPollActive: false });
+      channel.close();
+    } catch (e) {}
   };
 
   return (

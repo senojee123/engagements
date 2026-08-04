@@ -160,15 +160,28 @@ export const ReactionWallProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem('fanforge_reaction_wall_active');
+      if (saved !== null) {
+        setIsReactionWallActiveState(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   const launchReactionWall = () => {
     setIsReactionWallActiveState(true);
     localStorage.setItem('fanforge_reaction_wall_active', JSON.stringify(true));
+    window.dispatchEvent(new Event('storage'));
     broadcastLocally({ type: 'REACTION_STATUS_TOGGLED', isActive: true });
   };
 
   const stopReactionWall = () => {
     setIsReactionWallActiveState(false);
     localStorage.setItem('fanforge_reaction_wall_active', JSON.stringify(false));
+    window.dispatchEvent(new Event('storage'));
     broadcastLocally({ type: 'REACTION_STATUS_TOGGLED', isActive: false });
   };
 

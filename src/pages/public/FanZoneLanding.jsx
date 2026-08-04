@@ -248,119 +248,135 @@ function FanZoneLandingContent() {
       {/* ---------------------------------------------------- */}
       {/* ACTIVE ENGAGEMENT CARDS LIST */}
       {/* ---------------------------------------------------- */}
+      {/* FAN ENGAGEMENT CARDS LIST */}
+      {/* ---------------------------------------------------- */}
       <main className="my-8 space-y-4">
-        {/* 1. LIVE VOTE CARD */}
-        <div
-          onClick={() => setActiveModal('live-vote')}
-          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
-            isPollActive
-              ? 'bg-[#eae7e1] border-2 border-indigo-500 hover:border-indigo-600 shadow-md ring-1 ring-indigo-500/20'
-              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
-          }`}
-        >
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isPollActive ? 'text-indigo-600' : 'text-slate-500'}`}>
-              LIVE VOTE {isPollActive && '• FEATURED'}
-            </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-              Cast your vote on the live match question
-            </h3>
-            <span className={`text-xs font-semibold flex items-center gap-1 ${isPollActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-              {isPollActive ? '● LIVE NOW' : '○ STANDBY'}
-            </span>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-            isPollActive ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-500/30' : 'bg-white/60 text-slate-700'
-          }`}>
-            <Vote className="w-6 h-6" />
-          </div>
-        </div>
+        {[
+          {
+            id: 'live-poll',
+            title: 'Cast your vote on the live match question',
+            label: 'LIVE VOTE',
+            isActive: isPollActive,
+            onClick: () => setActiveModal('live-vote'),
+            color: 'indigo',
+            borderColor: 'border-indigo-600',
+            textColor: 'text-indigo-600',
+            ringColor: 'ring-indigo-500/30',
+            bgColor: 'bg-indigo-600',
+            icon: Vote,
+            statusText: isPollActive ? '● LIVE NOW • Tap to Vote' : '○ STANDBY',
+          },
+          {
+            id: 'reaction-wall',
+            title: 'Send your emoji reaction to the big screen',
+            label: 'REACTION WALL',
+            isActive: isReactionWallActive,
+            onClick: () => setActiveModal('reaction-wall'),
+            color: 'amber',
+            borderColor: 'border-amber-500',
+            textColor: 'text-amber-600',
+            ringColor: 'ring-amber-500/30',
+            bgColor: 'bg-amber-500',
+            icon: Radio,
+            statusText: isReactionWallActive ? '● LIVE NOW • Tap to Send Emojis' : '○ STANDBY',
+          },
+          {
+            id: 'selfie-wall',
+            title: 'Capture your moment and appear on the big screen',
+            label: 'SELFIE CAM',
+            isActive: isSelfieWallActive,
+            onClick: () => {
+              setActiveModal('selfie-wall');
+              setSelfieStage('camera');
+            },
+            color: 'red',
+            borderColor: 'border-red-600',
+            textColor: 'text-red-600',
+            ringColor: 'ring-red-500/30',
+            bgColor: 'bg-red-600',
+            icon: Camera,
+            statusText: isSelfieWallActive ? '● LIVE NOW • Tap to Open Camera' : '○ STANDBY',
+          },
+          {
+            id: 'memory-challenge',
+            title: 'Match stadium icon pairs and win points',
+            label: 'MEMORY CHALLENGE',
+            isActive: isMemoryChallengeActive,
+            onClick: () => {},
+            color: 'emerald',
+            borderColor: 'border-emerald-600',
+            textColor: 'text-emerald-600',
+            ringColor: 'ring-emerald-500/30',
+            bgColor: 'bg-emerald-600',
+            icon: Brain,
+            statusText: isMemoryChallengeActive ? '● LIVE NOW' : '○ STANDBY',
+          },
+        ]
+          .sort((a, b) => (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0))
+          .map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.id}
+                onClick={card.onClick}
+                className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
+                  card.isActive
+                    ? `bg-white border-2 ${card.borderColor} shadow-xl ring-4 ${card.ringColor} scale-[1.02]`
+                    : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div className="space-y-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider font-mono ${
+                        card.isActive ? card.textColor : 'text-slate-500'
+                      }`}
+                    >
+                      {card.label}
+                    </span>
+                    {card.isActive && (
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-black tracking-widest uppercase border border-emerald-300 animate-pulse">
+                        LIVE FEATURED
+                      </span>
+                    )}
+                  </div>
 
-        {/* 2. REACTION WALL CARD */}
-        <div
-          onClick={() => setActiveModal('reaction-wall')}
-          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
-            isReactionWallActive
-              ? 'bg-[#eae7e1] border-2 border-amber-500 hover:border-amber-600 shadow-md ring-1 ring-amber-500/20'
-              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
-          }`}
-        >
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isReactionWallActive ? 'text-amber-600' : 'text-slate-500'}`}>
-              REACTION WALL {isReactionWallActive && '• FEATURED'}
-            </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
-              Send your emoji reaction to the big screen
-            </h3>
-            <span className={`text-xs font-semibold flex items-center gap-1 ${isReactionWallActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-              {isReactionWallActive ? '● LIVE NOW' : '○ STANDBY'}
-            </span>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-            isReactionWallActive ? 'bg-amber-500 text-slate-950 shadow-lg ring-2 ring-amber-500/30' : 'bg-white/60 text-slate-700'
-          }`}>
-            <Radio className="w-6 h-6" />
-          </div>
-        </div>
+                  <h3
+                    className={`text-base sm:text-lg font-bold transition-colors ${
+                      card.isActive ? 'text-slate-950 font-extrabold' : 'text-slate-900 group-hover:text-slate-950'
+                    }`}
+                  >
+                    {card.title}
+                  </h3>
 
-        {/* 3. SELFIE CAM CARD */}
-        <div
-          onClick={() => {
-            setActiveModal('selfie-wall');
-            setSelfieStage('camera');
-          }}
-          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
-            isSelfieWallActive
-              ? 'bg-[#eae7e1] border-2 border-red-500 hover:border-red-600 shadow-md ring-1 ring-red-500/20'
-              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
-          }`}
-        >
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isSelfieWallActive ? 'text-red-600' : 'text-slate-500'}`}>
-              SELFIE CAM {isSelfieWallActive && '• FEATURED'}
-            </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-              Capture your moment and appear on the big screen
-            </h3>
-            <span className={`text-xs font-semibold flex items-center gap-1 ${isSelfieWallActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-              {isSelfieWallActive ? '● LIVE NOW • Tap to Open Selfie Camera' : '○ STANDBY'}
-            </span>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-            isSelfieWallActive ? 'bg-red-600 text-white shadow-lg ring-2 ring-red-500/30' : 'bg-white/60 text-slate-700'
-          }`}>
-            <Camera className="w-6 h-6" />
-          </div>
-        </div>
+                  <span
+                    className={`text-xs font-semibold flex items-center gap-1.5 ${
+                      card.isActive ? 'text-emerald-700 font-extrabold' : 'text-slate-500'
+                    }`}
+                  >
+                    {card.isActive ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                        <span>{card.statusText}</span>
+                      </>
+                    ) : (
+                      <span>{card.statusText}</span>
+                    )}
+                  </span>
+                </div>
 
-        {/* 4. MEMORY CHALLENGE CARD */}
-        <div
-          onClick={() => {
-            // Memory challenge link destination (can be configured by user)
-          }}
-          className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
-            isMemoryChallengeActive
-              ? 'bg-[#eae7e1] border-2 border-indigo-500 hover:border-indigo-600 shadow-md ring-1 ring-indigo-500/20'
-              : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
-          }`}
-        >
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isMemoryChallengeActive ? 'text-indigo-600' : 'text-slate-500'}`}>
-              MEMORY CHALLENGE {isMemoryChallengeActive && '• FEATURED'}
-            </span>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-              Match stadium icon pairs and win points
-            </h3>
-            <span className={`text-xs font-semibold flex items-center gap-1 ${isMemoryChallengeActive ? 'text-emerald-700 font-bold' : 'text-slate-500'}`}>
-              {isMemoryChallengeActive ? '● LIVE NOW' : '○ STANDBY'}
-            </span>
-          </div>
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-            isMemoryChallengeActive ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-500/30' : 'bg-white/60 text-slate-700'
-          }`}>
-            <Brain className="w-6 h-6" />
-          </div>
-        </div>
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+                    card.isActive
+                      ? `${card.bgColor} text-white shadow-lg ring-2 ${card.ringColor}`
+                      : 'bg-white/60 text-slate-700'
+                  }`}
+                >
+                  <Icon className="w-6 h-6" />
+                </div>
+              </div>
+            );
+          })}
       </main>
 
       {/* ---------------------------------------------------- */}
