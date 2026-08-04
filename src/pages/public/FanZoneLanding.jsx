@@ -17,7 +17,7 @@ import {
   Brain,
   Trophy,
 } from 'lucide-react';
-import { useSelfieWall } from '../../context/SelfieWallContext';
+import { useSelfieWall, SelfieWallProvider } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
@@ -941,13 +941,15 @@ function FanZoneLandingContent() {
 
 export default function FanZoneLanding() {
   return (
-    <LivePollProvider>
-      <ReactionWallProvider>
-        <MemoryChallengeProvider>
-          <FanZoneLandingContent />
-        </MemoryChallengeProvider>
-      </ReactionWallProvider>
-    </LivePollProvider>
+    <SelfieWallProvider>
+      <LivePollProvider>
+        <ReactionWallProvider>
+          <MemoryChallengeProvider>
+            <FanZoneLandingContent />
+          </MemoryChallengeProvider>
+        </ReactionWallProvider>
+      </LivePollProvider>
+    </SelfieWallProvider>
   );
 }
 
