@@ -178,6 +178,9 @@ function FanZoneLandingContent() {
   const startCameraStream = async () => {
     setHasCameraError(false);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
         audio: false,
@@ -185,6 +188,7 @@ function FanZoneLandingContent() {
       setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
       }
     } catch (err) {
       console.warn('Camera access not granted or hardware unavailable:', err);
@@ -199,12 +203,67 @@ function FanZoneLandingContent() {
     }
   };
 
+  // Automatically start/stop camera stream when camera modal stage is open
+  useEffect(() => {
+    if (activeModal === 'selfie-wall' && selfieStage === 'camera') {
+      startCameraStream();
+    } else {
+      stopCameraStream();
+    }
+    return () => {
+      stopCameraStream();
+    };
+  }, [activeModal, selfieStage]);
+
+  // Ensure srcObject is attached whenever videoRef or stream updates
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [cameraStream, selfieStage]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 640;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setSelectedPhoto(dataUrl);
+        stopCameraStream();
+        setSelfieStage('preview');
+        toast.success('Photo uploaded! Tap SEND to submit.');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const captureSelfiePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current && canvasRef.current && cameraStream) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
 
-      const maxDim = 480;
+      const maxDim = 640;
       let width = video.videoWidth || 640;
       let height = video.videoHeight || 640;
 
@@ -227,12 +286,16 @@ function FanZoneLandingContent() {
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, width, height);
 
-      const capturedUrl = canvas.toDataURL('image/jpeg', 0.6);
+      const capturedUrl = canvas.toDataURL('image/jpeg', 0.7);
       setSelectedPhoto(capturedUrl);
       stopCameraStream();
       setSelfieStage('preview');
       toast.success('Selfie captured! Tap SEND to submit.');
-    } else if (hasCameraError) {
+    } else {
+      // Fallback if camera stream is inactive or error
+      if (!selectedPhoto && samplePhotos && samplePhotos.length > 0) {
+        setSelectedPhoto(samplePhotos[0]);
+      }
       setSelfieStage('preview');
     }
   };
@@ -552,11 +615,22 @@ function FanZoneLandingContent() {
                     </div>
                   )}
 
-                  {/* SHUTTER BUTTON */}
-                  <div className="flex items-center justify-center pt-2">
+                  {/* SHUTTER & FILE UPLOAD BUTTONS */}
+                  <div className="flex items-center justify-center gap-6 pt-2">
+                    <label className="cursor-pointer px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-2 transition-all">
+                      <UploadCloud className="w-4 h-4 text-cyan-400" />
+                      <span>Upload Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+
                     <button
                       onClick={captureSelfiePhoto}
-                      className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl ring-4 ring-white/30 active:scale-90 transition-all"
+                      className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl ring-4 ring-white/30 active:scale-90 transition-all shrink-0"
                       title="Take Selfie Photo"
                     >
                       <div className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center">
