@@ -39,6 +39,7 @@ import LivePollModerationPanel from '../../components/livePoll/LivePollModeratio
 import ReactionWallDisplay from '../../components/reactionWall/ReactionWallDisplay';
 import ReactionWallModerationPanel from '../../components/reactionWall/ReactionWallModerationPanel';
 import MemoryChallengeDisplay from '../../components/memoryChallenge/MemoryChallengeDisplay';
+import MemoryChallengeConfig from './MemoryChallengeConfig';
 import { useTemplates } from '../../context/TemplateContext';
 import { useSelfieWall, SelfieWallProvider } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
@@ -668,12 +669,18 @@ function MemoryChallengeEngagementView({ template }) {
       {/* Sub Tabs */}
       <Tabs
         tabs={[
+          { id: 'tile-editor', label: '🧩 Brand Tile Editor' },
           { id: 'customize', label: 'Customize Display Screen & Wordings 🎨' },
           { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
         ]}
         activeTab={activeSubTab}
         onChange={setActiveSubTab}
       />
+
+      {/* TAB 0: BRAND TILE EDITOR */}
+      {activeSubTab === 'tile-editor' && (
+        <MemoryChallengeConfig />
+      )}
 
       {/* TAB 1: CUSTOMIZE DISPLAY SCREEN & WORDINGS */}
       {activeSubTab === 'customize' && (

@@ -457,6 +457,66 @@ async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = D
 
 
 # ----------------------------------------------------
+# GAME CONFIG — Brand-Customisable Tile / Element Store
+# ----------------------------------------------------
+DEFAULT_MEMORY_CONFIG = {
+    "game": "memory-challenge",
+    "brandId": "",
+    "brandName": "FanForge",
+    "brandColor": "#4f46e5",
+    "brandLogo": "",
+    "headline": "Find all matching pairs!",
+    "tagline": "Flip the cards and match every pair!",
+    "rewardText": "🎉 You Win! Amazing memory!",
+    "gridCols": 4,
+    "gridRows": 3,
+    "backgroundColor": "#12131f",
+    "accentColor": "#ff6b35",
+    "tiles": [
+        {"id": "t1", "label": "Tile 1", "content": "🍕", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t2", "label": "Tile 2", "content": "🥤", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+        {"id": "t3", "label": "Tile 3", "content": "🛵", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t4", "label": "Tile 4", "content": "🧀", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+        {"id": "t5", "label": "Tile 5", "content": "🔥", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t6", "label": "Tile 6", "content": "💵", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+    ]
+}
+
+
+@app.get("/api/game-config/{game_id}")
+def get_game_config(game_id: str, db: Session = Depends(get_db)):
+    config = db.query(models.GameConfigModel).filter_by(id=game_id).first()
+    if not config or not config.config_json:
+        if game_id == "memory-challenge":
+            return DEFAULT_MEMORY_CONFIG
+        return {}
+    try:
+        return json.loads(config.config_json)
+    except Exception:
+        return DEFAULT_MEMORY_CONFIG if game_id == "memory-challenge" else {}
+
+
+@app.post("/api/game-config/{game_id}")
+async def save_game_config(game_id: str, data: dict, db: Session = Depends(get_db)):
+    config = db.query(models.GameConfigModel).filter_by(id=game_id).first()
+    if not config:
+        config = models.GameConfigModel(id=game_id)
+        db.add(config)
+    config.config_json = json.dumps(data)
+    config.brand_id = data.get("brandId", "")
+    config.updated_at = time.time()
+    db.commit()
+
+    # Broadcast live config update to game + display screens via WebSocket
+    await manager.broadcast({
+        "type": "CONFIG_UPDATED",
+        "game": game_id,
+        "config": data
+    })
+    return {"ok": True, "game": game_id}
+
+
+# ----------------------------------------------------
 # HEALTH CHECK
 # ----------------------------------------------------
 @app.get("/")

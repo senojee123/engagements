@@ -203,3 +203,16 @@ class TemplateModel(Base):
     player_journey = Column(JSON, nullable=True)
     created_by_user_id = Column(String, ForeignKey("users.id"), nullable=True)
     created_at = Column(String, default=lambda: datetime.utcnow().isoformat())
+
+
+# ----------------------------------------------------
+# GAME CONFIG — Brand-Customisable Tile / Element Store
+# ----------------------------------------------------
+class GameConfigModel(Base):
+    __tablename__ = "game_configs"
+
+    id = Column(String, primary_key=True)        # e.g. "memory-challenge"
+    brand_id = Column(String, default="")
+    config_json = Column(Text, nullable=True)    # Full JSON config blob
+    updated_at = Column(Float, default=lambda: time.time())
+
