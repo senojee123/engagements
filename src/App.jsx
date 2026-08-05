@@ -48,6 +48,10 @@ import StadiumScreenRouter from './components/selfieWall/StadiumScreenRouter';
 import FanZoneLanding from './pages/public/FanZoneLanding';
 import IdleScreenDisplay from './pages/public/IdleScreenDisplay';
 
+// New App / Instance Architecture Parametric Embed Routers
+import InstanceDisplayRouter from './pages/public/InstanceDisplayRouter';
+import InstanceFanRouter from './pages/public/InstanceFanRouter';
+
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
 // Protected Route Guard Component
@@ -77,6 +81,12 @@ export default function App() {
                         <Routes>
                     {/* Root Redirect */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                    {/* App / Instance Architecture Parametric Embed Routes */}
+                    <Route path="/e/:appId/:instanceId/display" element={<InstanceDisplayRouter />} />
+                    <Route path="/e/:appId/display" element={<InstanceDisplayRouter />} />
+                    <Route path="/e/:appId/:instanceId" element={<InstanceFanRouter />} />
+                    <Route path="/e/:appId" element={<InstanceFanRouter />} />
 
                     {/* Public Standalone Fan Zone Landing Page (QR Destination) */}
                     <Route path="/fan-zone" element={<FanZoneLanding />} />
