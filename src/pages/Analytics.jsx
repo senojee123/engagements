@@ -53,13 +53,13 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const data = [
-    { time: '12:00 PM', event: 'Doors Open', all: 240, selfie: 80, memory: 40, poll: 30, reaction: 90 },
-    { time: '1:00 PM', event: 'Pre-Match', all: 680, selfie: 210, memory: 140, poll: 110, reaction: 220 },
-    { time: '2:00 PM', event: 'Warm Up', all: 1420, selfie: 450, memory: 310, poll: 260, reaction: 400 },
-    { time: '3:00 PM', event: 'Kick Off ⚽', all: 2890, selfie: 620, memory: 420, poll: 580, reaction: 1270 },
-    { time: '3:45 PM', event: 'Halftime Peak 🏆', all: 4560, selfie: 980, memory: 890, poll: 1420, reaction: 1270 },
-    { time: '4:30 PM', event: '2nd Half', all: 3120, selfie: 740, memory: 510, poll: 690, reaction: 1180 },
-    { time: '5:15 PM', event: 'Full Time 🎉', all: 2150, selfie: 520, memory: 380, poll: 450, reaction: 800 },
+    { time: '12:00 PM', event: 'Event Opens 🚪', all: 240, selfie: 80, memory: 40, poll: 30, reaction: 90 },
+    { time: '1:00 PM', event: 'Early Access', all: 680, selfie: 210, memory: 140, poll: 110, reaction: 220 },
+    { time: '2:00 PM', event: 'Opening Session', all: 1420, selfie: 450, memory: 310, poll: 260, reaction: 400 },
+    { time: '3:00 PM', event: 'Main Activation ⭐', all: 2890, selfie: 620, memory: 420, poll: 580, reaction: 1270 },
+    { time: '3:45 PM', event: 'Break Interval / Peak 🚀', all: 4560, selfie: 980, memory: 890, poll: 1420, reaction: 1270 },
+    { time: '4:30 PM', event: 'Evening Session', all: 3120, selfie: 740, memory: 510, poll: 690, reaction: 1180 },
+    { time: '5:15 PM', event: 'Event Wrap-Up 🏁', all: 2150, selfie: 520, memory: 380, poll: 450, reaction: 800 },
   ];
 
   const metricsConfig = {
@@ -178,11 +178,11 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
       {/* Summary Footer Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Peak Match Volume</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Peak Interaction Volume</span>
           <span className="font-extrabold text-slate-900 font-mono text-sm mt-0.5 block">4,560 / 15m</span>
         </div>
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Halftime Spike</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Interval Peak Spike</span>
           <span className="font-extrabold text-emerald-600 font-mono text-sm mt-0.5 block">+320% Burst</span>
         </div>
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
@@ -435,7 +435,7 @@ export default function Analytics() {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Stadium Fan Engagement Analytics
+              Event Fan Engagement Analytics
             </h1>
             <p className="text-indigo-200/80 text-sm leading-relaxed">
               Live telemetry metrics, fan participation records, and memory challenge high score analytics.
@@ -550,10 +550,10 @@ export default function Analytics() {
                 <BarChart3 className="w-4 h-4" />
               </div>
               <CardTitle className="text-base font-extrabold text-slate-900">
-                Match-Day Fan Activity Trend
+                Real-Time Event Engagement Trend
               </CardTitle>
             </div>
-            <p className="text-xs text-slate-500">Real-time interaction trajectory across match day timeline and halftime peaks.</p>
+            <p className="text-xs text-slate-500">Real-time interaction trajectory across event hours and peak engagement intervals.</p>
           </div>
 
           {/* Metric Selector Buttons */}
@@ -643,7 +643,7 @@ export default function Analytics() {
         tabs={[
           { id: 'engagements', label: `Live Engagements Telemetry (${filteredEngagements.length})`, icon: Gamepad2 },
           { id: 'brands', label: `Sponsor Brand Engine (${REAL_BRAND_ACTIVATIONS.length})`, icon: Building2 },
-          { id: 'demographics', label: 'Match-Day Access Channels', icon: PieChart },
+          { id: 'demographics', label: 'Event Access Channels', icon: PieChart },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -799,7 +799,7 @@ export default function Analytics() {
           <Card className="bg-white border-slate-200">
             <CardHeader>
               <CardTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-indigo-600" /> Match-Day Access Portals
+                <Smartphone className="w-5 h-5 text-indigo-600" /> Event Access Portals
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-xs">
