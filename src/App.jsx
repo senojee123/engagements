@@ -25,6 +25,8 @@ import Dashboard from './pages/Dashboard';
 import Organizations from './pages/Organizations';
 import OrganizationDetails from './pages/OrganizationDetails';
 import Events from './pages/Events';
+import Analytics from './pages/Analytics';
+import Rewards from './pages/Rewards';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import IdleScreenSettings from './pages/IdleScreenSettings';
@@ -134,6 +136,8 @@ export default function App() {
                       <Route path="/organizations" element={<Organizations />} />
                       <Route path="/organizations/:id" element={<OrganizationDetails />} />
                       <Route path="/events" element={<Events />} />
+                      <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/rewards" element={<Rewards />} />
                       <Route path="/idle-screen" element={<IdleScreenSettings />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />
