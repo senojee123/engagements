@@ -178,10 +178,8 @@ export default function SelfieWallDisplay() {
     <div className="w-full min-h-screen bg-black text-white font-sans flex flex-col justify-between p-6 sm:p-10 select-none overflow-hidden">
       {/* TOP HEADER / BRANDING BAR */}
       <header className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 p-2 flex items-center justify-center border border-white/20">
-            <img src={brand.logo} alt={brand.name} className="max-h-full object-contain" />
-          </div>
+        <div className="flex items-center gap-4">
+          <img src={brand.logo} alt={brand.name} className="h-7 sm:h-8 w-auto object-contain" />
           <div>
             <h1 className="text-xl font-black uppercase tracking-tight text-white">{brand.name} FAN SELFIE WALL</h1>
             <p className="text-xs text-slate-400 font-mono">LIVE STADIUM BROADCAST</p>
