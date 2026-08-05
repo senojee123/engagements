@@ -411,14 +411,16 @@ function FanZoneLandingContent() {
             title: 'Match stadium icon pairs and win points',
             label: 'MEMORY CHALLENGE',
             isActive: activeMemoryComputed,
-            onClick: () => {},
+            onClick: () => {
+              window.location.href = 'https://memory-game-black-omega.vercel.app/';
+            },
             color: 'emerald',
             borderColor: 'border-emerald-600',
             textColor: 'text-emerald-600',
             ringColor: 'ring-emerald-500/30',
             bgColor: 'bg-emerald-600',
             icon: Brain,
-            statusText: activeMemoryComputed ? '● LIVE NOW' : '○ STANDBY',
+            statusText: activeMemoryComputed ? '● LIVE NOW • Tap to Play' : '○ TAP TO PLAY',
           },
           {
             id: 'lane-daze',

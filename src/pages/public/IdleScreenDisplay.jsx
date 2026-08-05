@@ -48,9 +48,7 @@ export default function IdleScreenDisplay() {
         {/* EVENT LOGO */}
         <div className="flex justify-center items-center">
           {config.eventLogo ? (
-            <div className="max-w-xs max-h-28 px-6 py-3 rounded-2xl bg-slate-950/80 border border-white/20 backdrop-blur-md shadow-2xl flex items-center justify-center">
-              <img src={config.eventLogo} alt="Event Logo" className="max-h-24 max-w-full object-contain" />
-            </div>
+            <img src={config.eventLogo} alt="Event Logo" className="max-h-16 sm:max-h-20 max-w-full object-contain" />
           ) : (
             <div className="px-6 py-2 rounded-xl border border-dashed border-white/40 text-sm font-bold tracking-widest text-slate-300 uppercase">
               EVENT LOGO

@@ -12,12 +12,16 @@ import {
   Square,
   Eye,
   RefreshCcw,
+  Palette,
+  Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import Input from '../ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import Tabs from '../ui/Tabs';
-import { useSelfieWall } from '../../context/SelfieWallContext';
+import { useSelfieWall, PRESET_FRAME_CONFIGS } from '../../context/SelfieWallContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function SelfieModerationPanel() {
@@ -28,6 +32,13 @@ export default function SelfieModerationPanel() {
     flaggedSelfies,
     rejectedSelfies,
     featuredSelfies,
+    activeBrand,
+    frameConfig = {},
+    updateFrameConfig,
+    frameStyle = 'stadium-glow',
+    setFrameStyle,
+    frameTagline = '',
+    setFrameTagline,
     approveSelfie,
     rejectSelfie,
     toggleFeatured,
@@ -45,6 +56,29 @@ export default function SelfieModerationPanel() {
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedIds, setSelectedIds] = useState([]);
   const [previewPhoto, setPreviewPhoto] = useState(null);
+
+  const handleCustomFrameUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload a valid image file (PNG, JPG, WEBP)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result;
+      if (typeof dataUrl === 'string') {
+        updateFrameConfig({
+          overlayImage: dataUrl,
+          style: 'custom-brand-upload',
+        });
+        toast.success('Custom brand frame uploaded and applied live to big screen popups!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Tab Dataset mapping
   const getTabSelfies = () => {
@@ -142,6 +176,89 @@ export default function SelfieModerationPanel() {
           >
             <RefreshCcw className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Brand Custom Frame Upload Card */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <Upload className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-slate-900 text-base">Brand Custom Popup Frame Uploader</h3>
+              <p className="text-xs text-slate-500">Upload your brand's custom frame graphics (PNG/JPG) to overlay on live selfie popups.</p>
+            </div>
+          </div>
+
+          {frameConfig.overlayImage && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                ● Custom Frame Active
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  updateFrameConfig({ overlayImage: '/assets/dialog_5g_frame.jpg', style: 'dialog-5g-ultra' });
+                  toast.info('Reset frame to default Dialog 5G Ultra');
+                }}
+                className="text-xs text-slate-600"
+              >
+                Restore Default Frame
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          {/* File Drag-and-Drop Area */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Upload Custom Frame Asset
+            </label>
+            <div
+              onClick={() => document.getElementById('frame-file-input')?.click()}
+              className="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50/50 hover:bg-indigo-50/30 p-6 rounded-2xl cursor-pointer text-center transition-all group"
+            >
+              <input
+                id="frame-file-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCustomFrameUpload}
+              />
+              <div className="w-12 h-12 rounded-2xl bg-white text-indigo-600 flex items-center justify-center mx-auto shadow-xs group-hover:scale-110 transition-transform">
+                <ImageIcon className="w-6 h-6" />
+              </div>
+              <p className="mt-3 text-xs font-bold text-slate-800">Click to upload frame image</p>
+              <p className="text-[11px] text-slate-400 mt-1">PNG or JPG (Square 1:1 or Portrait 2:3 recommended)</p>
+            </div>
+          </div>
+
+          {/* Live Frame Preview Box */}
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-white space-y-3">
+            <div className="flex items-center justify-between text-[11px] font-mono">
+              <span className="text-cyan-300 font-bold">LIVE FRAME PREVIEW</span>
+              <span className="text-slate-400">BIG SCREEN POPUP</span>
+            </div>
+
+            <div className="relative aspect-square max-w-[200px] mx-auto rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/20">
+              <img
+                src={frameConfig.overlayImage || '/assets/dialog_5g_frame.jpg'}
+                alt="Active Frame Preview"
+                className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
+              />
+              <div className="absolute top-[5.6%] left-[8.2%] w-[83.6%] h-[68.9%] z-20 bg-slate-900 overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80"
+                  alt="Sample Selfie"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

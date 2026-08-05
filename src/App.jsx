@@ -25,6 +25,8 @@ import Dashboard from './pages/Dashboard';
 import Organizations from './pages/Organizations';
 import OrganizationDetails from './pages/OrganizationDetails';
 import Events from './pages/Events';
+import Analytics from './pages/Analytics';
+import Rewards from './pages/Rewards';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import IdleScreenSettings from './pages/IdleScreenSettings';
@@ -45,6 +47,10 @@ import StadiumScreenRouter from './components/selfieWall/StadiumScreenRouter';
 // Standalone Public Fan Zone Landing Page (QR Code Scan Destination)
 import FanZoneLanding from './pages/public/FanZoneLanding';
 import IdleScreenDisplay from './pages/public/IdleScreenDisplay';
+
+// New App / Instance Architecture Parametric Embed Routers
+import InstanceDisplayRouter from './pages/public/InstanceDisplayRouter';
+import InstanceFanRouter from './pages/public/InstanceFanRouter';
 
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
@@ -75,6 +81,12 @@ export default function App() {
                         <Routes>
                     {/* Root Redirect */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                    {/* App / Instance Architecture Parametric Embed Routes */}
+                    <Route path="/e/:appId/:instanceId/display" element={<InstanceDisplayRouter />} />
+                    <Route path="/e/:appId/display" element={<InstanceDisplayRouter />} />
+                    <Route path="/e/:appId/:instanceId" element={<InstanceFanRouter />} />
+                    <Route path="/e/:appId" element={<InstanceFanRouter />} />
 
                     {/* Public Standalone Fan Zone Landing Page (QR Destination) */}
                     <Route path="/fan-zone" element={<FanZoneLanding />} />
@@ -134,6 +146,8 @@ export default function App() {
                       <Route path="/organizations" element={<Organizations />} />
                       <Route path="/organizations/:id" element={<OrganizationDetails />} />
                       <Route path="/events" element={<Events />} />
+                      <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/rewards" element={<Rewards />} />
                       <Route path="/idle-screen" element={<IdleScreenSettings />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/settings" element={<Settings />} />

@@ -4,6 +4,8 @@ import {
   LayoutDashboard,
   Building2,
   Calendar,
+  BarChart3,
+  Gift,
   Tv,
   Gamepad2,
   Camera,
@@ -21,6 +23,8 @@ const mainNavItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, disabled: false },
   { name: 'Organizations', path: '/organizations', icon: Building2, disabled: false },
   { name: 'Events', path: '/events', icon: Calendar, disabled: false },
+  { name: 'Analytics', path: '/analytics', icon: BarChart3, disabled: false },
+  { name: 'Rewards', path: '/rewards', icon: Gift, disabled: false },
   { name: 'Idle Screen', path: '/idle-screen', icon: Tv, disabled: false },
 ];
 

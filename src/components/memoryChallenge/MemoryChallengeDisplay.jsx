@@ -112,9 +112,9 @@ export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
           {/* QR Code Glowing Frame */}
           <div className="relative p-3 bg-white rounded-2xl shadow-[0_0_0_3px_rgba(217,171,82,0.6),0_0_28px_rgba(217,171,82,0.35),0_0_60px_rgba(199,125,255,0.18)] transition-all">
             <img
-              src="/memory-qr.png"
-              onError={(e) => { e.target.src = '/fanzone-qr.png'; }}
-              alt="Scan QR Code to Play"
+              src="/assets/memory_challenge_qr.png"
+              onError={(e) => { e.target.src = '/memory-qr.png'; }}
+              alt="Scan QR Code to Play Memory Challenge"
               className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
             />
           </div>

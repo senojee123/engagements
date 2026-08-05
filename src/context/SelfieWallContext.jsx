@@ -4,6 +4,82 @@ import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi, deleteSelfieApi, clearSelfiesApi, updateScreenStatusApi } from '../lib/api';
 
 
+export const DEFAULT_FRAME_CONFIG = {
+  style: 'dialog-5g-ultra',
+  tagline: 'I Was At The 5G Experience Zone',
+  borderColor: '#ef4444',
+  glowColor: 'rgba(239,68,68,0.85)',
+  icon: 'zap',
+  animation: 'pulse',
+  borderWidth: '4px',
+  bgType: 'black',
+  overlayImage: '/assets/dialog_5g_frame.jpg',
+};
+
+export const PRESET_FRAME_CONFIGS = {
+  'stadium-glow': {
+    style: 'stadium-glow',
+    tagline: 'JUST APPROVED ON STADIUM SCREEN',
+    borderColor: '#22d3ee',
+    glowColor: 'rgba(34,211,238,0.75)',
+    icon: 'sparkles',
+    animation: 'pulse',
+    borderWidth: '4px',
+    bgType: 'black',
+  },
+  'gold-vip': {
+    style: 'gold-vip',
+    tagline: '⭐ VIP FAN OF THE MATCH ⭐',
+    borderColor: '#fbbf24',
+    glowColor: 'rgba(251,191,36,0.85)',
+    icon: 'trophy',
+    animation: 'bounce',
+    borderWidth: '4px',
+    bgType: 'black',
+  },
+  'brand-signature': {
+    style: 'brand-signature',
+    tagline: '',
+    borderColor: '#6366f1',
+    glowColor: 'rgba(99,102,241,0.75)',
+    icon: 'award',
+    animation: 'pulse',
+    borderWidth: '4px',
+    bgType: 'black',
+  },
+  'minimal-dark': {
+    style: 'minimal-dark',
+    tagline: 'LIVE FAN BROADCAST',
+    borderColor: '#cbd5e1',
+    glowColor: 'rgba(255,255,255,0.25)',
+    icon: 'shield',
+    animation: 'none',
+    borderWidth: '2px',
+    bgType: 'glass',
+  },
+  'cyber-pulse': {
+    style: 'cyber-pulse',
+    tagline: 'HYPER STADIUM ACTIVATION',
+    borderColor: '#34d399',
+    glowColor: 'rgba(52,211,153,0.85)',
+    icon: 'zap',
+    animation: 'pulse',
+    borderWidth: '4px',
+    bgType: 'black',
+  },
+  'dialog-5g-ultra': {
+    style: 'dialog-5g-ultra',
+    tagline: 'I Was At The 5G Experience Zone',
+    borderColor: '#ef4444',
+    glowColor: 'rgba(239,68,68,0.85)',
+    icon: 'zap',
+    animation: 'pulse',
+    borderWidth: '4px',
+    bgType: 'black',
+    overlayImage: '/assets/dialog_5g_frame.jpg',
+  },
+};
+
 const SelfieWallContext = createContext(null);
 
 
@@ -41,6 +117,37 @@ export const SelfieWallProvider = ({ children }) => {
   const [aiAutoApprove, setAiAutoApprove] = useState(false); // Default: Strict Organizer Moderation
   const [aiSensitivity, setAiSensitivity] = useState(80); // Safety threshold (80+)
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState(true);
+
+  // Spotlight Frame Customizer State
+  const [frameConfig, setFrameConfigState] = useState(() => {
+    const saved = localStorage.getItem('fanforge_selfie_frame_config');
+    return saved ? { ...DEFAULT_FRAME_CONFIG, ...JSON.parse(saved) } : DEFAULT_FRAME_CONFIG;
+  });
+
+  const updateFrameConfig = (updates) => {
+    setFrameConfigState((prev) => {
+      const next = { ...prev, ...updates };
+      localStorage.setItem('fanforge_selfie_frame_config', JSON.stringify(next));
+      try {
+        const channel = new BroadcastChannel('fanforge_selfie_sync');
+        channel.postMessage({ type: 'FRAME_CONFIG_UPDATED', payload: next });
+        channel.close();
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const frameStyle = frameConfig.style;
+  const frameTagline = frameConfig.tagline;
+
+  const setFrameStyle = (style) => {
+    const preset = PRESET_FRAME_CONFIGS[style] || DEFAULT_FRAME_CONFIG;
+    updateFrameConfig({ ...preset, style });
+  };
+
+  const setFrameTagline = (tagline) => {
+    updateFrameConfig({ tagline });
+  };
 
   // Active activity state for Stadium Screen (false = Idle Screen, true = Selfie Wall)
   const [isSelfieWallActive, setIsSelfieWallActiveState] = useState(() => {
@@ -162,6 +269,8 @@ export const SelfieWallProvider = ({ children }) => {
             setIsSelfieWallActiveState(event.data.isSelfieWallActive);
           } else if (event.data.type === 'BRAND_UPDATED') {
             setActiveBrandState(event.data.payload);
+          } else if (event.data.type === 'FRAME_CONFIG_UPDATED') {
+            if (event.data.payload) setFrameConfigState(event.data.payload);
           }
         }
       };
@@ -183,6 +292,11 @@ export const SelfieWallProvider = ({ children }) => {
       if (e.key === 'fanforge_active_brand' && e.newValue) {
         try {
           setActiveBrandState(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+      if (e.key === 'fanforge_selfie_frame_config' && e.newValue) {
+        try {
+          setFrameConfigState(JSON.parse(e.newValue));
         } catch (err) {}
       }
     };
@@ -321,6 +435,12 @@ export const SelfieWallProvider = ({ children }) => {
         featuredSelfies,
         activeBrand,
         setActiveBrand,
+        frameConfig,
+        updateFrameConfig,
+        frameStyle,
+        setFrameStyle,
+        frameTagline,
+        setFrameTagline,
         displayMode,
         setDisplayMode,
         carouselSpeed,
@@ -359,6 +479,12 @@ export const useSelfieWall = () => {
       pendingSelfies: [],
       flaggedSelfies: [],
       activeBrand: DEFAULT_BRAND_KITS[0],
+      frameConfig: DEFAULT_FRAME_CONFIG,
+      updateFrameConfig: () => {},
+      frameStyle: 'stadium-glow',
+      setFrameStyle: () => {},
+      frameTagline: '',
+      setFrameTagline: () => {},
       displayMode: 'grid',
       carouselSpeed: 4,
       aiAutoApprove: false,
