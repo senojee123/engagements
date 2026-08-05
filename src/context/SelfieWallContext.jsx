@@ -5,14 +5,15 @@ import { fetchSelfiesApi, uploadSelfieApi, approveSelfieApi, rejectSelfieApi, de
 
 
 export const DEFAULT_FRAME_CONFIG = {
-  style: 'stadium-glow',
-  tagline: '',
-  borderColor: '#22d3ee',
-  glowColor: 'rgba(34,211,238,0.75)',
-  icon: 'sparkles',
+  style: 'dialog-5g-ultra',
+  tagline: 'I Was At The 5G Experience Zone',
+  borderColor: '#ef4444',
+  glowColor: 'rgba(239,68,68,0.85)',
+  icon: 'zap',
   animation: 'pulse',
   borderWidth: '4px',
   bgType: 'black',
+  overlayImage: '/assets/dialog_5g_frame.jpg',
 };
 
 export const PRESET_FRAME_CONFIGS = {
@@ -65,6 +66,17 @@ export const PRESET_FRAME_CONFIGS = {
     animation: 'pulse',
     borderWidth: '4px',
     bgType: 'black',
+  },
+  'dialog-5g-ultra': {
+    style: 'dialog-5g-ultra',
+    tagline: 'I Was At The 5G Experience Zone',
+    borderColor: '#ef4444',
+    glowColor: 'rgba(239,68,68,0.85)',
+    icon: 'zap',
+    animation: 'pulse',
+    borderWidth: '4px',
+    bgType: 'black',
+    overlayImage: '/assets/dialog_5g_frame.jpg',
   },
 };
 

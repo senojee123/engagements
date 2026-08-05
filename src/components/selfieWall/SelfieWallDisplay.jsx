@@ -18,12 +18,18 @@ const renderFrameIcon = (iconType, animation) => {
 };
 
 const getFrameConfig = (config, brand) => {
-  const tagline = config?.tagline || brand?.tagline || 'JUST APPROVED ON STADIUM SCREEN';
-  const borderColor = config?.borderColor || brand?.primaryColor || '#22d3ee';
+  const tagline = config?.tagline || brand?.tagline || 'I Was At The 5G Experience Zone';
+  const borderColor = config?.borderColor || brand?.primaryColor || '#ef4444';
   const glowColor = config?.glowColor || `${borderColor}b3`;
   const borderWidth = config?.borderWidth || '4px';
 
+  // Default to dialog-5g-ultra overlay image unless explicitly using another preset style
+  const isGraphicFrame = !config?.style || config?.style === 'dialog-5g-ultra' || config?.overlayImage;
+  const overlayImage = config?.overlayImage || (isGraphicFrame ? '/assets/dialog_5g_frame.jpg' : null);
+
   return {
+    style: config?.style || 'dialog-5g-ultra',
+    overlayImage,
     cardClass: config?.bgType === 'glass' ? 'bg-slate-900/95 backdrop-blur-2xl shadow-2xl' : 'bg-black shadow-2xl',
     headerClass: 'font-mono font-black tracking-widest text-xs uppercase',
     headerStyle: { color: borderColor },
@@ -190,11 +196,11 @@ export default function SelfieWallDisplay() {
       {/* MAIN CONTENT: 6-BOX GRID + QR CODE SIDEBAR */}
       <main className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-8 max-w-7xl mx-auto w-full my-auto z-20">
         {/* 6-BOX GRID (3 COLUMNS x 2 ROWS) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 flex-1 w-full max-w-4xl">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 flex-1 w-full max-w-4xl">
           {displayBoxes.map((photo, slotIdx) => (
             <div
               key={`slot-container-${slotIdx}`}
-              className="relative aspect-square rounded-3xl overflow-hidden border-2 border-white/20 bg-slate-950 shadow-2xl flex flex-col items-center justify-center group"
+              className="relative aspect-square rounded-xl overflow-hidden border-2 border-white/20 bg-slate-950 shadow-2xl flex flex-col items-center justify-center group"
             >
               <AnimatePresence mode="wait">
                 {photo ? (
@@ -212,11 +218,6 @@ export default function SelfieWallDisplay() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />
 
-                    {/* Brand Overlay Badge */}
-                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/20 flex items-center gap-1.5 z-10">
-                      <img src={brand.logo} alt="" className="w-3.5 h-3.5 object-contain" />
-                      <span className="text-[10px] font-extrabold text-white">{brand.name}</span>
-                    </div>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -294,37 +295,32 @@ export default function SelfieWallDisplay() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.3, opacity: 0, y: -30 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              style={currentFrameConfig.borderStyle}
-              className={`rounded-3xl max-w-xl w-full p-4 text-center relative overflow-hidden space-y-3 ${currentFrameConfig.cardClass} ${currentFrameConfig.animClass}`}
+              className="relative max-w-md sm:max-w-lg w-full aspect-square max-h-[85vh] flex items-center justify-center"
             >
-              {/* Top Banner */}
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-2">
-                  {currentFrameConfig.icon}
-                  <span className={currentFrameConfig.headerClass} style={currentFrameConfig.headerStyle}>
-                    {currentFrameConfig.tagline}
-                  </span>
-                </div>
-                {spotlightQueue.length > 0 && (
-                  <span className="text-[11px] font-bold text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full font-mono">
-                    +{spotlightQueue.length} next
-                  </span>
-                )}
-              </div>
-
-              {/* Spotlight Photo */}
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black">
+              {/* BRANDED GRAPHIC POPUP FRAME (DIALOG 5G ULTRA SQUARE) */}
+              <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/20">
+                {/* Outer Branded Graphic Frame Background Asset */}
                 <img
-                  src={currentSpotlight.photoUrl}
-                  alt="Spotlight Selfie"
-                  className="w-full h-full object-cover"
+                  src={currentFrameConfig.overlayImage || '/assets/dialog_5g_frame.jpg'}
+                  alt="Dialog 5G Frame"
+                  className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
                 />
 
-                {/* Brand Overlay Badge on Spotlight Image */}
-                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20 flex items-center gap-2 z-10">
-                  <img src={brand.logo} alt="" className="w-4 h-4 object-contain" />
-                  <span className="text-xs font-black text-white">{brand.name}</span>
+                {/* Fan Selfie Photo Positioned Perfectly Over Center Cutout Window (Sharp Square, No Curves) */}
+                <div className="absolute top-[5.6%] left-[8.2%] w-[83.6%] h-[68.9%] rounded-none overflow-hidden z-20 bg-slate-900 shadow-md">
+                  <img
+                    src={currentSpotlight.photoUrl}
+                    alt="Spotlight Selfie"
+                    className="w-full h-full object-cover rounded-none"
+                  />
                 </div>
+
+                {/* Queue Indicator Badge on Top Right */}
+                {spotlightQueue.length > 0 && (
+                  <div className="absolute top-4 right-4 z-30 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-mono font-bold text-cyan-300 border border-cyan-400/40">
+                    +{spotlightQueue.length} next
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
