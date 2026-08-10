@@ -468,20 +468,6 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
             icon: Brain,
             statusText: activeMemoryComputed ? '● LIVE NOW • Tap to Play' : '○ TAP TO PLAY',
           },
-          {
-            id: 'lane-daze',
-            title: '3-lane arcade runner — switch lanes & collect power-ups',
-            label: 'LANE DASH',
-            isActive: activeLaneDazeComputed,
-            onClick: () => { },
-            color: 'cyan',
-            borderColor: 'border-cyan-600',
-            textColor: 'text-cyan-600',
-            ringColor: 'ring-cyan-500/30',
-            bgColor: 'bg-cyan-600',
-            icon: Trophy,
-            statusText: activeLaneDazeComputed ? '● LIVE NOW' : '○ STANDBY',
-          },
         ]
           .sort((a, b) => (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0))
           .map((card) => {
