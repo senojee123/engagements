@@ -361,7 +361,7 @@ export default function Analytics() {
     },
     {
       id: 'lane-daze',
-      name: 'Lane Daze Arcade Runner',
+      name: 'Lane Dash Arcade Runner',
       category: 'Games',
       icon: Gamepad2,
       color: 'from-amber-500 to-red-600',
@@ -392,7 +392,7 @@ export default function Analytics() {
     if (matches.length === 0) {
       if (b.id === 'coca-cola') matches = ['Selfie Wall'];
       else if (b.id === 'pepsi') matches = ['Memory Challenge', 'Live Poll'];
-      else if (b.id === 'red-bull') matches = ['Lane Daze', 'Reaction Wall'];
+      else if (b.id === 'red-bull') matches = ['Lane Dash', 'Reaction Wall'];
       else matches = ['Brand Kit Ready'];
     }
 
@@ -605,7 +605,7 @@ export default function Analytics() {
             <option value="selfie-wall">Live Fan Selfie Wall (Active Data)</option>
             <option value="live-poll">Stadium Real-Time Live Poll (Active Data)</option>
             <option value="reaction-wall">Live Emoji Reaction Wall (Active Data)</option>
-            <option value="lane-daze">Lane Daze Arcade Runner (No Data Yet)</option>
+            <option value="lane-daze">Lane Dash Arcade Runner (No Data Yet)</option>
           </select>
 
           {/* Select Brand Filter */}

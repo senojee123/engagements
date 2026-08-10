@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models
 import schemas
-from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions
+from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
 
 # Create database tables automatically on startup
 from sqlalchemy import text
@@ -19,7 +19,6 @@ try:
         conn.execute(text("DROP TABLE IF EXISTS polls"))
         conn.execute(text("DROP TABLE IF EXISTS templates"))
         conn.execute(text("DROP TABLE IF EXISTS screen_state"))
-        conn.execute(text("DROP TABLE IF EXISTS selfies"))
         conn.commit()
 except Exception:
     pass
@@ -53,6 +52,7 @@ app.include_router(templates.router)
 app.include_router(brand_kits.router)
 app.include_router(polls.router)
 app.include_router(reactions.router)
+app.include_router(instances.router)
 
 
 

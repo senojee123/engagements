@@ -22,9 +22,9 @@ import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
-import { fetchScreenStatusApi } from '../../lib/api';
+import { fetchScreenStatusApi, fetchInstanceApi, fetchGameConfigApi } from '../../lib/api';
 
-function FanZoneLandingContent() {
+function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   const { uploadSelfie, activeBrand, selfies, isSelfieWallActive } = useSelfieWall();
   const { activePoll, submitVote, isPollActive } = useLivePoll();
   const { emitReaction, isReactionWallActive } = useReactionWall();
@@ -43,7 +43,7 @@ function FanZoneLandingContent() {
             setRemoteActiveMode(data.activeMode);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     };
 
     syncStatus();
@@ -59,9 +59,9 @@ function FanZoneLandingContent() {
           if (msg.type === 'STATUS_UPDATED' && msg.activeMode) {
             setRemoteActiveMode(msg.activeMode);
           }
-        } catch (e) {}
+        } catch (e) { }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     return () => {
       isCancelled = true;
@@ -77,7 +77,9 @@ function FanZoneLandingContent() {
   const activeLaneDazeComputed = remoteActiveMode === 'lane-daze';
 
   // Memory Challenge Game State
-  const EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
+  const DEFAULT_EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
+  const [instanceTiles, setInstanceTiles] = useState(null);
+  const EMOJI_PAIRS = instanceTiles && instanceTiles.length >= 2 ? instanceTiles : DEFAULT_EMOJI_PAIRS;
   const [memoryCards, setMemoryCards] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState([]);
@@ -146,7 +148,7 @@ function FanZoneLandingContent() {
           setFanZoneSettings({ ...DEFAULT_FANZONE_SETTINGS, ...event.data.payload });
         }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     window.addEventListener('storage', handleStorageChange);
     return () => {
@@ -156,6 +158,50 @@ function FanZoneLandingContent() {
   }, []);
 
   const [activeModal, setActiveModal] = useState(null); // null | 'selfie-wall' | 'live-vote' | 'reaction-wall'
+
+  // Resolve this URL's game config and open it directly, instead of showing the
+  // generic multi-game lobby. Two cases:
+  //  - instanceId present: this link is pinned to one specific historical
+  //    version (immutable, for preview/rollback) — fetch that exact UUID.
+  //  - instanceId absent but forcedAppId present: this is the STABLE embed
+  //    link (the one that's already printed on a QR code / hosted in an
+  //    iframe) — it must never change, so it always resolves to whatever the
+  //    Brand most recently published, via the "current config" endpoint.
+  useEffect(() => {
+    if (!instanceId && !forcedAppId) return;
+    let isCancelled = false;
+
+    const load = instanceId
+      ? fetchInstanceApi(instanceId).then((data) => data?.config)
+      : fetchGameConfigApi(forcedAppId);
+
+    load
+      .then((config) => {
+        if (isCancelled || !config) return;
+        const tiles = config.tiles;
+        if (Array.isArray(tiles) && tiles.length >= 2) {
+          setInstanceTiles(tiles.map((t) => t.content).filter(Boolean));
+        }
+      })
+      .catch(() => { })
+      .finally(() => {
+        if (!isCancelled && forcedAppId === 'memory-challenge') {
+          setActiveModal('memory-challenge');
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [instanceId, forcedAppId]);
+
+  useEffect(() => {
+    if (activeModal === 'memory-challenge' && memoryCards.length === 0) {
+      resetMemoryGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModal, instanceTiles]);
+
   const [selfieStage, setSelfieStage] = useState('camera'); // 'camera' | 'preview' | 'sent'
   const [uploaderName, setUploaderName] = useState('');
   const [caption, setCaption] = useState('');
@@ -188,7 +234,7 @@ function FanZoneLandingContent() {
       setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     } catch (err) {
       console.warn('Camera access not granted or hardware unavailable:', err);
@@ -219,7 +265,7 @@ function FanZoneLandingContent() {
   useEffect(() => {
     if (videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   }, [cameraStream, selfieStage]);
 
@@ -425,9 +471,9 @@ function FanZoneLandingContent() {
           {
             id: 'lane-daze',
             title: '3-lane arcade runner — switch lanes & collect power-ups',
-            label: 'LANE DAZE',
+            label: 'LANE DASH',
             isActive: activeLaneDazeComputed,
-            onClick: () => {},
+            onClick: () => { },
             color: 'cyan',
             borderColor: 'border-cyan-600',
             textColor: 'text-cyan-600',
@@ -444,18 +490,16 @@ function FanZoneLandingContent() {
               <div
                 key={card.id}
                 onClick={card.onClick}
-                className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${
-                  card.isActive
+                className={`group p-6 rounded-3xl transition-all cursor-pointer flex items-center justify-between ${card.isActive
                     ? `bg-white border-2 ${card.borderColor} shadow-xl ring-4 ${card.ringColor} scale-[1.02]`
                     : 'bg-[#eae7e1] hover:bg-[#e2ded6] border border-black/5 hover:border-black/15 shadow-2xs opacity-80 hover:opacity-100'
-                }`}
+                  }`}
               >
                 <div className="space-y-1 text-left">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider font-mono ${
-                        card.isActive ? card.textColor : 'text-slate-500'
-                      }`}
+                      className={`text-[10px] font-bold uppercase tracking-wider font-mono ${card.isActive ? card.textColor : 'text-slate-500'
+                        }`}
                     >
                       {card.label}
                     </span>
@@ -467,17 +511,15 @@ function FanZoneLandingContent() {
                   </div>
 
                   <h3
-                    className={`text-base sm:text-lg font-bold transition-colors ${
-                      card.isActive ? 'text-slate-950 font-extrabold' : 'text-slate-900 group-hover:text-slate-950'
-                    }`}
+                    className={`text-base sm:text-lg font-bold transition-colors ${card.isActive ? 'text-slate-950 font-extrabold' : 'text-slate-900 group-hover:text-slate-950'
+                      }`}
                   >
                     {card.title}
                   </h3>
 
                   <span
-                    className={`text-xs font-semibold flex items-center gap-1.5 ${
-                      card.isActive ? 'text-emerald-700 font-extrabold' : 'text-slate-500'
-                    }`}
+                    className={`text-xs font-semibold flex items-center gap-1.5 ${card.isActive ? 'text-emerald-700 font-extrabold' : 'text-slate-500'
+                      }`}
                   >
                     {card.isActive ? (
                       <>
@@ -491,11 +533,10 @@ function FanZoneLandingContent() {
                 </div>
 
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-                    card.isActive
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${card.isActive
                       ? `${card.bgColor} text-white shadow-lg ring-2 ${card.ringColor}`
                       : 'bg-white/60 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-6 h-6" />
                 </div>
@@ -606,9 +647,8 @@ function FanZoneLandingContent() {
                             key={idx}
                             type="button"
                             onClick={() => setSelectedPhoto(url)}
-                            className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                              selectedPhoto === url ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-700'
-                            }`}
+                            className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedPhoto === url ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-700'
+                              }`}
                           >
                             <img src={url} alt="" className="w-full h-full object-cover" />
                           </button>
@@ -763,11 +803,10 @@ function FanZoneLandingContent() {
                         }
                         toast.success(`Vote for ${opt.text} cast!`);
                       }}
-                      className={`w-full p-3 rounded-xl border text-xs font-bold text-left transition-all ${
-                        selectedOption === opt.id
+                      className={`w-full p-3 rounded-xl border text-xs font-bold text-left transition-all ${selectedOption === opt.id
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
                           : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       ● {opt.text}
                     </button>
@@ -903,13 +942,12 @@ function FanZoneLandingContent() {
                       key={card.id}
                       onClick={() => handleCardClick(idx)}
                       disabled={isMatched}
-                      className={`aspect-square rounded-2xl text-2xl font-bold flex items-center justify-center transition-all duration-300 transform shadow-sm ${
-                        isMatched
+                      className={`aspect-square rounded-2xl text-2xl font-bold flex items-center justify-center transition-all duration-300 transform shadow-sm ${isMatched
                           ? 'bg-emerald-100 border-2 border-emerald-400 text-emerald-800 scale-95 opacity-80'
                           : isFlipped
-                          ? 'bg-purple-600 text-white border-2 border-purple-400 scale-105 shadow-md'
-                          : 'bg-slate-100 hover:bg-slate-200 border border-slate-300 text-transparent active:scale-95'
-                      }`}
+                            ? 'bg-purple-600 text-white border-2 border-purple-400 scale-105 shadow-md'
+                            : 'bg-slate-100 hover:bg-slate-200 border border-slate-300 text-transparent active:scale-95'
+                        }`}
                     >
                       {isFlipped ? card.emoji : '❓'}
                     </button>
@@ -941,13 +979,13 @@ function FanZoneLandingContent() {
   );
 }
 
-export default function FanZoneLanding() {
+export default function FanZoneLanding({ forcedAppId, instanceId } = {}) {
   return (
     <SelfieWallProvider>
       <LivePollProvider>
         <ReactionWallProvider>
           <MemoryChallengeProvider>
-            <FanZoneLandingContent />
+            <FanZoneLandingContent forcedAppId={forcedAppId} instanceId={instanceId} />
           </MemoryChallengeProvider>
         </ReactionWallProvider>
       </LivePollProvider>

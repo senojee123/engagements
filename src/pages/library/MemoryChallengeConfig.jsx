@@ -47,6 +47,8 @@ export default function MemoryChallengeConfig() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [lastPublishedVersion, setLastPublishedVersion] = useState(null);
   const [expandedTile, setExpandedTile] = useState(null);
   const fileRefs = useRef({});
 
@@ -125,6 +127,33 @@ export default function MemoryChallengeConfig() {
       toast.error('Failed to save config. Check your connection.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (config.tiles.length < 2) {
+      toast.error('Add at least 2 tiles before publishing.');
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`${RAILWAY_API}/api/instances/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: 'memory-challenge',
+          brandId: config.brandId || '',
+          config,
+        }),
+      });
+      if (!res.ok) throw new Error('Publish failed');
+      const instance = await res.json();
+      setLastPublishedVersion({ id: instance.instanceId, at: instance.publishedAt });
+      toast.success(`Published as version ${instance.instanceId.slice(0, 8)} — your live link is already updated. 🔗`);
+    } catch (err) {
+      toast.error('Failed to publish. Check your connection.');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -471,19 +500,39 @@ export default function MemoryChallengeConfig() {
       </div>
 
       {/* Sticky save bar */}
-      <div className="sticky bottom-4 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 flex items-center justify-between gap-4">
-        <div className="text-sm text-slate-500">
-          <strong className="text-slate-800">{config.tiles.length} tiles</strong> configured for {config.brandName || 'your brand'}.
-          {!tilesOk && <span className="text-amber-600 ml-2">⚠ Need {pairsNeeded} tiles for {config.gridCols}×{config.gridRows} grid.</span>}
+      <div className="sticky bottom-4 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm text-slate-500">
+            <strong className="text-slate-800">{config.tiles.length} tiles</strong> configured for {config.brandName || 'your brand'}.
+            {!tilesOk && <span className="text-amber-600 ml-2">⚠ Need {pairsNeeded} tiles for {config.gridCols}×{config.gridRows} grid.</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveAndBroadcast}
+              disabled={isSaving || !tilesOk}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
+            >
+              {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {isSaving ? 'Broadcasting...' : 'Save & Broadcast Live'}
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={isPublishing || !tilesOk}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-all"
+              title="Record this config as a new version and update the live embed link"
+            >
+              {isPublishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
+              {isPublishing ? 'Publishing...' : 'Publish'}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleSaveAndBroadcast}
-          disabled={isSaving || !tilesOk}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
-        >
-          {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          {isSaving ? 'Broadcasting...' : 'Save & Broadcast Live'}
-        </button>
+
+        {lastPublishedVersion && (
+          <p className="text-xs text-slate-400">
+            Last published as version <span className="font-mono">{lastPublishedVersion.id.slice(0, 8)}</span> at{' '}
+            {new Date(lastPublishedVersion.at * 1000).toLocaleString()}.
+          </p>
+        )}
       </div>
     </div>
   );

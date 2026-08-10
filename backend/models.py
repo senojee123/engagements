@@ -216,3 +216,18 @@ class GameConfigModel(Base):
     config_json = Column(Text, nullable=True)    # Full JSON config blob
     updated_at = Column(Float, default=lambda: time.time())
 
+
+# ----------------------------------------------------
+# ENGAGEMENT INSTANCE — Immutable UUID snapshot minted on each Brand publish
+# ----------------------------------------------------
+class InstanceModel(Base):
+    __tablename__ = "instances"
+
+    id = Column(String, primary_key=True)         # UUID, minted on publish
+    app_id = Column(String, index=True, nullable=False)
+    brand_id = Column(String, default="")
+    config_json = Column(Text, nullable=True)     # Full JSON config blob, snapshotted at publish
+    status = Column(String, default="Published")
+    created_at = Column(Float, default=lambda: time.time())
+    published_at = Column(Float, default=lambda: time.time())
+

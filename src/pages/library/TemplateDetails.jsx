@@ -167,20 +167,6 @@ function SelfieWallEngagementView({ template }) {
         </div>
       </div>
 
-      {/* Brand Switcher */}
-      <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">Active Brand Identity Theme</h3>
-            <p className="text-xs text-slate-500">Transform background colors, logos, and frame stickers instantly.</p>
-          </div>
-          <Badge variant="indigo" size="sm">
-            Active: {activeBrand.name}
-          </Badge>
-        </div>
-        <BrandSwitcher activeBrand={activeBrand} onSelectBrand={setActiveBrand} />
-      </div>
-
       {/* Sub Tabs */}
       <Tabs
         tabs={[
@@ -652,20 +638,6 @@ function MemoryChallengeEngagementView({ template }) {
         </div>
       </div>
 
-      {/* Brand Switcher */}
-      <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">Active Brand Identity Theme</h3>
-            <p className="text-xs text-slate-500">Transform background colors and visual identity theme for the screen output.</p>
-          </div>
-          <Badge variant="indigo" size="sm">
-            Active: {activeBrand.name}
-          </Badge>
-        </div>
-        <BrandSwitcher activeBrand={activeBrand} onSelectBrand={setActiveBrand} />
-      </div>
-
       {/* Sub Tabs */}
       <Tabs
         tabs={[
@@ -1103,8 +1075,8 @@ export default function TemplateDetails() {
                   onClick={() => {
                     localStorage.setItem('fanforge_active_mode', 'idle');
                     window.dispatchEvent(new Event('storage'));
-                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => {});
-                    toast.info('Lane Daze broadcast stopped. Screen returned to Idle.');
+                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'idle' }).catch(() => { });
+                    toast.info('Lane Dash broadcast stopped. Screen returned to Idle.');
                   }}
                   variant="outline"
                   className="bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 font-bold"
@@ -1116,8 +1088,8 @@ export default function TemplateDetails() {
                   onClick={() => {
                     localStorage.setItem('fanforge_active_mode', 'lane-daze');
                     window.dispatchEvent(new Event('storage'));
-                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'lane-daze' }).catch(() => {});
-                    toast.success('Lane Daze launched live on active display screen!');
+                    updateScreenStatusApi({ isSelfieWallActive: false, activeMode: 'lane-daze' }).catch(() => { });
+                    toast.success('Lane Dash launched live on active display screen!');
                   }}
                   variant="primary"
                   icon={Tv}

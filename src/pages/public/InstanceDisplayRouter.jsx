@@ -48,44 +48,49 @@ const RAILWAY_API = import.meta.env.VITE_API_URL || 'https://engagements-product
 export default function InstanceDisplayRouter() {
   const { appId, instanceId } = useParams();
   const [instanceConfig, setInstanceConfig] = useState(null);
-  const [isLoading, setIsLoading] = useState(!!instanceId);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Normalize App ID slug
   const normalizedAppId = (appId || 'idle').toLowerCase().trim();
   const registryItem = APP_DISPLAY_REGISTRY[normalizedAppId];
 
-  // Fetch instance configuration if instanceId UUID is provided in URL
+  // Resolve this URL's config.
+  //  - instanceId present: pinned to one specific historical version (UUID).
+  //  - instanceId absent: this is the STABLE embed link (already printed on a
+  //    QR code / hosted on a Jumbotron) — it must never change, so it always
+  //    resolves to whatever config was most recently published for appId.
   useEffect(() => {
+    let isCancelled = false;
+
+    const fetchCurrentByAppId = () =>
+      fetch(`${RAILWAY_API}/api/game-config/${normalizedAppId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!isCancelled && data) setInstanceConfig(data);
+        })
+        .catch(() => {});
+
     if (!instanceId) {
-      setIsLoading(false);
-      return;
+      fetchCurrentByAppId().finally(() => {
+        if (!isCancelled) setIsLoading(false);
+      });
+      return () => {
+        isCancelled = true;
+      };
     }
 
-    let isCancelled = false;
-    // Attempt to fetch instance snapshot by UUID, falling back to game-config by appId slug
-    const fetchUrl = `${RAILWAY_API}/api/instances/${instanceId}`;
-
-    fetch(fetchUrl)
+    fetch(`${RAILWAY_API}/api/instances/${instanceId}`)
       .then((res) => {
         if (!res.ok) throw new Error('Instance not found');
         return res.json();
       })
       .then((data) => {
         if (!isCancelled && data) {
-          setInstanceConfig(data);
+          // GET /api/instances/:id returns { instanceId, appId, brandId, status, publishedAt, config }
+          setInstanceConfig(data.config || data);
         }
       })
-      .catch(() => {
-        // Fallback fetch to game-config by appId
-        fetch(`${RAILWAY_API}/api/game-config/${normalizedAppId}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((fallbackData) => {
-            if (!isCancelled && fallbackData) {
-              setInstanceConfig(fallbackData);
-            }
-          })
-          .catch(() => {});
-      })
+      .catch(() => fetchCurrentByAppId())
       .finally(() => {
         if (!isCancelled) setIsLoading(false);
       });

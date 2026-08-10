@@ -1,6 +1,6 @@
 const API_BASE =
   typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? (import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:8000')
     : (import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app');
 
@@ -90,7 +90,7 @@ const selfieRequest = async (method, path, body) => {
   });
   if (!res.ok) {
     let detail = res.statusText;
-    try { const d = await res.json(); detail = d.detail || detail; } catch (e) {}
+    try { const d = await res.json(); detail = d.detail || detail; } catch (e) { }
     throw new Error(detail);
   }
   if (res.status === 204) return null;
@@ -110,7 +110,7 @@ export const fetchScreenStatusApi = async () => {
   try {
     const data = await request('GET', '/api/screen/status');
     if (data && data.activeMode) return data;
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     const res = await fetch('https://engagements-production.up.railway.app/api/screen/status');
@@ -118,6 +118,53 @@ export const fetchScreenStatusApi = async () => {
   } catch (e) {
     return { isSelfieWallActive: false, activeMode: 'idle' };
   }
+};
+
+export const fetchInstancesApi = async (appId) => {
+  const query = appId ? `?appId=${appId}` : '';
+  try {
+    const data = await request('GET', `/api/instances/${query}`);
+    if (data) return data;
+  } catch (e) {}
+
+  const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${query}`);
+  if (!res.ok) return [];
+  return res.json();
+};
+
+export const publishInstanceApi = async (data) => {
+  try {
+    return await request('POST', '/api/instances/publish', data);
+  } catch (e) {}
+
+  const res = await fetch('https://engagements-production.up.railway.app/api/instances/publish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to publish instance');
+  return res.json();
+};
+
+export const fetchInstanceApi = async (instanceId) => {
+  try {
+    return await request('GET', `/api/instances/${instanceId}`);
+  } catch (e) { }
+
+  const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`);
+  if (!res.ok) throw new Error('Instance not found');
+  return res.json();
+};
+
+export const fetchGameConfigApi = async (appId) => {
+  try {
+    const data = await request('GET', `/api/game-config/${appId}`);
+    if (data) return data;
+  } catch (e) { }
+
+  const res = await fetch(`https://engagements-production.up.railway.app/api/game-config/${appId}`);
+  if (!res.ok) throw new Error('Config not found');
+  return res.json();
 };
 
 export const updateScreenStatusApi = async (data) => {
@@ -128,11 +175,11 @@ export const updateScreenStatusApi = async (data) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     return await request('POST', '/api/screen/status', data);
-  } catch (e) {}
+  } catch (e) { }
 };
 
 

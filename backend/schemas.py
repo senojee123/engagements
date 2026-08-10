@@ -423,3 +423,20 @@ class ReactionResponseSchema(BaseModel):
         from_attributes = True
 
 
+# ----------------------------------------------------
+# ENGAGEMENT INSTANCE SCHEMAS
+# ----------------------------------------------------
+class InstancePublishRequest(BaseModel):
+    appId: str
+    brandId: Optional[str] = ""
+    config: dict
+
+class InstanceResponse(BaseModel):
+    instanceId: str
+    appId: str
+    brandId: str
+    status: str
+    publishedAt: float
+    config: dict
+
+
