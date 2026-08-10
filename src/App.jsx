@@ -55,13 +55,16 @@ import InstanceFanRouter from './pages/public/InstanceFanRouter';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
 // Protected Route Guard Component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { isAuthenticated, isLoading, currentRole } = useAuth();
   if (isLoading) {
     return null;
   }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (allowedRoles && !allowedRoles.includes(currentRole)) {
+    return <Navigate to="/analytics" replace />;
   }
   return children;
 };
@@ -142,10 +145,10 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     >
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/organizations" element={<Organizations />} />
-                      <Route path="/organizations/:id" element={<OrganizationDetails />} />
-                      <Route path="/events" element={<Events />} />
+                      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['Super Admin', 'Event Organizer', 'Venue Manager', 'Marketing Agency']}><Dashboard /></ProtectedRoute>} />
+                      <Route path="/organizations" element={<ProtectedRoute allowedRoles={['Super Admin', 'Marketing Agency', 'Venue Manager']}><Organizations /></ProtectedRoute>} />
+                      <Route path="/organizations/:id" element={<ProtectedRoute allowedRoles={['Super Admin', 'Marketing Agency', 'Venue Manager']}><OrganizationDetails /></ProtectedRoute>} />
+                      <Route path="/events" element={<ProtectedRoute allowedRoles={['Super Admin', 'Event Organizer', 'Marketing Agency', 'Venue Manager']}><Events /></ProtectedRoute>} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/rewards" element={<Rewards />} />
                       <Route path="/idle-screen" element={<IdleScreenSettings />} />
@@ -161,7 +164,7 @@ export default function App() {
                       <Route path="/library/:id" element={<TemplateDetails />} />
 
                       {/* Phase 3 Brand Engine Portal */}
-                      <Route path="/brands" element={<BrandManager />} />
+                      <Route path="/brands" element={<ProtectedRoute allowedRoles={['Super Admin', 'Developer']}><BrandManager /></ProtectedRoute>} />
                     </Route>
 
                     {/* 404 Catch-All */}

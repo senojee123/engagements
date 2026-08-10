@@ -231,3 +231,14 @@ class InstanceModel(Base):
     created_at = Column(Float, default=lambda: time.time())
     published_at = Column(Float, default=lambda: time.time())
 
+
+# ----------------------------------------------------
+# METADATA & SEED TRACKING
+# ----------------------------------------------------
+class MetadataModel(Base):
+    __tablename__ = "metadata"
+
+    key = Column(String, primary_key=True)
+    value = Column(String, default="")
+
+

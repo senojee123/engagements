@@ -140,6 +140,9 @@ SEED_EVENTS = [
 
 
 def seed_events(db: Session):
+    seed_flag = db.query(models.MetadataModel).filter_by(key="initial_seed_completed").first()
+    if seed_flag and seed_flag.value == "true":
+        return
     if db.query(models.EventModel).first():
         return
     for evt in SEED_EVENTS:

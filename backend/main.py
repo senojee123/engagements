@@ -151,7 +151,14 @@ def startup_event():
     db = next(get_db())
     seed_initial_data(db)
 
+    # Always ensure default demo users (Admin, Brand, Developer) exist in database
     users.seed_users(db)
+
+    # Check if database has already completed its initial seed
+    seed_flag = db.query(models.MetadataModel).filter_by(key="initial_seed_completed").first()
+    if seed_flag and seed_flag.value == "true":
+        return
+
     organizations.seed_organizations(db)
     events.seed_events(db)
     activities.seed_activities(db)
@@ -160,6 +167,9 @@ def startup_event():
     brand_kits.seed_brand_kits(db)
     polls.seed_polls(db)
     reactions.seed_reactions(db)
+
+    db.add(models.MetadataModel(key="initial_seed_completed", value="true"))
+    db.commit()
 
 
 

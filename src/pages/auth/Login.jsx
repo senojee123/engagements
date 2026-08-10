@@ -26,9 +26,13 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const res = await login(email, password);
       toast.success('Welcome back to FanForge!');
-      navigate('/dashboard');
+      if (email.includes('brand') || res?.user?.role === 'Brand') {
+        navigate('/analytics');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Unable to sign in. Please try again.');
     } finally {
@@ -149,18 +153,40 @@ export default function Login() {
       </form>
 
       {/* Demo Credentials Quick Fill */}
-      <div className="mt-6 p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-xs flex items-center justify-between">
-        <span className="text-indigo-900 font-medium">Demo Mode active:</span>
-        <button
-          type="button"
-          onClick={() => {
-            setEmail('alex.morgan@fanforge.io');
-            setPassword('password123');
-          }}
-          className="text-indigo-600 font-bold hover:underline"
-        >
-          Autofill Credentials
-        </button>
+      <div className="mt-6 p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 space-y-2">
+        <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider block">Demo Accounts Quick Fill:</span>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('brand@cocacola.com');
+              setPassword('Password123!');
+            }}
+            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
+          >
+            🥤 Brand
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('admin@fanforge.io');
+              setPassword('Password123!');
+            }}
+            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
+          >
+            👑 Admin
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('developer@fanforge.io');
+              setPassword('Password123!');
+            }}
+            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
+          >
+            💻 Developer
+          </button>
+        </div>
       </div>
 
       <p className="mt-8 text-center text-xs text-slate-500">

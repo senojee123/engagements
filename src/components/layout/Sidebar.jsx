@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Badge from '../ui/Badge';
+import { useAuth } from '../../context/AuthContext';
 
 const mainNavItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, disabled: false },
@@ -40,6 +41,26 @@ const secondaryNavItems = [
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) {
   const location = useLocation();
+  const { currentRole } = useAuth();
+
+  const filteredMainNavItems = mainNavItems.filter((item) => {
+    if (currentRole === 'Brand') {
+      return item.path === '/analytics' || item.path === '/rewards' || item.path === '/idle-screen';
+    }
+    if (currentRole === 'Developer') {
+      return item.path === '/analytics';
+    }
+    return true;
+  });
+
+  const filteredMarketplaceNavItems = marketplaceNavItems.filter((item) => {
+    if (currentRole === 'Brand') {
+      return item.path === '/library';
+    }
+    return true;
+  });
+
+  const filteredSecondaryNavItems = secondaryNavItems;
 
   const renderNavLink = (item) => {
     const isActive =
@@ -145,7 +166,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 Core OS
               </div>
             )}
-            {mainNavItems.map(renderNavLink)}
+            {filteredMainNavItems.map(renderNavLink)}
           </div>
 
           {/* Marketplace & Builder */}
@@ -155,7 +176,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 Marketplace & Builder
               </div>
             )}
-            {marketplaceNavItems.map(renderNavLink)}
+            {filteredMarketplaceNavItems.map(renderNavLink)}
           </div>
 
           {/* Preferences */}
@@ -165,7 +186,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 Preferences
               </div>
             )}
-            {secondaryNavItems.map(renderNavLink)}
+            {filteredSecondaryNavItems.map(renderNavLink)}
           </div>
         </div>
 

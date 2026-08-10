@@ -74,7 +74,6 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   const activeReactionComputed = isReactionWallActive || remoteActiveMode === 'reaction-wall';
   const activeSelfieComputed = isSelfieWallActive || remoteActiveMode === 'selfie-wall';
   const activeMemoryComputed = isMemoryChallengeActive || remoteActiveMode === 'memory-challenge';
-  const activeLaneDazeComputed = remoteActiveMode === 'lane-daze';
 
   // Memory Challenge Game State
   const DEFAULT_EMOJI_PAIRS = ['⚽', '🏆', '🥤', '🎯', '🔥', '⚡'];
