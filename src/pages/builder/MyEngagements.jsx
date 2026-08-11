@@ -417,18 +417,6 @@ export default function MyEngagements() {
                       </Button>
                     )}
 
-                    {isApproved && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        icon={Sparkles}
-                        onClick={(e) => handlePublish(inst.instanceId, e)}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0 shadow-sm"
-                      >
-                        Publish
-                      </Button>
-                    )}
-
                     {(isApproved || isPublished) && (
                       <Button
                         variant="primary"
@@ -447,14 +435,15 @@ export default function MyEngagements() {
                       </Badge>
                     )}
 
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={Trash2}
                       onClick={(e) => handleDelete(inst.instanceId || inst.id, inst.title || template.title, e)}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors shrink-0"
-                      title="Remove from My Engagements"
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 shadow-sm"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </div>
