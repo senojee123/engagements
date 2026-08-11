@@ -210,23 +210,33 @@ export const fetchInstancesApi = async (params = {}) => {
 export const saveGameConfigApi = async (gameId, configData, { brandId, instanceId } = {}) => {
   if (!gameId || !configData) return;
 
+  const bId = brandId || configData.brandId || '';
+  const instId = instanceId || configData.instanceId || '';
+
   // Cache scoped to the instance/brand, never the global template
-  const cacheKey = instanceId
-    ? `fanforge_game_config_${instanceId}`
-    : brandId
-    ? `fanforge_game_config_${brandId}_${gameId}`
+  const cacheKey = instId
+    ? `fanforge_game_config_${instId}`
+    : bId
+    ? `fanforge_game_config_${bId}_${gameId}`
     : `fanforge_game_config_${gameId}`;
   try {
     localStorage.setItem(cacheKey, JSON.stringify(configData));
+    localStorage.setItem(`fanforge_game_config_${gameId}`, JSON.stringify(configData));
   } catch (e) {}
 
-  const brandedPayload = { ...configData, brandId: brandId || configData.brandId, instanceId: instanceId || configData.instanceId };
+  const qp = new URLSearchParams();
+  if (instId) qp.set('instanceId', instId);
+  if (bId) qp.set('brandId', bId);
+  const qs = qp.toString() ? `?${qp.toString()}` : '';
+
+  const brandedPayload = { ...configData, brandId: bId, instanceId: instId };
+
   try {
-    await request('POST', `/api/game-config/${gameId}`, brandedPayload);
+    await request('POST', `/api/game-config/${gameId}${qs}`, brandedPayload);
   } catch (e) {}
 
   try {
-    await fetch(`https://engagements-production.up.railway.app/api/game-config/${gameId}`, {
+    await fetch(`https://engagements-production.up.railway.app/api/game-config/${gameId}${qs}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(brandedPayload),
@@ -259,6 +269,15 @@ export const submitInstanceApi = async (data) => {
   }
 
   saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
   return result;
 };
 
@@ -292,7 +311,10 @@ export const sendApprovalInstanceApi = async (instanceId) => {
 
   if (result && result.config) {
     const appId = result.appId || result.templateId || 'memory-challenge';
-    saveGameConfigApi(appId, result.config);
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
   }
 
   return result;
@@ -319,7 +341,10 @@ export const approveInstanceApi = async (instanceId) => {
 
   if (result && result.config) {
     const appId = result.appId || result.templateId || 'memory-challenge';
-    saveGameConfigApi(appId, result.config);
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
   }
 
   return result;
@@ -366,7 +391,10 @@ export const launchInstanceApi = async (instanceId) => {
 
   if (result && result.config) {
     const appId = result.appId || result.templateId || 'memory-challenge';
-    saveGameConfigApi(appId, result.config);
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
   }
 
   return result;
@@ -431,6 +459,15 @@ export const publishInstanceApi = async (instanceId) => {
   }
 
   saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
   return result;
 };
 

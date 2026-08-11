@@ -191,9 +191,11 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         try { localStorage.setItem(brandDraftKey, JSON.stringify(config)); } catch (e) {}
       }
 
-      const configWithBrand = { ...config, brandId: userId, userId };
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlInstanceId = searchParams.get('instanceId');
 
       const res = await submitInstanceApi({
+        instanceId: urlInstanceId || undefined,
         templateId: 'memory-challenge',
         appId: 'memory-challenge',
         userId,
