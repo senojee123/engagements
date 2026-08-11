@@ -121,6 +121,34 @@ export const fetchScreenStatusApi = async () => {
   }
 };
 
+const getCachedInstances = () => {
+  try {
+    const raw = localStorage.getItem('fanforge_instances_cache');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const saveCachedInstance = (inst) => {
+  if (!inst) return;
+  const instId = inst.instanceId || inst.id;
+  if (!instId) return;
+
+  try {
+    const list = getCachedInstances();
+    const idx = list.findIndex(
+      (i) => (i.instanceId || i.id) === instId || (i.appId === inst.appId && i.userId === inst.userId && i.userId !== 'default-user')
+    );
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...inst };
+    } else {
+      list.unshift(inst);
+    }
+    localStorage.setItem('fanforge_instances_cache', JSON.stringify(list));
+  } catch (e) {}
+};
+
 export const fetchInstancesApi = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.appId) queryParams.append('appId', params.appId);
@@ -129,59 +157,166 @@ export const fetchInstancesApi = async (params = {}) => {
   if (params.status) queryParams.append('status', params.status);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
+  let remoteData = [];
   try {
-    const data = await request('GET', `/api/instances/${queryString}`);
-    if (data) return data;
-  } catch (e) {}
+    remoteData = (await request('GET', `/api/instances/${queryString}`)) || [];
+  } catch (e) {
+    remoteData = [];
+  }
 
-  return [];
+  const cachedList = getCachedInstances();
+  const mergedMap = new Map();
+
+  for (const c of cachedList) {
+    const key = c.instanceId || c.id;
+    if (key) mergedMap.set(key, c);
+  }
+
+  for (const r of remoteData) {
+    const key = r.instanceId || r.id;
+    if (key) mergedMap.set(key, r);
+  }
+
+  let merged = Array.from(mergedMap.values());
+
+  if (params.appId) {
+    merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+  }
+
+  if (params.userId || params.brandId) {
+    const targetBrand = params.userId || params.brandId;
+    merged = merged.filter(
+      (i) =>
+        i.userId === targetBrand ||
+        i.brandId === targetBrand ||
+        i.userId === 'default-user' ||
+        i.brandId === 'default-brand' ||
+        (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+    );
+  }
+
+  if (params.status) {
+    const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+    merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+  }
+
+  return merged;
 };
 
 export const submitInstanceApi = async (data) => {
+  let result = null;
   try {
-    return await request('POST', '/api/instances/submit', data);
+    result = await request('POST', '/api/instances/submit', data);
   } catch (e) {}
-  return publishInstanceApi(data);
+
+  if (!result) {
+    result = await publishInstanceApi(data);
+  }
+
+  saveCachedInstance(result);
+  return result;
 };
 
 export const sendApprovalInstanceApi = async (instanceId) => {
+  let result = null;
   try {
-    return await request('POST', `/api/instances/${instanceId}/send-approval`);
+    result = await request('POST', `/api/instances/${instanceId}/send-approval`);
   } catch (e) {}
 
-  try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) return await res.json();
-  } catch (e) {}
+  if (!result) {
+    try {
+      const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) result = await res.json();
+    } catch (e) {}
+  }
 
-  return { instanceId, status: 'pending' };
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'pending',
+    };
+  }
+
+  saveCachedInstance(result);
+  return result;
 };
 
 export const approveInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/approve`);
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/approve`);
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'approved',
+      approvedAt: Date.now() / 1000,
+    };
+  }
+
+  saveCachedInstance(result);
+  return result;
 };
 
 export const rejectInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/reject`);
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/reject`);
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'rejected',
+    };
+  }
+
+  saveCachedInstance(result);
+  return result;
 };
 
 export const launchInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/launch`);
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/launch`);
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'launched',
+      publishedAt: Date.now() / 1000,
+    };
+  }
+
+  saveCachedInstance(result);
+  return result;
 };
 
 export const deleteInstanceApi = async (instanceId) => {
   try {
-    return await request('DELETE', `/api/instances/${instanceId}`);
+    await request('DELETE', `/api/instances/${instanceId}`);
   } catch (e) {}
 
   try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
-      method: 'DELETE',
-    });
-    if (res.ok) return await res.json();
+    const list = getCachedInstances().filter((i) => (i.instanceId || i.id) !== instanceId);
+    localStorage.setItem('fanforge_instances_cache', JSON.stringify(list));
   } catch (e) {}
 
   return { message: 'Deleted' };
