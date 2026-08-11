@@ -171,6 +171,8 @@ def list_instances(
         query = query.filter(
             (models.InstanceModel.user_id == target_brand) |
             (models.InstanceModel.brand_id == target_brand) |
+            (models.InstanceModel.user_id == "default-user") |
+            (models.InstanceModel.brand_id == "default-brand") |
             (models.InstanceModel.brand_name.ilike(f"%{target_brand}%"))
         )
 

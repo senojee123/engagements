@@ -29,12 +29,15 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
 
   const handleAddToMyEngagements = async (e) => {
     e.stopPropagation();
+    const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+    const currentBrand = user?.company || user?.name || 'Brand Account';
     try {
       const res = await submitInstanceApi({
         templateId: template.id,
         appId: template.id,
-        userId: user?.id || '',
-        brandName: user?.company || user?.name || 'Brand Account',
+        userId: currentUserId,
+        brandId: currentUserId,
+        brandName: currentBrand,
         title: template.title,
         status: 'draft',
         config: { templateId: template.id, title: template.title },
