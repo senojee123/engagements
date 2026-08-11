@@ -131,8 +131,6 @@ def launch_instance(instance_id: str, db: Session = Depends(get_db)):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
-    if instance.status != "approved":
-        raise HTTPException(status_code=400, detail="Cannot launch engagement until it is approved by an Admin")
     instance.status = "launched"
     instance.published_at = time.time()
     db.commit()
