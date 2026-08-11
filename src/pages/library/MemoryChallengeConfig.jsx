@@ -517,11 +517,11 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-2" />
               )}
               {config.gameTitle && (
-                <p className="text-center text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: config.brandColor || '#d9ab52' }}>
+                <p className="text-center text-sm font-black uppercase tracking-wider mb-0.5" style={{ color: config.brandColor || '#ffe08a' }}>
                   {config.gameTitle}
                 </p>
               )}
-              <p className="text-center text-xs font-bold mb-3" style={{ color: config.accentColor }}>
+              <p className="text-center text-xs font-semibold mb-3 text-white/90">
                 {config.headline}
               </p>
               <div
