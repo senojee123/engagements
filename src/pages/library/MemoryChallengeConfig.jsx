@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { submitInstanceApi, fetchInstancesApi } from '../../lib/api';
+import { submitInstanceApi, fetchInstancesApi, publishInstanceApi } from '../../lib/api';
 
 const RAILWAY_API = 'https://engagements-production.up.railway.app';
 // Default master config — brands customize from a COPY of this, never from the stored template
@@ -225,21 +225,26 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     }
     setIsPublishing(true);
     try {
-      const res = await fetch(`${RAILWAY_API}/api/instances/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appId: 'memory-challenge',
-          brandId: config.brandId || '',
-          config,
-        }),
-      });
-      if (!res.ok) throw new Error('Publish failed');
-      const instance = await res.json();
-      setLastPublishedVersion({ id: instance.instanceId, at: instance.publishedAt });
-      toast.success(`Published as version ${instance.instanceId.slice(0, 8)} — your live link is already updated. 🔗`);
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlInstanceId = searchParams.get('instanceId');
+
+      let targetId = urlInstanceId;
+      if (!targetId && user?.id) {
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId: user.id });
+        if (instances && instances.length > 0) {
+          targetId = instances[0].instanceId || instances[0].id;
+        }
+      }
+
+      if (!targetId) {
+        throw new Error('No active engagement instance found to publish.');
+      }
+
+      const res = await publishInstanceApi(targetId);
+      setLastPublishedVersion({ id: res.instanceId, at: res.publishedAt });
+      toast.success(`Published version ${res.instanceId.slice(0, 8)} — live on FanZone! 🚀`);
     } catch (err) {
-      toast.error('Failed to publish. Check your connection.');
+      toast.error(err.message || 'Failed to publish. Check your connection.');
     } finally {
       setIsPublishing(false);
     }

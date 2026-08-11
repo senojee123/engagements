@@ -48,7 +48,7 @@ import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWal
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { updateScreenStatusApi, submitInstanceApi, fetchInstancesApi } from '../../lib/api';
+import { updateScreenStatusApi, submitInstanceApi, fetchInstancesApi, publishInstanceApi, launchInstanceApi } from '../../lib/api';
 
 
 
@@ -942,31 +942,46 @@ function MemoryChallengeEngagementView({ template }) {
               </Button>
             ) : (
               <>
-                <Button
-                  onClick={async () => {
-                    try {
-                      await submitInstanceApi({
-                        templateId: 'memory-challenge',
-                        appId: 'memory-challenge',
-                        userId: user?.id || '',
-                        brandName: user?.company || user?.name || 'Brand Account',
-                        title: template.title || '3D Memory Tile Challenge',
-                        status: 'pending',
-                        config: MASTER_DEFAULT_CONFIG,
-                      });
-                      setInstanceStatus('pending');
-                      toast.success('3D Memory Tile Challenge saved & submitted for Admin Approval!');
-                    } catch (e) {
-                      toast.error('Failed to submit for approval.');
-                    }
-                  }}
-                  variant="primary"
-                  icon={Send}
-                  disabled={instanceStatus === 'pending'}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
-                >
-                  {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
-                </Button>
+                {instanceStatus === 'approved' && (
+                  <Button
+                    onClick={async () => {
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const urlInstanceId = searchParams.get('instanceId');
+                      let instId = urlInstanceId;
+                      if (!instId && user?.id) {
+                        try {
+                          const insts = await fetchInstancesApi({ appId: 'memory-challenge', userId: user.id });
+                          if (insts && insts.length > 0) instId = insts[0].instanceId || insts[0].id;
+                        } catch (e) {}
+                      }
+                      if (instId) {
+                        try {
+                          await publishInstanceApi(instId);
+                          setInstanceStatus('published');
+                          toast.success('Published! Customized engagement is now live on FanZone.');
+                        } catch (e) {
+                          toast.error('Failed to publish engagement.');
+                        }
+                      }
+                    }}
+                    variant="primary"
+                    icon={Sparkles}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md"
+                  >
+                    ✨ Publish to FanZone
+                  </Button>
+                )}
+
+                {instanceStatus === 'pending' && (
+                  <Button
+                    variant="primary"
+                    icon={Send}
+                    disabled={true}
+                    className="bg-indigo-900/60 text-indigo-300 font-bold border border-indigo-700/50"
+                  >
+                    ⏳ Submitted for Approval
+                  </Button>
+                )}
 
                 {isChallengeActive ? (
                   <Button
@@ -989,13 +1004,27 @@ function MemoryChallengeEngagementView({ template }) {
                         toast.error('Cannot launch engagement until it is approved by an Admin.');
                         return;
                       }
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const urlInstanceId = searchParams.get('instanceId');
+                      let instId = urlInstanceId;
+                      if (!instId && user?.id) {
+                        try {
+                          const insts = await fetchInstancesApi({ appId: 'memory-challenge', userId: user.id });
+                          if (insts && insts.length > 0) instId = insts[0].instanceId || insts[0].id;
+                        } catch (e) {}
+                      }
+                      if (instId) {
+                        try {
+                          await launchInstanceApi(instId);
+                        } catch (e) {}
+                      }
                       launchChallenge();
                       toast.success('Memory Challenge launched live to stadium display screen & FanZone portal!');
                     }}
                     className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
                     title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
                   >
-                    {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Challenge to Screen'}
+                    {!isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Challenge to Screen'}
                   </Button>
                 )}
               </>

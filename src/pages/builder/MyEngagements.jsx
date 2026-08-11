@@ -66,6 +66,7 @@ export default function MyEngagements() {
     if (e) e.stopPropagation();
     try {
       await submitInstanceApi({
+        instanceId: inst.instanceId || inst.id,
         templateId: inst.templateId || inst.appId,
         appId: inst.appId || inst.templateId,
         userId: user?.id || '',
