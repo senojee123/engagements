@@ -42,22 +42,44 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
     const targetBrand = brandParam || undefined;
 
-    const queryParams = { status: 'approved,launched' };
+    const queryParams = {};
     if (targetBrand) {
       queryParams.brandId = targetBrand;
     }
 
+    const defaultVenueInstances = [
+      { id: 'def-selfie', appId: 'selfie-wall', templateId: 'selfie-wall', title: 'Live Fan Selfie Cam', status: 'approved', brandName: 'Metropolis Arena Stadium' },
+      { id: 'def-poll', appId: 'live-poll', templateId: 'live-poll', title: 'Stadium Real-Time Live Vote', status: 'approved', brandName: 'Metropolis Arena Stadium' },
+      { id: 'def-reaction', appId: 'reaction-wall', templateId: 'reaction-wall', title: 'Live Fan Emoji Reaction Wall', status: 'approved', brandName: 'Metropolis Arena Stadium' },
+      { id: 'def-memory', appId: 'memory-challenge', templateId: 'memory-challenge', title: '3D Memory Tile Challenge', status: 'approved', brandName: 'Metropolis Arena Stadium' },
+    ];
+
     fetchInstancesApi(queryParams)
       .then((data) => {
         const list = (data || []).filter(
-          (inst) => (inst.status || '').toLowerCase() === 'approved' || (inst.status || '').toLowerCase() === 'launched'
+          (inst) => {
+            const st = (inst.status || '').toLowerCase();
+            return st === 'approved' || st === 'launched' || st === 'published' || st === 'active';
+          }
         );
-        setApprovedInstances(list);
-        if (list.length > 0 && list[0].brandName) {
-          setActiveBrandName(list[0].brandName);
+        if (list.length > 0) {
+          setApprovedInstances(list);
+          if (list[0].brandName) {
+            setActiveBrandName(list[0].brandName);
+          }
+        } else if (!targetBrand) {
+          setApprovedInstances(defaultVenueInstances);
+        } else {
+          setApprovedInstances([]);
         }
       })
-      .catch(() => setApprovedInstances([]))
+      .catch(() => {
+        if (!targetBrand) {
+          setApprovedInstances(defaultVenueInstances);
+        } else {
+          setApprovedInstances([]);
+        }
+      })
       .finally(() => setIsInstancesLoading(false));
   }, []);
 
