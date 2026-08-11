@@ -27,12 +27,15 @@ const DEFAULT_CONFIG = {
   brandName: '',
   brandColor: '#4f46e5',
   brandLogo: '',
+  gameTitle: 'Memory Challenge',
   headline: 'Find all matching pairs!',
   tagline: 'Flip the cards and match every pair!',
   rewardText: '🎉 You Win! Amazing memory!',
   gridCols: 4,
   gridRows: 3,
   backgroundColor: '#12131f',
+  bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+  backgroundImage: '',
   accentColor: '#ff6b35',
   tiles: [
     { id: 't1', label: 'Tile 1', content: '🍕', type: 'emoji', imageUrl: '', backColor: '#232a52' },
@@ -217,6 +220,18 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               <Palette className="w-4 h-4 text-indigo-500" /> Brand & Game Settings
             </h3>
 
+            {/* Game Name / Title */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Custom Game Name / Title</label>
+              <input
+                type="text"
+                value={config.gameTitle || ''}
+                onChange={(e) => updateField('gameTitle', e.target.value)}
+                placeholder="e.g. Memory Challenge 3D"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             {/* Brand Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Name</label>
@@ -241,6 +256,35 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               />
             </div>
 
+            {/* Background Theme & Background Image */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Theme</label>
+                <select
+                  value={config.bgGradient || 'from-slate-950 via-indigo-950 to-slate-950'}
+                  onChange={(e) => updateField('bgGradient', e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="from-slate-950 via-indigo-950 to-slate-950">Midnight Stadium (Default)</option>
+                  <option value="from-purple-950 via-slate-950 to-indigo-950">Neon Purple Arena</option>
+                  <option value="from-emerald-950 via-slate-950 to-teal-950">Emerald Matchday</option>
+                  <option value="from-red-950 via-slate-950 to-amber-950">Crimson Arena</option>
+                  <option value="from-slate-900 via-slate-950 to-slate-900">Dark Obsidian</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Image URL (Optional)</label>
+                <input
+                  type="text"
+                  value={config.backgroundImage || ''}
+                  onChange={(e) => updateField('backgroundImage', e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
             {/* Colors row */}
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -258,7 +302,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Background</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={config.backgroundColor} onChange={(e) => updateField('backgroundColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <span className="text-xs text-slate-400 font-mono">{config.backgroundColor}</span>

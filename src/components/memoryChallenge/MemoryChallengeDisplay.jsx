@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { fetchGameConfigApi } from '../../lib/api';
+
 const FIREBASE_DB_URL = "https://memory-challenge-9cfa8-default-rtdb.asia-southeast1.firebasedatabase.app/scores.json";
 
 const MEDALS = { 0: '🥇', 1: '🥈', 2: '🥉' };
@@ -17,9 +19,18 @@ function fmt(s) {
 export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [gameConfig, setGameConfig] = useState(null);
 
   const targetUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/fan-zone';
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
+
+  useEffect(() => {
+    fetchGameConfigApi('memory-challenge')
+      .then((cfg) => {
+        if (cfg) setGameConfig(cfg);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchScores = () => {
@@ -44,9 +55,21 @@ export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
     return () => clearInterval(interval);
   }, []);
 
+  const bgGradient = gameConfig?.bgGradient || 'from-slate-950 via-indigo-950 to-slate-950';
+  const customBgColor = gameConfig?.backgroundColor || '#12131f';
+  const customBgImage = gameConfig?.backgroundImage || '';
+  const displayTitle = gameConfig?.gameTitle || gameConfig?.headline || 'Memory Challenge Leaderboard';
 
   return (
-    <div className={`relative w-full ${isStandalonePage ? 'min-h-screen' : 'min-h-[600px] rounded-3xl'} bg-[radial-gradient(ellipse_at_50%_-10%,#2a1e5c_0%,#12131f_60%)] text-[#f5efe0] font-sans flex flex-col p-6 sm:p-8 overflow-hidden shadow-2xl border border-amber-500/30`}>
+    <div
+      className={`relative w-full ${isStandalonePage ? 'min-h-screen' : 'min-h-[600px] rounded-3xl'} bg-gradient-to-br ${bgGradient} text-[#f5efe0] font-sans flex flex-col p-6 sm:p-8 overflow-hidden shadow-2xl border border-amber-500/30`}
+      style={{
+        backgroundColor: customBgColor,
+        backgroundImage: customBgImage ? `url("${customBgImage}")` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       {/* Confetti / Particle Glow */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -55,7 +78,7 @@ export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
       <div className="relative z-10 flex flex-col items-center justify-center text-center mb-6 gap-1">
         <span className="text-3xl animate-bounce">👑</span>
         <h1 className="text-2xl sm:text-4xl font-extrabold uppercase tracking-wider bg-gradient-to-r from-[#ffe08a] via-[#ff6b35] to-[#c77dff] bg-clip-text text-transparent drop-shadow-md font-serif">
-          Memory Challenge Leaderboard
+          {displayTitle}
         </h1>
       </div>
 

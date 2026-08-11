@@ -110,6 +110,17 @@ def approve_instance(instance_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Instance not found")
     instance.status = "approved"
     instance.approved_at = time.time()
+
+    app_id = instance.app_id or instance.template_id
+    if app_id and instance.config_json:
+        game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
+        if not game_config:
+            game_config = models.GameConfigModel(id=app_id)
+            db.add(game_config)
+        game_config.config_json = instance.config_json
+        game_config.brand_id = instance.brand_id or ""
+        game_config.updated_at = time.time()
+
     db.commit()
     db.refresh(instance)
     return to_response(instance)
@@ -133,6 +144,17 @@ def launch_instance(instance_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Instance not found")
     instance.status = "launched"
     instance.published_at = time.time()
+
+    app_id = instance.app_id or instance.template_id
+    if app_id and instance.config_json:
+        game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
+        if not game_config:
+            game_config = models.GameConfigModel(id=app_id)
+            db.add(game_config)
+        game_config.config_json = instance.config_json
+        game_config.brand_id = instance.brand_id or ""
+        game_config.updated_at = time.time()
+
     db.commit()
     db.refresh(instance)
     return to_response(instance)
