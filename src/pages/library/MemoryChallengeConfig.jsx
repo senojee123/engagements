@@ -60,47 +60,90 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const [expandedTile, setExpandedTile] = useState(null);
   const fileRefs = useRef({});
 
-  // Load current config from Railway on mount
+  // Load current config from local storage or backend on mount
   useEffect(() => {
-    fetch(`${RAILWAY_API}/api/game-config/memory-challenge`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.tiles && data.tiles.length > 0) {
-          setConfig((prev) => ({ ...prev, ...data }));
+    let isMounted = true;
+    setIsLoading(true);
+
+    const loadConfig = async () => {
+      // 1. Try local draft cache first
+      try {
+        const savedDraft = localStorage.getItem('fanforge_memory_customization');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && parsed.tiles && parsed.tiles.length > 0 && isMounted) {
+            setConfig((prev) => ({ ...prev, ...parsed }));
+          }
         }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      } catch (e) {}
+
+      // 2. Fetch user instance or game config from API
+      try {
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId: user?.id });
+        if (instances && instances.length > 0 && instances[0].config && isMounted) {
+          const instConfig = instances[0].config;
+          if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
+            setConfig((prev) => ({ ...prev, ...instConfig }));
+          }
+        } else {
+          const gConfig = await fetchGameConfigApi('memory-challenge');
+          if (gConfig && gConfig.tiles && gConfig.tiles.length > 0 && isMounted) {
+            setConfig((prev) => ({ ...prev, ...gConfig }));
+          }
+        }
+      } catch (e) {} finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadConfig();
+    return () => { isMounted = false; };
+  }, [user?.id]);
 
   const updateField = (field, value) => {
-    setConfig((prev) => ({ ...prev, [field]: value }));
+    setConfig((prev) => {
+      const updated = { ...prev, [field]: value };
+      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setSaved(false);
   };
 
   const updateTile = (id, field, value) => {
-    setConfig((prev) => ({
-      ...prev,
-      tiles: prev.tiles.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: prev.tiles.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
+      };
+      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setSaved(false);
   };
 
   const addTile = () => {
     const newId = `t${Date.now()}`;
-    setConfig((prev) => ({
-      ...prev,
-      tiles: [...prev.tiles, DEFAULT_TILE(newId)],
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: [...prev.tiles, DEFAULT_TILE(newId)],
+      };
+      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setExpandedTile(newId);
     setSaved(false);
   };
 
   const removeTile = (id) => {
-    setConfig((prev) => ({
-      ...prev,
-      tiles: prev.tiles.filter((t) => t.id !== id),
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: prev.tiles.filter((t) => t.id !== id),
+      };
+      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
     setSaved(false);
   };
 
@@ -122,12 +165,17 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     }
     setIsSaving(true);
     try {
+      try {
+        localStorage.setItem('fanforge_memory_customization', JSON.stringify(config));
+        localStorage.setItem('fanforge_game_config_memory-challenge', JSON.stringify(config));
+      } catch (e) {}
+
       const res = await submitInstanceApi({
         templateId: 'memory-challenge',
         appId: 'memory-challenge',
         userId: user?.id || '',
         brandName: user?.company || user?.name || config.brandName || 'Brand Account',
-        title: config.brandName ? `${config.brandName} Memory Challenge` : 'Memory Challenge',
+        title: config.gameTitle || (config.brandName ? `${config.brandName} Memory Challenge` : 'Memory Challenge'),
         status: 'pending',
         config,
       });
