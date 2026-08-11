@@ -188,6 +188,21 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     reader.readAsDataURL(file);
   };
 
+  const applyCardBackColorToAll = (color) => {
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        cardBackColor: color,
+        tiles: prev.tiles.map((t) => ({ ...t, backColor: color })),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
+    setSaved(false);
+  };
+
   const handleSaveAndSendForApproval = async () => {
     if (config.tiles.length < 2) {
       toast.error('Add at least 2 tiles before saving.');
@@ -461,7 +476,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Accent</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Accent Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={config.accentColor} onChange={(e) => updateField('accentColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <span className="text-xs text-slate-400 font-mono">{config.accentColor}</span>
@@ -473,6 +488,29 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                   <input type="color" value={config.backgroundColor} onChange={(e) => updateField('backgroundColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <span className="text-xs text-slate-400 font-mono">{config.backgroundColor}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Global Tile Card Back Color */}
+            <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-800">Global Tile Back Color</label>
+                <p className="text-[11px] text-slate-500">Set default card back color for all game tiles</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={config.cardBackColor || '#232a52'}
+                  onChange={(e) => applyCardBackColorToAll(e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                />
+                <button
+                  type="button"
+                  onClick={() => applyCardBackColorToAll(config.cardBackColor || '#232a52')}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors"
+                >
+                  Apply to All Tiles
+                </button>
               </div>
             </div>
 
@@ -608,16 +646,30 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 {/* Expanded editor */}
                 {expandedTile === tile.id && (
                   <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-3">
-                    {/* Label */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Label</label>
-                      <input
-                        type="text"
-                        value={tile.label}
-                        onChange={(e) => updateTile(tile.id, 'label', e.target.value)}
-                        placeholder="e.g. Dialog 5G Logo"
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                    {/* Label & Tile Back Color Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Label</label>
+                        <input
+                          type="text"
+                          value={tile.label}
+                          onChange={(e) => updateTile(tile.id, 'label', e.target.value)}
+                          placeholder="e.g. Dialog 5G Logo"
+                          className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Back Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={tile.backColor || config.cardBackColor || '#232a52'}
+                            onChange={(e) => updateTile(tile.id, 'backColor', e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                          />
+                          <span className="text-xs text-slate-400 font-mono">{tile.backColor || config.cardBackColor || '#232a52'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Type toggle */}
