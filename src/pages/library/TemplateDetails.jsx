@@ -174,6 +174,32 @@ function SelfieWallEngagementView({ template }) {
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
+              onClick={async () => {
+                const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+                const currentBrand = user?.company || user?.name || 'Brand Account';
+                try {
+                  await submitInstanceApi({
+                    templateId: 'selfie-wall',
+                    appId: 'selfie-wall',
+                    userId: currentUserId,
+                    brandId: currentUserId,
+                    brandName: currentBrand,
+                    title: template.title || 'Live Fan Selfie Wall',
+                    status: 'draft',
+                    config: { templateId: 'selfie-wall' },
+                  });
+                  toast.success(`"${template.title}" successfully added to My Engagements!`);
+                } catch (e) {
+                  toast.error('Failed to add engagement.');
+                }
+              }}
+              variant="outline"
+              icon={Plus}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 font-bold text-xs"
+            >
+              Add to My Engagements
+            </Button>
+            <Button
               onClick={handleSaveAndSendForApproval}
               variant="primary"
               icon={Send}
@@ -385,6 +411,32 @@ function LivePollEngagementView({ template }) {
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
+              onClick={async () => {
+                const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+                const currentBrand = user?.company || user?.name || 'Brand Account';
+                try {
+                  await submitInstanceApi({
+                    templateId: 'live-poll',
+                    appId: 'live-poll',
+                    userId: currentUserId,
+                    brandId: currentUserId,
+                    brandName: currentBrand,
+                    title: template.title || 'Stadium Real-Time Live Poll',
+                    status: 'draft',
+                    config: { templateId: 'live-poll' },
+                  });
+                  toast.success(`"${template.title}" successfully added to My Engagements!`);
+                } catch (e) {
+                  toast.error('Failed to add engagement.');
+                }
+              }}
+              variant="outline"
+              icon={Plus}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 font-bold text-xs"
+            >
+              Add to My Engagements
+            </Button>
+            <Button
               onClick={handleSaveAndSendForApproval}
               variant="primary"
               icon={Send}
@@ -591,6 +643,32 @@ function ReactionWallEngagementView({ template }) {
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
+              onClick={async () => {
+                const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+                const currentBrand = user?.company || user?.name || 'Brand Account';
+                try {
+                  await submitInstanceApi({
+                    templateId: 'reaction-wall',
+                    appId: 'reaction-wall',
+                    userId: currentUserId,
+                    brandId: currentUserId,
+                    brandName: currentBrand,
+                    title: template.title || 'Live Fan Emoji Reaction Wall',
+                    status: 'draft',
+                    config: { templateId: 'reaction-wall' },
+                  });
+                  toast.success(`"${template.title}" successfully added to My Engagements!`);
+                } catch (e) {
+                  toast.error('Failed to add engagement.');
+                }
+              }}
+              variant="outline"
+              icon={Plus}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 font-bold text-xs"
+            >
+              Add to My Engagements
+            </Button>
+            <Button
               onClick={handleSaveAndSendForApproval}
               variant="primary"
               icon={Send}
@@ -782,6 +860,32 @@ function MemoryChallengeEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={async () => {
+                const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+                const currentBrand = user?.company || user?.name || 'Brand Account';
+                try {
+                  await submitInstanceApi({
+                    templateId: 'memory-challenge',
+                    appId: 'memory-challenge',
+                    userId: currentUserId,
+                    brandId: currentUserId,
+                    brandName: currentBrand,
+                    title: template.title || '3D Memory Tile Challenge',
+                    status: 'draft',
+                    config: { templateId: 'memory-challenge' },
+                  });
+                  toast.success(`"${template.title}" successfully added to My Engagements!`);
+                } catch (e) {
+                  toast.error('Failed to add engagement.');
+                }
+              }}
+              variant="outline"
+              icon={Plus}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20 font-bold text-xs"
+            >
+              Add to My Engagements
+            </Button>
             <Button
               onClick={async () => {
                 try {

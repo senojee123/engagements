@@ -125,6 +125,7 @@ export const fetchInstancesApi = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.appId) queryParams.append('appId', params.appId);
   if (params.userId) queryParams.append('userId', params.userId);
+  if (params.brandId) queryParams.append('brandId', params.brandId);
   if (params.status) queryParams.append('status', params.status);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 

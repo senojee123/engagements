@@ -36,8 +36,9 @@ export default function MyEngagements() {
 
   const loadMyEngagements = async () => {
     setIsLoading(true);
+    const targetUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
     try {
-      const instances = await fetchInstancesApi({ userId: user?.id });
+      const instances = await fetchInstancesApi({ userId: targetUserId, brandId: targetUserId });
       setMyInstances(instances || []);
     } catch (err) {
       toast.error('Unable to fetch your selected engagements.');
