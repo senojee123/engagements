@@ -431,7 +431,12 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               style={{ backgroundColor: config.backgroundColor }}
             >
               {config.brandLogo && (
-                <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-3" />
+                <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-2" />
+              )}
+              {config.gameTitle && (
+                <p className="text-center text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: config.brandColor || '#d9ab52' }}>
+                  {config.gameTitle}
+                </p>
               )}
               <p className="text-center text-xs font-bold mb-3" style={{ color: config.accentColor }}>
                 {config.headline}

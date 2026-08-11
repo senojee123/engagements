@@ -101,8 +101,13 @@ export default function MemoryChallengeDisplay({
       <div className="relative z-10 flex flex-col items-center justify-center text-center mb-6 gap-1">
         <span className="text-3xl animate-bounce">👑</span>
         <h1 className="text-2xl sm:text-4xl font-extrabold uppercase tracking-wider bg-gradient-to-r from-[#ffe08a] via-[#ff6b35] to-[#c77dff] bg-clip-text text-transparent drop-shadow-md font-serif">
-          {displayTitle}
+          {gameConfig?.gameTitle || 'Memory Challenge Leaderboard'}
         </h1>
+        {gameConfig?.headline && (
+          <p className="text-xs sm:text-sm font-semibold text-amber-200/90 tracking-wide mt-0.5">
+            {gameConfig.headline}
+          </p>
+        )}
       </div>
 
       {/* Two Columns */}
