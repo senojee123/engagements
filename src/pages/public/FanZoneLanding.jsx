@@ -426,14 +426,14 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f2ee] text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 max-w-2xl mx-auto selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-[#f4f2ee] text-slate-900 font-sans flex flex-col justify-start p-4 sm:p-8 max-w-2xl mx-auto selection:bg-rose-500 selection:text-white">
       {/* Hidden Canvas for Camera Snapshot */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ---------------------------------------------------- */}
       {/* TOP BRAND HEADER */}
       {/* ---------------------------------------------------- */}
-      <header className="space-y-2 pt-4">
+      <header className="space-y-2 pt-2 pb-2">
         {fanZoneSettings.headerLogo && (
           <img
             src={fanZoneSettings.headerLogo}
@@ -452,7 +452,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
       {/* ---------------------------------------------------- */}
       {/* ACTIVE ENGAGEMENT CARDS LIST */}
       {/* ---------------------------------------------------- */}
-      <main className="my-8 space-y-4">
+      <main className="mt-4 mb-8 space-y-4 flex-1">
         {isInstancesLoading ? (
           <div className="p-8 text-center text-slate-500 font-semibold text-sm flex items-center justify-center gap-2">
             <RefreshCcw className="w-4 h-4 animate-spin text-indigo-600" />
