@@ -53,7 +53,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [config, setConfig] = useState(MASTER_DEFAULT_CONFIG);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [saved, setSaved] = useState(false);
