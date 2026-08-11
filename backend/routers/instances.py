@@ -83,17 +83,13 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
     if not game_config:
         game_config = models.GameConfigModel(id=app_id)
         db.add(game_config)
-    game_config.config_json = config_json
-    game_config.brand_id = data.brandId or ""
-    game_config.updated_at = now
-
-    db.commit()
-    db.refresh(instance)
-    return to_response(instance)
+def publish_instance(payload: schemas.InstanceSubmitPayload, db: Session = Depends(get_db)):
+    payload.status = "published"
+    return submit_instance(payload, db)
 
 
 @router.post("/{instance_id}/send-approval", response_model=schemas.InstanceResponse)
-def send_instance_for_approval(instance_id: str, db: Session = Depends(get_db)):
+def send_approval_instance(instance_id: str, db: Session = Depends(get_db)):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -171,19 +167,17 @@ def list_instances(
         query = query.filter_by(app_id=appId)
 
     target_brand = userId or brandId
-    if target_brand:
+    if target_brand and target_brand.strip():
         query = query.filter(
             (models.InstanceModel.user_id == target_brand) |
             (models.InstanceModel.brand_id == target_brand) |
             (models.InstanceModel.brand_name.ilike(f"%{target_brand}%"))
         )
 
-    if status:
+    if status and status.strip():
         statuses = [s.strip().lower() for s in status.split(",") if s.strip()]
-        if len(statuses) == 1:
-            query = query.filter(models.InstanceModel.status.ilike(statuses[0]))
-        else:
-            query = query.filter(models.InstanceModel.status.in_(statuses))
+        conditions = [models.InstanceModel.status.ilike(st) for st in statuses]
+        query = query.filter(or_(*conditions))
 
     instances = query.order_by(models.InstanceModel.created_at.desc()).all()
 
