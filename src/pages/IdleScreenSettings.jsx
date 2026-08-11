@@ -34,7 +34,6 @@ export default function IdleScreenSettings() {
   const { isSelfieWallActive, launchSelfieWall, stopSelfieWall } = useSelfieWall();
   const toast = useToast();
 
-  const [newSponsorName, setNewSponsorName] = useState('');
   const [newSponsorLogo, setNewSponsorLogo] = useState('');
 
   const handleUpdate = (fields) => {
@@ -44,22 +43,21 @@ export default function IdleScreenSettings() {
 
   const handleAddSponsor = (e) => {
     e.preventDefault();
-    if (!newSponsorName.trim()) {
-      toast.error('Please enter a sponsor name');
+    if (!newSponsorLogo.trim()) {
+      toast.error('Please enter an Image URL or upload an image file');
       return;
     }
     addSponsorLogo({
-      name: newSponsorName.trim(),
-      logo: newSponsorLogo.trim() || 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&w=200&q=80',
+      name: 'Sponsor Logo',
+      logo: newSponsorLogo.trim(),
     });
-    setNewSponsorName('');
     setNewSponsorLogo('');
-    toast.success(`Sponsor "${newSponsorName}" added!`);
+    toast.success('Sponsor logo added!');
   };
 
   const handleAddPreset = (preset) => {
     addSponsorLogo(preset);
-    toast.success(`Added ${preset.name} logo to idle screen!`);
+    toast.success('Added sponsor logo to idle screen!');
   };
 
   const handleEventLogoUpload = (e) => {
@@ -80,8 +78,14 @@ export default function IdleScreenSettings() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setNewSponsorLogo(event.target?.result);
-        toast.info('Logo image loaded. Enter name & click Add Sponsor.');
+        const dataUrl = event.target?.result;
+        if (dataUrl) {
+          addSponsorLogo({
+            name: 'Sponsor Logo',
+            logo: dataUrl,
+          });
+          toast.success('Sponsor logo image uploaded!');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -261,14 +265,9 @@ export default function IdleScreenSettings() {
               <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider block">
                 Add Custom Sponsor Logo
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
                 <Input
-                  placeholder="Sponsor Name (e.g. Dialog)"
-                  value={newSponsorName}
-                  onChange={(e) => setNewSponsorName(e.target.value)}
-                />
-                <Input
-                  placeholder="Image URL"
+                  placeholder="Image URL (or upload file below)"
                   value={newSponsorLogo}
                   onChange={(e) => setNewSponsorLogo(e.target.value)}
                 />
@@ -297,32 +296,27 @@ export default function IdleScreenSettings() {
 
               {(!idleScreenConfig.sponsorLogos || idleScreenConfig.sponsorLogos.length === 0) ? (
                 <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-2xl text-xs text-slate-400">
-                  No sponsor logos added yet. Click a quick preset or add one above!
+                  No sponsor logos added yet. Click a quick preset or upload a logo above!
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {idleScreenConfig.sponsorLogos.map((sp) => (
                     <div
                       key={sp.id}
-                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-2xs group hover:border-slate-300"
+                      className="relative flex items-center justify-center p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-2xs group hover:border-indigo-500/50 min-h-[64px]"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden shrink-0">
-                          <img src={sp.logo} alt={sp.name} className="max-h-full max-w-full object-contain" />
-                        </div>
-                        <span className="text-xs font-extrabold text-slate-800">{sp.name}</span>
-                      </div>
+                      <img src={sp.logo} alt="Sponsor Logo" className="max-h-10 max-w-full object-contain" />
 
                       <button
                         type="button"
                         onClick={() => {
                           removeSponsorLogo(sp.id);
-                          toast.info(`Removed ${sp.name} logo.`);
+                          toast.info('Removed sponsor logo.');
                         }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-rose-600 text-white shadow-md hover:bg-rose-700 transition-colors opacity-90 group-hover:opacity-100"
                         title="Remove sponsor logo"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -403,13 +397,15 @@ export default function IdleScreenSettings() {
               {/* Divider & Footer Bar */}
               <div className="pt-4 border-t border-white/20">
                 {/* Sponsor Logos Row */}
-                <div className="flex items-center justify-center gap-4 flex-wrap">
+                <div className="flex items-center justify-center gap-5 flex-wrap">
                   {idleScreenConfig.sponsorLogos && idleScreenConfig.sponsorLogos.length > 0 ? (
                     idleScreenConfig.sponsorLogos.map((sp) => (
-                      <div key={sp.id} className="h-8 px-3 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 flex items-center gap-2">
-                        <img src={sp.logo} alt={sp.name} className="h-5 w-auto object-contain" />
-                        <span className="text-[10px] font-bold text-white font-sans">{sp.name}</span>
-                      </div>
+                      <img
+                        key={sp.id}
+                        src={sp.logo}
+                        alt={sp.name}
+                        className="h-7 w-auto object-contain max-w-[100px] drop-shadow-md"
+                      />
                     ))
                   ) : (
                     <span className="text-[10px] text-slate-500 italic">No sponsor logos added</span>

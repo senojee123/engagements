@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Plus, Edit2, Sparkles, CheckCircle2, Trash2, Upload, Image } from 'lucide-react';
+import { Shield, Plus, Edit2, Sparkles, CheckCircle2, Trash2, Upload, Image, Eye, Layers, Calendar, ExternalLink, Copy, Check } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Spinner from '../../components/ui/Spinner';
-import { fetchBrandKits, createBrandKitApi, deleteBrandKitApi } from '../../lib/api';
+import { fetchBrandKits, createBrandKitApi, deleteBrandKitApi, fetchInstancesApi, fetchEvents } from '../../lib/api';
+import { DEFAULT_BRAND_KITS } from '../../data/brandEngineData';
 import { useToast } from '../../context/ToastContext';
 
 export default function BrandManager() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [brands, setBrands] = useState([]);
+  const [brands, setBrands] = useState(DEFAULT_BRAND_KITS);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     fetchBrandKits()
       .then((data) => {
-        if (!cancelled) setBrands(data);
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          setBrands(data);
+        } else if (!cancelled) {
+          setBrands(DEFAULT_BRAND_KITS);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBrands(DEFAULT_BRAND_KITS);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -96,6 +104,47 @@ export default function BrandManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Brand Overview Modal State
+  const [selectedBrandOverview, setSelectedBrandOverview] = useState(null);
+  const [brandInstances, setBrandInstances] = useState([]);
+  const [brandEvents, setBrandEvents] = useState([]);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleOpenBrandOverview = async (brand) => {
+    setSelectedBrandOverview(brand);
+    setIsLoadingOverview(true);
+    try {
+      const [instancesData, eventsData] = await Promise.all([
+        fetchInstancesApi(),
+        fetchEvents(),
+      ]);
+      const matchedInstances = Array.isArray(instancesData)
+        ? instancesData.filter(
+            (i) => i.brandId === brand.id || (i.brandId && i.brandId.toLowerCase().includes(brand.name.toLowerCase()))
+          )
+        : [];
+      const matchedEvents = Array.isArray(eventsData)
+        ? eventsData.filter(
+            (e) => e.organization_id === brand.id || e.name.toLowerCase().includes(brand.name.toLowerCase())
+          )
+        : eventsData || [];
+      setBrandInstances(matchedInstances);
+      setBrandEvents(matchedEvents);
+    } catch (err) {
+      console.warn('Failed to load brand overview data:', err);
+    } finally {
+      setIsLoadingOverview(false);
+    }
+  };
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80',
@@ -204,8 +253,8 @@ export default function BrandManager() {
           <Card key={brand.id} hoverEffect className="flex flex-col justify-between overflow-hidden">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 p-2.5 flex items-center justify-center border border-slate-800 shadow-sm">
-                  <img src={brand.logo} alt={brand.name} className="max-h-full object-contain" />
+                <div className="w-14 h-14 rounded-2xl bg-slate-50 p-2 flex items-center justify-center border border-slate-200/80 shadow-xs">
+                  <img src={brand.logo} alt={brand.name} className="max-h-full max-w-full object-contain" />
                 </div>
                 <Badge variant="indigo" size="sm">
                   Preset
@@ -217,39 +266,17 @@ export default function BrandManager() {
                 <p className="text-xs text-slate-500 mt-0.5 italic">{brand.tagline}</p>
               </div>
 
-              {/* Color Swatches */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <span className="text-[11px] font-semibold text-slate-400 block">Color Tokens</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full border border-slate-200" style={{ backgroundColor: brand.primaryColor }} />
-                    <span className="text-[10px] font-mono text-slate-600">{brand.primaryColor}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full border border-slate-200" style={{ backgroundColor: brand.accentColor }} />
-                    <span className="text-[10px] font-mono text-slate-600">{brand.accentColor}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Collectible Preview */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{brand.collectibleIcon}</span>
-                  <span className="font-semibold text-slate-900">{brand.collectibleName}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium">Collectible</span>
-              </div>
             </CardContent>
 
             <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                icon={Edit2}
-                onClick={() => navigate('/library')}
+                icon={Eye}
+                onClick={() => handleOpenBrandOverview(brand)}
+                className="bg-white border-slate-200 text-indigo-600 font-bold hover:bg-indigo-50"
               >
-                Browse
+                Overview & Usage
               </Button>
               <Button
                 variant="ghost"
@@ -418,9 +445,9 @@ export default function BrandManager() {
             </label>
             <div className="space-y-2.5">
               <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/80">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 p-1.5 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
                   {formData.logo ? (
-                    <img src={formData.logo} alt="Logo preview" className="max-h-full object-contain" />
+                    <img src={formData.logo} alt="Logo preview" className="max-h-full max-w-full object-contain" />
                   ) : (
                     <Image className="w-6 h-6 text-slate-500" />
                   )}
@@ -450,54 +477,6 @@ export default function BrandManager() {
                 onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Primary Color</label>
-              <input
-                type="color"
-                value={formData.primaryColor}
-                onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                className="w-full h-10 rounded-xl cursor-pointer bg-white border border-slate-300 p-1"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Secondary Color</label>
-              <input
-                type="color"
-                value={formData.secondaryColor}
-                onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
-                className="w-full h-10 rounded-xl cursor-pointer bg-white border border-slate-300 p-1"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Accent Color</label>
-              <input
-                type="color"
-                value={formData.accentColor}
-                onChange={(e) => setFormData({ ...formData, accentColor: e.target.value })}
-                className="w-full h-10 rounded-xl cursor-pointer bg-white border border-slate-300 p-1"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Collectible Item Name"
-              placeholder="e.g. Racing Helmet"
-              value={formData.collectibleName}
-              onChange={(e) => setFormData({ ...formData, collectibleName: e.target.value })}
-            />
-
-            <Input
-              label="Collectible Emoji / Icon"
-              placeholder="🏎️"
-              value={formData.collectibleIcon}
-              onChange={(e) => setFormData({ ...formData, collectibleIcon: e.target.value })}
-            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -530,6 +509,130 @@ export default function BrandManager() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Brand Overview & Engagement Usage Modal */}
+      <Modal
+        isOpen={!!selectedBrandOverview}
+        onClose={() => setSelectedBrandOverview(null)}
+        title={`${selectedBrandOverview?.name || 'Brand'} — Overview & Engagements Usage`}
+        subtitle="Detailed audit of customized engagements, active events, and brand kit tokens"
+      >
+        {selectedBrandOverview && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white p-2 flex items-center justify-center border border-white/20 shadow-md shrink-0">
+                  <img
+                    src={selectedBrandOverview.logo}
+                    alt={selectedBrandOverview.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-white">{selectedBrandOverview.name}</h3>
+                  <p className="text-xs text-indigo-200/80 mt-0.5">{selectedBrandOverview.tagline || 'Custom Activation Brand'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Engagements Used Section */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-600" /> Engagements Used ({brandInstances.length})
+              </h4>
+
+              {isLoadingOverview ? (
+                <div className="p-6 text-center text-xs text-slate-500 font-medium">
+                  Loading brand engagement instances...
+                </div>
+              ) : brandInstances.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {brandInstances.map((inst) => {
+                    const fanUrl = `${window.location.origin}/e/${inst.appId}/${inst.instanceId}`;
+                    const displayUrl = `${window.location.origin}/e/${inst.appId}/${inst.instanceId}/display`;
+
+                    return (
+                      <div
+                        key={inst.instanceId}
+                        className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-indigo-700 font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                              {inst.appId}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[9px] uppercase border border-emerald-300">
+                              {inst.status || 'Published'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-mono">
+                            UUID: {inst.instanceId}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <a
+                            href={fanUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3 text-indigo-600" /> Fan View
+                          </a>
+                          <a
+                            href={displayUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex items-center gap-1 transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3 text-cyan-400" /> Display
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                  No published engagement instances found for this brand yet. Customize a template in the library to mint an instance.
+                </div>
+              )}
+            </div>
+
+            {/* Events Used For Section */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-600" /> Events Attached ({brandEvents.length})
+              </h4>
+
+              {brandEvents.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {brandEvents.map((evt) => (
+                    <div key={evt.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-xs">
+                      <h5 className="font-bold text-slate-900">{evt.name}</h5>
+                      <p className="text-slate-500 text-[11px]">Venue: {evt.venue || 'Stadium Activation'}</p>
+                      <span className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        {evt.status || 'Active Event'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                  No active events assigned to this brand.
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-100">
+              <Button variant="outline" onClick={() => setSelectedBrandOverview(null)}>
+                Close Overview
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

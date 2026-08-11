@@ -216,3 +216,34 @@ class GameConfigModel(Base):
     config_json = Column(Text, nullable=True)    # Full JSON config blob
     updated_at = Column(Float, default=lambda: time.time())
 
+
+# ----------------------------------------------------
+# ENGAGEMENT INSTANCE — Immutable UUID snapshot minted on each Brand publish
+# ----------------------------------------------------
+class InstanceModel(Base):
+    __tablename__ = "instances"
+
+    id = Column(String, primary_key=True)         # UUID, minted on submit
+    app_id = Column(String, index=True, default="")
+    user_id = Column(String, index=True, default="")
+    brand_name = Column(String, default="")
+    template_id = Column(String, index=True, default="memory-challenge")
+    title = Column(String, default="Custom Brand Engagement")
+    brand_id = Column(String, default="")
+    config_json = Column(Text, nullable=True)     # Full JSON config blob
+    status = Column(String, default="pending")    # pending, approved, rejected, launched
+    created_at = Column(Float, default=lambda: time.time())
+    published_at = Column(Float, default=lambda: time.time())
+    approved_at = Column(Float, nullable=True)
+
+
+# ----------------------------------------------------
+# METADATA & SEED TRACKING
+# ----------------------------------------------------
+class MetadataModel(Base):
+    __tablename__ = "metadata"
+
+    key = Column(String, primary_key=True)
+    value = Column(String, default="")
+
+

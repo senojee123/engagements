@@ -5,7 +5,7 @@ import { fetchTemplates, createTemplateApi } from '../lib/api';
 const DEFAULT_FALLBACK_TEMPLATES = [
   {
     id: 'lane-daze',
-    title: 'Lane Daze',
+    title: 'Lane Dash',
     category: 'Games',
     description:
       'High-energy 3-lane arcade endless runner engagement template (Subway Surfers style) for stadium big screens and venue mobile fan portals. Fans switch lanes to dodge hurdles, collect power-ups, and build massive combo streaks.',
@@ -22,7 +22,7 @@ const DEFAULT_FALLBACK_TEMPLATES = [
     defaultBrand: 'coca-cola',
     playerJourney: [
       '1. Scan QR Code displayed on venue Jumbotron or stadium screen.',
-      '2. Launch Lane Daze high-speed arcade runner on mobile.',
+      '2. Launch Lane Dash high-speed arcade runner on mobile.',
       '3. Tap Left, Center, or Right lane buttons to navigate the neon track.',
       '4. Collect sponsor items and nitro boosts while dodging obstacles.',
       '5. Achieve a top score on the stadium leaderboard to win instant sponsor rewards.',
@@ -122,10 +122,23 @@ export const TemplateProvider = ({ children }) => {
     fetchTemplates()
       .then((data) => {
         if (!cancelled && Array.isArray(data)) {
-          // Merge API data with built-in templates to guarantee memory-challenge is always present
-          const fetchedIds = new Set(data.map((t) => t.id));
+          // Normalize titles if backend has old title
+          const normalizedData = data.map((t) =>
+            t.id === 'lane-daze' || t.id === 'lane-dash' ? { ...t, title: 'Lane Dash' } : t
+          );
+          const fetchedIds = new Set(normalizedData.map((t) => t.id));
           const missingBuiltIns = DEFAULT_FALLBACK_TEMPLATES.filter((t) => !fetchedIds.has(t.id));
-          setTemplates([...data, ...missingBuiltIns]);
+
+          // Unique deduplication by ID and Title
+          const combined = [...normalizedData, ...missingBuiltIns];
+          const seen = new Set();
+          const uniqueTemplates = combined.filter((t) => {
+            const key = (t.id || t.title).toLowerCase().trim();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setTemplates(uniqueTemplates);
         }
       })
       .catch((err) => {
@@ -212,7 +225,25 @@ export const TemplateProvider = ({ children }) => {
 export const useTemplates = () => {
   const context = useContext(TemplateContext);
   if (!context) {
-    throw new Error('useTemplates must be used within a TemplateProvider');
+    return {
+      templates: DEFAULT_FALLBACK_TEMPLATES,
+      isLoading: false,
+      favorites: [],
+      myTemplates: [],
+      searchQuery: '',
+      setSearchQuery: () => {},
+      selectedCategory: 'All',
+      setSelectedCategory: () => {},
+      selectedDifficulty: 'All',
+      setSelectedDuration: () => {},
+      selectedDuration: 'All',
+      sortBy: 'popularity',
+      setSortBy: () => {},
+      toggleFavorite: () => {},
+      isFavorite: () => false,
+      duplicateTemplate: () => {},
+      createCustomTemplate: () => {},
+    };
   }
   return context;
 };

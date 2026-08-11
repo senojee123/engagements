@@ -1,6 +1,6 @@
 const API_BASE =
   typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? (import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:8000')
     : (import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app');
 
@@ -33,6 +33,7 @@ export const loginUserApi = (data) => request('POST', '/api/auth/login', data);
 export const fetchUser = (id) => request('GET', `/api/users/${id}`);
 export const updateUserApi = (id, data) => request('PATCH', `/api/users/${id}`, data);
 export const changePasswordApi = (id, data) => request('POST', `/api/users/${id}/change-password`, data);
+export const deleteUserApi = (id) => request('DELETE', `/api/users/${id}`);
 
 // Organizations
 export const fetchOrganizations = () => request('GET', '/api/organizations/');
@@ -90,7 +91,7 @@ const selfieRequest = async (method, path, body) => {
   });
   if (!res.ok) {
     let detail = res.statusText;
-    try { const d = await res.json(); detail = d.detail || detail; } catch (e) {}
+    try { const d = await res.json(); detail = d.detail || detail; } catch (e) { }
     throw new Error(detail);
   }
   if (res.status === 204) return null;
@@ -110,7 +111,7 @@ export const fetchScreenStatusApi = async () => {
   try {
     const data = await request('GET', '/api/screen/status');
     if (data && data.activeMode) return data;
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     const res = await fetch('https://engagements-production.up.railway.app/api/screen/status');
@@ -118,6 +119,122 @@ export const fetchScreenStatusApi = async () => {
   } catch (e) {
     return { isSelfieWallActive: false, activeMode: 'idle' };
   }
+};
+
+export const fetchInstancesApi = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.appId) queryParams.append('appId', params.appId);
+  if (params.userId) queryParams.append('userId', params.userId);
+  if (params.status) queryParams.append('status', params.status);
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
+  try {
+    const data = await request('GET', `/api/instances/${queryString}`);
+    if (data) return data;
+  } catch (e) {}
+
+  return [];
+};
+
+export const submitInstanceApi = async (data) => {
+  try {
+    return await request('POST', '/api/instances/submit', data);
+  } catch (e) {}
+  return publishInstanceApi(data);
+};
+
+export const sendApprovalInstanceApi = async (instanceId) => {
+  try {
+    return await request('POST', `/api/instances/${instanceId}/send-approval`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  return { instanceId, status: 'pending' };
+};
+
+export const approveInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/approve`);
+};
+
+export const rejectInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/reject`);
+};
+
+export const launchInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/launch`);
+};
+
+export const deleteInstanceApi = async (instanceId) => {
+  try {
+    return await request('DELETE', `/api/instances/${instanceId}`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  return { message: 'Deleted' };
+};
+
+export const publishInstanceApi = async (data) => {
+  try {
+    return await request('POST', '/api/instances/publish', data);
+  } catch (e) {}
+
+  try {
+    const res = await fetch('https://engagements-production.up.railway.app/api/instances/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  const id = `inst-${Date.now().toString(36)}`;
+  return {
+    instanceId: id,
+    appId: data.appId || data.templateId || 'memory-challenge',
+    templateId: data.templateId || data.appId || 'memory-challenge',
+    userId: data.userId || '',
+    brandName: data.brandName || 'Brand Account',
+    title: data.title || 'Custom Brand Engagement',
+    brandId: data.brandId || '',
+    status: data.status || 'draft',
+    publishedAt: Date.now() / 1000,
+    approvedAt: null,
+    config: data.config || {},
+  };
+};
+
+export const fetchInstanceApi = async (instanceId) => {
+  try {
+    return await request('GET', `/api/instances/${instanceId}`);
+  } catch (e) { }
+
+  const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`);
+  if (!res.ok) throw new Error('Instance not found');
+  return res.json();
+};
+
+export const fetchGameConfigApi = async (appId) => {
+  try {
+    const data = await request('GET', `/api/game-config/${appId}`);
+    if (data) return data;
+  } catch (e) { }
+
+  const res = await fetch(`https://engagements-production.up.railway.app/api/game-config/${appId}`);
+  if (!res.ok) throw new Error('Config not found');
+  return res.json();
 };
 
 export const updateScreenStatusApi = async (data) => {
@@ -128,11 +245,11 @@ export const updateScreenStatusApi = async (data) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     return await request('POST', '/api/screen/status', data);
-  } catch (e) {}
+  } catch (e) { }
 };
 
 

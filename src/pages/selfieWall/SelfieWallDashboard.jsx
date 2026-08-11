@@ -116,20 +116,6 @@ function SelfieWallDashboardInner() {
         </div>
       </div>
 
-      {/* Brand Engine Switcher Bar */}
-      <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">Active Brand Identity Theme</h3>
-            <p className="text-xs text-slate-500">Transform background colors, logos, and frame stickers instantly across all stadium screens.</p>
-          </div>
-          <Badge variant="indigo" size="sm">
-            Active: {activeBrand.name}
-          </Badge>
-        </div>
-        <BrandSwitcher activeBrand={activeBrand} onSelectBrand={setActiveBrand} />
-      </div>
-
       {/* Main View Tabs */}
       <Tabs
         tabs={[

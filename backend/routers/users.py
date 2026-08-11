@@ -77,28 +77,16 @@ def change_password(user_id: str, data: schemas.ChangePasswordRequest, db: Sessi
 
     user.password_hash = hash_password(data.newPassword)
     db.commit()
-    db.refresh(user)
-    return to_response(user)
+@router.delete("/{user_id}")
+def delete_user(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.UserModel).filter(models.UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+    return {"status": "deleted", "id": user_id}
 
 
 def seed_users(db: Session):
-    if db.query(models.UserModel).filter_by(id="usr-demo-001").first():
-        return
-
-    db.add(models.UserModel(
-        id="usr-demo-001",
-        name="Alex Morgan",
-        email="alex.morgan@fanforge.io",
-        password_hash=hash_password("password123"),
-        company="Apex Sports Global",
-        role="Super Admin",
-        avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
-        title="Head of Event Operations",
-        phone="+1 (555) 234-5678",
-        bio="Passionate about creating high-impact fan engagement experiences across global stadium tours and esports arenas.",
-        company_industry="Sports & Entertainment",
-        company_website="https://apexsports.example.com",
-        company_address="742 Event Way, San Francisco, CA 94107",
-        favorite_template_ids=["selfie-wall"],
-    ))
-    db.commit()
+    pass

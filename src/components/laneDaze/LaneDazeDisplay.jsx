@@ -18,7 +18,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
     try {
       const saved = localStorage.getItem('fanforge_active_brand');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return {
       name: 'FanForge Stadium',
       logoUrl: '',
@@ -35,7 +35,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
       if (e.key === 'fanforge_active_brand' && e.newValue) {
         try {
           setActiveBrand(JSON.parse(e.newValue));
-        } catch (err) {}
+        } catch (err) { }
       }
     };
     window.addEventListener('storage', handleStorage);
@@ -76,7 +76,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white uppercase font-black">
-                Lane Daze
+                Lane Dash
               </h1>
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
                 ● LIVE STADIUM BROADCAST
@@ -119,28 +119,26 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
               return (
                 <div
                   key={player.id}
-                  className={`p-4 rounded-2xl border backdrop-blur-md flex items-center justify-between transition-all duration-300 ${
-                    isFirst
+                  className={`p-4 rounded-2xl border backdrop-blur-md flex items-center justify-between transition-all duration-300 ${isFirst
                       ? 'bg-gradient-to-r from-amber-500/25 via-indigo-900/60 to-slate-900 border-amber-400/60 shadow-lg shadow-amber-500/10 scale-[1.02]'
                       : isSecond
-                      ? 'bg-slate-900/80 border-slate-400/40'
-                      : isThird
-                      ? 'bg-slate-900/70 border-amber-700/30'
-                      : 'bg-slate-900/50 border-white/10'
-                  }`}
+                        ? 'bg-slate-900/80 border-slate-400/40'
+                        : isThird
+                          ? 'bg-slate-900/70 border-amber-700/30'
+                          : 'bg-slate-900/50 border-white/10'
+                    }`}
                 >
                   <div className="flex items-center gap-4">
                     {/* Rank Badge */}
                     <div
-                      className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 ${
-                        isFirst
+                      className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 ${isFirst
                           ? 'bg-amber-400 text-slate-950 shadow-md'
                           : isSecond
-                          ? 'bg-slate-300 text-slate-950'
-                          : isThird
-                          ? 'bg-amber-700 text-white'
-                          : 'bg-white/10 text-indigo-200'
-                      }`}
+                            ? 'bg-slate-300 text-slate-950'
+                            : isThird
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-white/10 text-indigo-200'
+                        }`}
                     >
                       #{player.rank}
                     </div>
@@ -194,7 +192,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
 
             <div className="space-y-2">
               <h3 className="text-2xl font-black text-white tracking-tight leading-tight">
-                SCAN QR CODE TO JOIN LANE DAZE!
+                SCAN QR CODE TO JOIN LANE DASH!
               </h3>
               <p className="text-xs sm:text-sm text-indigo-200/90 leading-relaxed font-medium">
                 Point your smartphone camera at the QR code below to enter the 3-lane arcade runner. Switch lanes to dodge hurdles, grab power-ups, and climb the live stadium leaderboard!
@@ -206,7 +204,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
               <img
                 src={qrImageUrl}
                 onError={(e) => { e.currentTarget.src = '/fanzone-qr.png'; }}
-                alt="Lane Daze QR Code"
+                alt="Lane Dash QR Code"
                 className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
               />
               <div className="mt-2 text-slate-900 font-mono text-xs font-black tracking-wider uppercase">
@@ -229,7 +227,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
           <span>Powered by FanForge Stadium Engagement System</span>
         </div>
-        <div className="font-mono">Real-Time Fan Connection • Room ID: LANE-DAZE-77</div>
+        <div className="font-mono">Real-Time Fan Connection • Room ID: LANE-DASH-77</div>
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ def seed_templates(db: Session):
     if not db.query(models.TemplateModel).filter_by(id="lane-daze").first():
         db.add(models.TemplateModel(
             id="lane-daze",
-            title="Lane Daze",
+            title="Lane Dash",
             category="Games",
             description=(
                 "High-energy 3-lane arcade endless runner engagement template (Subway Surfers style) for stadium big screens and venue mobile fan portals. "
@@ -91,7 +91,7 @@ def seed_templates(db: Session):
             default_brand="coca-cola",
             player_journey=[
                 "1. Scan QR Code displayed on venue Jumbotron or stadium screen.",
-                "2. Launch Lane Daze high-speed arcade runner on mobile.",
+                "2. Launch Lane Dash high-speed arcade runner on mobile.",
                 "3. Tap Left, Center, or Right lane buttons to navigate the neon track.",
                 "4. Collect sponsor items and nitro boosts while dodging obstacles.",
                 "5. Achieve a top score on the stadium leaderboard to win instant sponsor rewards.",

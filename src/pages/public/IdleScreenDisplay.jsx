@@ -108,16 +108,15 @@ export default function IdleScreenDisplay() {
       {/* ---------------------------------------------------- */}
       <footer className="pt-6 border-t border-white/20 z-10 text-center">
         {/* SPONSOR LOGOS ROW */}
-        <div className="flex items-center justify-center gap-6 flex-wrap pb-4">
+        <div className="flex items-center justify-center gap-8 flex-wrap pb-4">
           {config.sponsorLogos && config.sponsorLogos.length > 0 ? (
             config.sponsorLogos.map((sp) => (
-              <div
+              <img
                 key={sp.id}
-                className="h-12 px-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-3 shadow-xl hover:bg-white/15 transition-all"
-              >
-                <img src={sp.logo} alt={sp.name} className="h-7 w-auto object-contain" />
-                <span className="text-xs font-extrabold text-white font-sans tracking-tight">{sp.name}</span>
-              </div>
+                src={sp.logo}
+                alt={sp.name}
+                className="h-10 sm:h-12 w-auto object-contain max-w-[160px] drop-shadow-md transition-all hover:scale-105"
+              />
             ))
           ) : (
             <span className="text-xs text-slate-500 italic font-sans">No sponsor logos added yet</span>

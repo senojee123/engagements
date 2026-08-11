@@ -423,3 +423,31 @@ class ReactionResponseSchema(BaseModel):
         from_attributes = True
 
 
+# ----------------------------------------------------
+# ENGAGEMENT INSTANCE SCHEMAS
+# ----------------------------------------------------
+class InstancePublishRequest(BaseModel):
+    instanceId: Optional[str] = None
+    appId: Optional[str] = "memory-challenge"
+    templateId: Optional[str] = "memory-challenge"
+    userId: Optional[str] = ""
+    brandName: Optional[str] = ""
+    title: Optional[str] = "Custom Brand Engagement"
+    brandId: Optional[str] = ""
+    status: Optional[str] = "draft"
+    config: dict
+
+class InstanceResponse(BaseModel):
+    instanceId: str
+    appId: str
+    templateId: str
+    userId: str
+    brandName: str
+    title: str
+    brandId: str
+    status: str
+    publishedAt: float
+    approvedAt: Optional[float] = None
+    config: dict
+
+

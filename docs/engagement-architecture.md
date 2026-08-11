@@ -7,7 +7,7 @@ delivered to end users — and who is responsible for each stage.
 
 | Role | Who | Responsibility |
 |---|---|---|
-| **Developer** | Internal engineering | Builds engagement runtimes (Selfie Wall, Memory Challenge, Lane Daze, etc.) and registers each one in the catalog under a stable **App ID**. Defines what's customizable (the config schema) for that App. |
+| **Developer** | Internal engineering | Builds engagement runtimes (Selfie Wall, Memory Challenge, Lane Dash, etc.) and registers each one in the catalog under a stable **App ID**. Defines what's customizable (the config schema) for that App. |
 | **Admin** | Platform / Super Admin | Sees every App ID and every Brand's customized Instances across the platform. Approves Apps for use, monitors live sessions, moderates content, manages Orgs/Events. |
 | **Brand** | The customer | Picks an App from the catalog, customizes it (colors, logos, copy, rules, tiles), publishes it — each publish mints a new **Instance UUID**. Attaches an Instance to an Event and launches it. |
 | **End User** | Fan / attendee | No login. Scans a QR code or opens a link that loads the published Instance inside an **iframe**. Never sees App IDs or UUIDs directly. |

@@ -9,17 +9,17 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db
 import models
 import schemas
-from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions
+from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
 
 # Create database tables automatically on startup
 from sqlalchemy import text
 try:
     with engine.connect() as conn:
-        # Re-create polls, templates and screen_state to ensure all columns & seeds match
+        # Re-create polls, templates, screen_state and instances to ensure all columns & seeds match
         conn.execute(text("DROP TABLE IF EXISTS polls"))
         conn.execute(text("DROP TABLE IF EXISTS templates"))
         conn.execute(text("DROP TABLE IF EXISTS screen_state"))
-        conn.execute(text("DROP TABLE IF EXISTS selfies"))
+        conn.execute(text("DROP TABLE IF EXISTS instances"))
         conn.commit()
 except Exception:
     pass
@@ -53,6 +53,7 @@ app.include_router(templates.router)
 app.include_router(brand_kits.router)
 app.include_router(polls.router)
 app.include_router(reactions.router)
+app.include_router(instances.router)
 
 
 
@@ -151,7 +152,14 @@ def startup_event():
     db = next(get_db())
     seed_initial_data(db)
 
+    # Always ensure default demo users (Admin, Brand, Developer) exist in database
     users.seed_users(db)
+
+    # Check if database has already completed its initial seed
+    seed_flag = db.query(models.MetadataModel).filter_by(key="initial_seed_completed").first()
+    if seed_flag and seed_flag.value == "true":
+        return
+
     organizations.seed_organizations(db)
     events.seed_events(db)
     activities.seed_activities(db)
@@ -160,6 +168,9 @@ def startup_event():
     brand_kits.seed_brand_kits(db)
     polls.seed_polls(db)
     reactions.seed_reactions(db)
+
+    db.add(models.MetadataModel(key="initial_seed_completed", value="true"))
+    db.commit()
 
 
 

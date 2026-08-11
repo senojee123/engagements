@@ -7,8 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function Login() {
-  const [email, setEmail] = useState('alex.morgan@fanforge.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,9 +26,13 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const res = await login(email, password);
       toast.success('Welcome back to FanForge!');
-      navigate('/dashboard');
+      if (email.includes('brand') || res?.user?.role === 'Brand') {
+        navigate('/analytics');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Unable to sign in. Please try again.');
     } finally {
@@ -148,20 +152,7 @@ export default function Login() {
         </Button>
       </form>
 
-      {/* Demo Credentials Quick Fill */}
-      <div className="mt-6 p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-xs flex items-center justify-between">
-        <span className="text-indigo-900 font-medium">Demo Mode active:</span>
-        <button
-          type="button"
-          onClick={() => {
-            setEmail('alex.morgan@fanforge.io');
-            setPassword('password123');
-          }}
-          className="text-indigo-600 font-bold hover:underline"
-        >
-          Autofill Credentials
-        </button>
-      </div>
+
 
       <p className="mt-8 text-center text-xs text-slate-500">
         Don't have an account?{' '}

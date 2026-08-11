@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AVAILABLE_ROLES } from '../constants/roles';
-import { fetchUser, loginUserApi, registerUserApi, updateUserApi } from '../lib/api';
+import { fetchUser, loginUserApi, registerUserApi, updateUserApi, deleteUserApi } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     setUser(loggedUser);
     setCurrentRole(loggedUser.role);
     setIsAuthenticated(true);
-    return { success: true };
+    return { success: true, user: loggedUser };
   };
 
   const register = async (formData) => {
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     setUser(newUser);
     setCurrentRole(newUser.role);
     setIsAuthenticated(true);
-    return { success: true };
+    return { success: true, user: newUser };
   };
 
   const logout = () => {
@@ -59,6 +59,16 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setUser(null);
     setCurrentRole(null);
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+    try {
+      await deleteUserApi(user.id);
+    } catch (e) {
+      // Offline fallback
+    }
+    logout();
   };
 
   const switchRole = (roleId) => {
@@ -92,6 +102,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        deleteAccount,
         switchRole,
         updateProfile,
         hasPermission,

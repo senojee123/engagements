@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User,
   Building,
@@ -8,6 +9,8 @@ import {
   Shield,
   Save,
   CheckCircle2,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -15,15 +18,19 @@ import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 import Tabs from '../components/ui/Tabs';
 import Switch from '../components/ui/Switch';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { changePasswordApi } from '../lib/api';
 
 export default function Profile() {
-  const { user, updateProfile, currentRole } = useAuth();
+  const { user, updateProfile, deleteAccount, currentRole } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('personal');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [personal, setPersonal] = useState({
@@ -105,17 +112,6 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-          <div className="relative">
-            <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-              alt={user?.name}
-              className="w-20 h-20 rounded-2xl object-cover ring-4 ring-indigo-500/10 shadow-xs"
-            />
-            <button className="absolute -bottom-1 -right-1 p-1.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">
-              <Camera className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{user?.name}</h1>
@@ -302,6 +298,59 @@ export default function Profile() {
           </CardContent>
         </Card>
       )}
+
+      {/* Danger Zone: Account Deletion */}
+      <div className="pt-4">
+        <Card className="border-rose-200/90 bg-rose-50/30">
+          <CardHeader className="border-rose-100">
+            <CardTitle className="text-rose-900 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              Danger Zone
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Delete Account</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-lg">
+                Permanently delete your FanForge account and remove all personal information, brand settings, and active sessions. This action cannot be undone.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              icon={Trash2}
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="shrink-0"
+            >
+              Delete Account
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Account Deletion Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={async () => {
+          setIsDeleting(true);
+          try {
+            await deleteAccount();
+            toast.success('Your account has been deleted successfully.');
+            navigate('/login');
+          } catch (err) {
+            toast.error(err.message || 'Unable to delete account.');
+          } finally {
+            setIsDeleting(false);
+            setIsDeleteModalOpen(false);
+          }
+        }}
+        title="Delete Account"
+        message="Are you sure you want to permanently delete your account? All your profile settings, brand assets, and permissions will be removed immediately. This action cannot be undone."
+        confirmText="Yes, Delete Account"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

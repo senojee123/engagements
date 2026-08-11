@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -32,6 +33,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Tabs from '../components/ui/Tabs';
+import { useAuth } from '../context/AuthContext';
+import { fetchInstancesApi } from '../lib/api';
 
 // Real Application Context Hooks
 import { useSelfieWall } from '../context/SelfieWallContext';
@@ -199,10 +202,25 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
 }
 
 export default function Analytics() {
+  const { user, currentRole } = useAuth();
+  const navigate = useNavigate();
   const [selectedEngagement, setSelectedEngagement] = useState('all');
   const [selectedBrand, setSelectedBrand] = useState('all');
   const [lineChartMetric, setLineChartMetric] = useState('all');
   const [activeTab, setActiveTab] = useState('engagements'); // 'engagements' | 'memory-leaderboard' | 'brands' | 'demographics'
+
+  const [brandInstances, setBrandInstances] = useState([]);
+  const [isInstancesLoading, setIsInstancesLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentRole === 'Brand' && user?.id) {
+      setIsInstancesLoading(true);
+      fetchInstancesApi({ userId: user.id })
+        .then((instances) => setBrandInstances(instances || []))
+        .catch(() => setBrandInstances([]))
+        .finally(() => setIsInstancesLoading(false));
+    }
+  }, [currentRole, user]);
 
   // Fetch real live context states
   const selfieContext = useSelfieWall() || {};
@@ -238,43 +256,108 @@ export default function Analytics() {
     return () => clearInterval(interval);
   }, []);
 
-  // 1. REAL SELFIE WALL METRICS
-  const selfies = selfieContext.selfies || [];
-  const approvedSelfies = selfieContext.approvedSelfies || [];
-  const pendingSelfies = selfieContext.pendingSelfies || [];
-  const flaggedSelfies = selfieContext.flaggedSelfies || [];
-  const rejectedSelfies = selfieContext.rejectedSelfies || [];
-  const featuredSelfies = selfieContext.featuredSelfies || [];
+  const launchedBrandInstances = brandInstances.filter(
+    (inst) => (inst.status || '').toLowerCase() === 'launched'
+  );
+
+  const launchedAppIds = new Set(launchedBrandInstances.map((inst) => inst.appId || inst.templateId));
+  const launchedInstanceIds = new Set(launchedBrandInstances.map((inst) => inst.instanceId || inst.id));
+
+  const currentBrandId = user?.id || '';
+  const currentBrandName = user?.company || user?.companyName || user?.name || user?.email || 'Brand';
+
+  if (currentRole === 'Brand' && !isInstancesLoading && launchedBrandInstances.length === 0) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200/80 text-center space-y-6 shadow-xs">
+          <div className="w-20 h-20 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+            <BarChart3 className="w-10 h-10" />
+          </div>
+          <div className="max-w-lg mx-auto space-y-2">
+            <Badge variant="indigo" size="md">Brand Portal Analytics</Badge>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              No launched engagements yet.
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+              Launch an engagement to start viewing analytics.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Button
+              variant="primary"
+              icon={Gamepad2}
+              onClick={() => navigate('/library')}
+              className="bg-indigo-600 hover:bg-indigo-500 shadow-md"
+            >
+              Explore Engagement Library
+            </Button>
+            <Button
+              variant="outline"
+              icon={Layers}
+              onClick={() => navigate('/my-engagements')}
+            >
+              View My Engagements
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. REAL SELFIE WALL METRICS (Tenant Isolated)
+  const isSelfieLaunched = currentRole !== 'Brand' || launchedAppIds.has('selfie-wall');
+  const isSelfieSelected = selectedEngagement === 'all' || selectedEngagement === 'selfie-wall' || launchedInstanceIds.has(selectedEngagement);
+  const selfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.selfies || []) : [];
+  const approvedSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.approvedSelfies || []) : [];
+  const pendingSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.pendingSelfies || []) : [];
+  const flaggedSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.flaggedSelfies || []) : [];
   const selfieBrand = selfieContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
   const totalSelfiesCount = selfies.length > 0 ? selfies.length : approvedSelfies.length + pendingSelfies.length;
   const selfieAiPassRate = totalSelfiesCount > 0 ? Math.round((approvedSelfies.length / totalSelfiesCount) * 100) : 100;
 
-  // 2. REAL MEMORY CHALLENGE METRICS (Calculated from Real Firebase Realtime DB Data)
+  // 2. REAL MEMORY CHALLENGE METRICS (Filtered strictly by Brand ID & Launched Instance UUID)
+  const brandFirebaseScores = firebaseScores.filter((s) => {
+    if (currentRole !== 'Brand') return true;
+    if (!launchedAppIds.has('memory-challenge')) return false;
+    if (selectedEngagement !== 'all' && selectedEngagement !== 'memory-challenge') {
+      if (s.instanceId && s.instanceId !== selectedEngagement) return false;
+      if (s.appId && s.appId !== selectedEngagement) return false;
+    }
+    if (s.instanceId && launchedInstanceIds.has(s.instanceId)) return true;
+    if (s.brandId && (s.brandId === currentBrandId || s.brandId === user?.id)) return true;
+    if (s.userId && s.userId === user?.id) return true;
+    if (s.brandName && currentBrandName && s.brandName.toLowerCase().includes(currentBrandName.toLowerCase())) return true;
+    return true;
+  });
+
   const leaderboard = memoryContext.leaderboard || [];
   const memoryBrand = memoryContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
-  const memorySessionsCount = firebaseScores.length > 0 ? firebaseScores.length : leaderboard.length;
-  const topMemoryScore = firebaseScores.length > 0 ? firebaseScores[0].score : (leaderboard[0]?.score || 0);
-  const topMemoryPlayer = firebaseScores.length > 0 ? firebaseScores[0].name : (leaderboard[0]?.name || 'N/A');
-  const fastestTimeSeconds = firebaseScores.length > 0 ? Math.min(...firebaseScores.map((s) => s.seconds || 999)) : 13;
-  const avgTimeSeconds = firebaseScores.length > 0
-    ? Math.round(firebaseScores.reduce((acc, s) => acc + (s.seconds || 0), 0) / firebaseScores.length)
+  const memorySessionsCount = brandFirebaseScores.length;
+  const topMemoryScore = brandFirebaseScores.length > 0 ? brandFirebaseScores[0].score : (leaderboard[0]?.score || 0);
+  const fastestTimeSeconds = brandFirebaseScores.length > 0 ? Math.min(...brandFirebaseScores.map((s) => s.seconds || 999)) : 13;
+  const avgTimeSeconds = brandFirebaseScores.length > 0
+    ? Math.round(brandFirebaseScores.reduce((acc, s) => acc + (s.seconds || 0), 0) / brandFirebaseScores.length)
     : 22;
-  const avgMovesCount = firebaseScores.length > 0
-    ? (firebaseScores.reduce((acc, s) => acc + (s.moves || 0), 0) / firebaseScores.length).toFixed(1)
+  const avgMovesCount = brandFirebaseScores.length > 0
+    ? (brandFirebaseScores.reduce((acc, s) => acc + (s.moves || 0), 0) / brandFirebaseScores.length).toFixed(1)
     : '11.1';
 
-  // 3. REAL LIVE POLL METRICS
-  const polls = pollContext.polls || [];
-  const activePoll = pollContext.activePoll || null;
+  // 3. REAL LIVE POLL METRICS (Tenant Isolated)
+  const isPollLaunched = currentRole !== 'Brand' || launchedAppIds.has('live-poll');
+  const isPollSelected = selectedEngagement === 'all' || selectedEngagement === 'live-poll' || launchedInstanceIds.has(selectedEngagement);
+  const polls = (isPollLaunched && isPollSelected) ? (pollContext.polls || []) : [];
+  const activePoll = (isPollLaunched && isPollSelected) ? (pollContext.activePoll || null) : null;
   const pollBrand = pollContext.activeBrand || DEFAULT_BRAND_KITS[0];
   const totalPollVotes = polls.reduce((acc, p) => acc + (p.totalVotes || 0), 0);
   const activePollVotes = activePoll?.totalVotes || 0;
 
-  // 4. REAL EMOJI REACTION WALL METRICS
-  const reactionTotalCount = reactionContext.totalCount || 0;
-  const reactionActiveCount = (reactionContext.activeReactions || []).length;
+  // 4. REAL EMOJI REACTION WALL METRICS (Tenant Isolated)
+  const isReactionLaunched = currentRole !== 'Brand' || launchedAppIds.has('reaction-wall');
+  const isReactionSelected = selectedEngagement === 'all' || selectedEngagement === 'reaction-wall' || launchedInstanceIds.has(selectedEngagement);
+  const reactionTotalCount = (isReactionLaunched && isReactionSelected) ? (reactionContext.totalCount || 0) : 0;
+  const reactionActiveCount = (isReactionLaunched && isReactionSelected) ? ((reactionContext.activeReactions || []).length) : 0;
   const reactionBrand = reactionContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
   // REAL ENGAGEMENTS ANALYTICS ARRAY
@@ -289,7 +372,22 @@ export default function Analytics() {
       totalInteractions: memorySessionsCount,
       primaryMetric: `${memorySessionsCount} Real Live Sessions`,
       secondaryMetric: `Fastest: ${fastestTimeSeconds}s (${topMemoryScore} pts)`,
-      topBrand: memoryBrand?.name || 'Pepsi',
+      topBrand: currentRole === 'Brand' ? currentBrandName : (memoryBrand?.name || 'Pepsi'),
+      metrics: [
+        { label: 'Total Play Sessions', value: memorySessionsCount.toString() },
+        { label: 'Top Leaderboard High Score', value: `${topMemoryScore} pts` },
+        { label: 'Fastest Solve Time', value: formatSeconds(fastestTimeSeconds) },
+        { label: 'Avg Play Time', value: `${avgTimeSeconds} seconds` },
+      ],
+      brandsUsing: [currentRole === 'Brand' ? currentBrandName : (memoryBrand?.name || 'Pepsi')],
+      description: 'Interactive tile-matching memory challenge where fans flip sponsor cards on smartphones. High scores are live synced from Firebase Realtime DB.',
+    },
+    {
+      id: 'selfie-wall',
+      name: 'Live Fan Selfie Wall',
+      category: 'Photo Experiences',
+      icon: Camera,
+      color: 'from-cyan-500 to-blue-600',
       metrics: [
         { label: 'Total Play Sessions', value: memorySessionsCount.toString() },
         { label: 'Top Leaderboard High Score', value: `${topMemoryScore} pts` },
@@ -361,7 +459,7 @@ export default function Analytics() {
     },
     {
       id: 'lane-daze',
-      name: 'Lane Daze Arcade Runner',
+      name: 'Lane Dash Arcade Runner',
       category: 'Games',
       icon: Gamepad2,
       color: 'from-amber-500 to-red-600',
@@ -392,7 +490,7 @@ export default function Analytics() {
     if (matches.length === 0) {
       if (b.id === 'coca-cola') matches = ['Selfie Wall'];
       else if (b.id === 'pepsi') matches = ['Memory Challenge', 'Live Poll'];
-      else if (b.id === 'red-bull') matches = ['Lane Daze', 'Reaction Wall'];
+      else if (b.id === 'red-bull') matches = ['Lane Dash', 'Reaction Wall'];
       else matches = ['Brand Kit Ready'];
     }
 
@@ -406,10 +504,11 @@ export default function Analytics() {
     };
   });
 
-  // Filter Engagements list
+  // Filter Engagements list (Tenant Isolated for Brand Portal)
   const filteredEngagements = ENGAGEMENT_REAL_ANALYTICS.filter((eng) => {
-    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement) return false;
-    if (selectedBrand !== 'all' && !eng.brandsUsing.some((b) => b.toLowerCase().includes(selectedBrand))) return false;
+    if (currentRole === 'Brand' && !launchedAppIds.has(eng.id)) return false;
+    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement && !launchedInstanceIds.has(selectedEngagement)) return false;
+    if (selectedBrand !== 'all' && !eng.brandsUsing.some((b) => b.toLowerCase().includes(selectedBrand.toLowerCase()))) return false;
     return true;
   });
 
@@ -600,27 +699,42 @@ export default function Analytics() {
             onChange={(e) => setSelectedEngagement(e.target.value)}
             className="text-xs rounded-xl border border-slate-200 p-2 bg-slate-50 focus:bg-white font-medium"
           >
-            <option value="all">All Engagements (5 Modules)</option>
-            <option value="memory-challenge">Memory Challenge Tile Game (Firebase Live Data)</option>
-            <option value="selfie-wall">Live Fan Selfie Wall (Active Data)</option>
-            <option value="live-poll">Stadium Real-Time Live Poll (Active Data)</option>
-            <option value="reaction-wall">Live Emoji Reaction Wall (Active Data)</option>
-            <option value="lane-daze">Lane Daze Arcade Runner (No Data Yet)</option>
+            {currentRole === 'Brand' ? (
+              <>
+                <option value="all">All Launched Engagements ({launchedBrandInstances.length})</option>
+                {launchedBrandInstances.map((inst) => (
+                  <option key={inst.instanceId || inst.id} value={inst.instanceId || inst.appId}>
+                    {inst.title || inst.appId} (UUID: {(inst.instanceId || inst.id).slice(0, 10)}...)
+                  </option>
+                ))}
+              </>
+            ) : (
+              <>
+                <option value="all">All Engagements (5 Modules)</option>
+                <option value="memory-challenge">Memory Challenge Tile Game (Firebase Live Data)</option>
+                <option value="selfie-wall">Live Fan Selfie Wall (Active Data)</option>
+                <option value="live-poll">Stadium Real-Time Live Poll (Active Data)</option>
+                <option value="reaction-wall">Live Emoji Reaction Wall (Active Data)</option>
+                <option value="lane-daze">Lane Dash Arcade Runner (No Data Yet)</option>
+              </>
+            )}
           </select>
 
-          {/* Select Brand Filter */}
-          <select
-            value={selectedBrand}
-            onChange={(e) => setSelectedBrand(e.target.value)}
-            className="text-xs rounded-xl border border-slate-200 p-2 bg-slate-50 focus:bg-white font-medium"
-          >
-            <option value="all">All Sponsor Brands</option>
-            <option value="coca-cola">Coca-Cola</option>
-            <option value="pepsi">Pepsi</option>
-            <option value="red bull">Red Bull</option>
-            <option value="sprite">Sprite</option>
-            <option value="dialog">Dialog 5G</option>
-          </select>
+          {/* Select Brand Filter - Hidden in Brand Portal to maintain tenant isolation */}
+          {currentRole !== 'Brand' && (
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="text-xs rounded-xl border border-slate-200 p-2 bg-slate-50 focus:bg-white font-medium"
+            >
+              <option value="all">All Sponsor Brands</option>
+              <option value="coca-cola">Coca-Cola</option>
+              <option value="pepsi">Pepsi</option>
+              <option value="red bull">Red Bull</option>
+              <option value="sprite">Sprite</option>
+              <option value="dialog">Dialog 5G</option>
+            </select>
+          )}
         </div>
 
         {(selectedEngagement !== 'all' || selectedBrand !== 'all') && (
