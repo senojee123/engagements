@@ -177,6 +177,16 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     reader.readAsDataURL(file);
   };
 
+  const handleBackgroundImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      updateField('backgroundImage', ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveAndSendForApproval = async () => {
     if (config.tiles.length < 2) {
       toast.error('Add at least 2 tiles before saving.');
@@ -337,7 +347,8 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
             </div>
 
             {/* Background Theme & Background Image */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Background Theme & Static Background Image */}
+            <div className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Background Theme</label>
                 <select
@@ -353,15 +364,82 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Image URL (Optional)</label>
-                <input
-                  type="text"
-                  value={config.backgroundImage || ''}
-                  onChange={(e) => updateField('backgroundImage', e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+              {/* Static Background Image Uploader & Presets */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Static Background Image
+                  </label>
+                  {config.backgroundImage && (
+                    <button
+                      type="button"
+                      onClick={() => updateField('backgroundImage', '')}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 underline"
+                    >
+                      Clear (Use Default Theme)
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={config.backgroundImage || ''}
+                    onChange={(e) => updateField('backgroundImage', e.target.value)}
+                    placeholder="Paste image URL (https://...)"
+                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <label className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer text-xs font-bold transition-all shrink-0">
+                    <UploadCloud className="w-4 h-4" /> Upload Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBackgroundImageUpload}
+                    />
+                  </label>
+                </div>
+
+                {/* Background Presets */}
+                <div className="flex items-center gap-2 pt-1 overflow-x-auto">
+                  <span className="text-[11px] text-slate-400 font-semibold shrink-0">Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    🏟️ Stadium Lights
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    ⚽ Football Arena
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    🎮 Cyber Neon
+                  </button>
+                </div>
+
+                {config.backgroundImage ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 h-20 mt-2">
+                    <img src={config.backgroundImage} alt="Background Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold bg-slate-900/80 px-2.5 py-1 rounded-full border border-white/20">
+                        Static Background Applied
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">
+                    Default radial stadium background is active. Upload an image or select a preset to set a custom static background.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -427,8 +505,13 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               <Eye className="w-4 h-4 text-indigo-500" /> Tile Preview
             </h3>
             <div
-              className="rounded-2xl p-4"
-              style={{ backgroundColor: config.backgroundColor }}
+              className="rounded-2xl p-4 transition-all duration-300 relative overflow-hidden"
+              style={{
+                backgroundColor: config.backgroundColor,
+                backgroundImage: config.backgroundImage ? `url("${config.backgroundImage}")` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
             >
               {config.brandLogo && (
                 <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-2" />
