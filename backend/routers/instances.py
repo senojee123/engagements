@@ -3,6 +3,7 @@ import time
 import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -36,6 +37,10 @@ def to_response(inst: models.InstanceModel) -> schemas.InstanceResponse:
 @router.post("/submit", response_model=schemas.InstanceResponse)
 @router.post("/publish", response_model=schemas.InstanceResponse)
 def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(get_db)):
+    """
+    Submit or update a brand engagement instance.
+    Each brand gets their own isolated instance — the master template is never modified.
+    """
     now = time.time()
     config_json = json.dumps(data.config or {})
     app_id = data.appId or data.templateId or "memory-challenge"
@@ -43,13 +48,25 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
     brand_id = data.brandId or user_id
 
     instance = None
+
+    # Try to find existing instance by explicit ID first
     if data.instanceId:
         instance = db.query(models.InstanceModel).filter_by(id=data.instanceId).first()
 
+    # For non-draft submissions, find the brand's most recent instance
     if not instance and user_id and app_id and (data.status and data.status != "draft"):
-        instance = db.query(models.InstanceModel).filter_by(user_id=user_id, app_id=app_id).order_by(models.InstanceModel.created_at.desc()).first()
+        instance = (
+            db.query(models.InstanceModel)
+            .filter(
+                models.InstanceModel.app_id == app_id,
+                (models.InstanceModel.user_id == user_id) | (models.InstanceModel.brand_id == brand_id),
+            )
+            .order_by(models.InstanceModel.created_at.desc())
+            .first()
+        )
 
     if instance:
+        # Update existing brand instance — master template is untouched
         instance.config_json = config_json
         instance.status = data.status or instance.status
         instance.published_at = now
@@ -60,6 +77,7 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
         if data.title:
             instance.title = data.title
     else:
+        # Create a fresh brand-specific instance from the default template
         instance_id = data.instanceId or f"inst-{uuid.uuid4().hex[:12]}"
         instance = models.InstanceModel(
             id=instance_id,
@@ -78,17 +96,6 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
 
     db.commit()
     db.refresh(instance)
-
-    # Sync to GameConfigModel
-    game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
-    if not game_config:
-        game_config = models.GameConfigModel(id=app_id)
-        db.add(game_config)
-    game_config.config_json = config_json
-    game_config.brand_id = brand_id
-    game_config.updated_at = now
-
-    db.commit()
     return to_response(instance)
 
 
@@ -105,22 +112,12 @@ def send_approval_instance(instance_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{instance_id}/approve", response_model=schemas.InstanceResponse)
 def approve_instance(instance_id: str, db: Session = Depends(get_db)):
+    """Approve the brand's instance. Does NOT touch the master template."""
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     instance.status = "approved"
     instance.approved_at = time.time()
-
-    app_id = instance.app_id or instance.template_id
-    if app_id and instance.config_json:
-        game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
-        if not game_config:
-            game_config = models.GameConfigModel(id=app_id)
-            db.add(game_config)
-        game_config.config_json = instance.config_json
-        game_config.brand_id = instance.brand_id or ""
-        game_config.updated_at = time.time()
-
     db.commit()
     db.refresh(instance)
     return to_response(instance)
@@ -137,24 +134,34 @@ def reject_instance(instance_id: str, db: Session = Depends(get_db)):
     return to_response(instance)
 
 
+@router.post("/{instance_id}/publish", response_model=schemas.InstanceResponse)
+def publish_instance(instance_id: str, db: Session = Depends(get_db)):
+    """
+    Publish the brand's approved instance.
+    The brand's customized version is now live on FanZone.
+    Master template remains unchanged.
+    """
+    instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
+    if not instance:
+        raise HTTPException(status_code=404, detail="Instance not found")
+    instance.status = "published"
+    instance.published_at = time.time()
+    db.commit()
+    db.refresh(instance)
+    return to_response(instance)
+
+
 @router.post("/{instance_id}/launch", response_model=schemas.InstanceResponse)
 def launch_instance(instance_id: str, db: Session = Depends(get_db)):
+    """
+    Launch the brand's published instance live to stadium displays.
+    Master template remains unchanged.
+    """
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     instance.status = "launched"
     instance.published_at = time.time()
-
-    app_id = instance.app_id or instance.template_id
-    if app_id and instance.config_json:
-        game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
-        if not game_config:
-            game_config = models.GameConfigModel(id=app_id)
-            db.add(game_config)
-        game_config.config_json = instance.config_json
-        game_config.brand_id = instance.brand_id or ""
-        game_config.updated_at = time.time()
-
     db.commit()
     db.refresh(instance)
     return to_response(instance)
@@ -170,6 +177,7 @@ def get_instance(instance_id: str, db: Session = Depends(get_db)):
 
 @router.delete("/{instance_id}")
 def delete_instance(instance_id: str, db: Session = Depends(get_db)):
+    """Delete a brand's engagement instance. Master template is untouched."""
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -184,20 +192,20 @@ def list_instances(
     userId: Optional[str] = Query(None),
     brandId: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.InstanceModel)
+
     if appId:
-        query = query.filter_by(app_id=appId)
+        query = query.filter(
+            (models.InstanceModel.app_id == appId) | (models.InstanceModel.template_id == appId)
+        )
 
     target_brand = userId or brandId
     if target_brand and target_brand.strip():
         query = query.filter(
-            (models.InstanceModel.user_id == target_brand) |
-            (models.InstanceModel.brand_id == target_brand) |
-            (models.InstanceModel.user_id == "default-user") |
-            (models.InstanceModel.brand_id == "default-brand") |
-            (models.InstanceModel.brand_name.ilike(f"%{target_brand}%"))
+            (models.InstanceModel.user_id == target_brand)
+            | (models.InstanceModel.brand_id == target_brand)
         )
 
     if status and status.strip():

@@ -485,7 +485,13 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-emerald-600',
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
-                  window.location.href = 'https://memory-game-black-omega.vercel.app/';
+                  const instId = inst.instanceId || inst.id;
+                  const bId = inst.brandId || inst.userId || '';
+                  const params = new URLSearchParams();
+                  if (instId && !instId.startsWith('def-')) params.set('instanceId', instId);
+                  if (bId) params.set('brandId', bId);
+                  const qs = params.toString() ? `?${params.toString()}` : '';
+                  window.location.href = `https://memory-game-black-omega.vercel.app/${qs}`;
                 },
                 isActive: activeMemoryComputed,
               },

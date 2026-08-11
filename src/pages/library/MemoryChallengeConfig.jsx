@@ -7,9 +7,34 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { submitInstanceApi } from '../../lib/api';
+import { submitInstanceApi, fetchInstancesApi } from '../../lib/api';
 
 const RAILWAY_API = 'https://engagements-production.up.railway.app';
+// Default master config — brands customize from a COPY of this, never from the stored template
+const MASTER_DEFAULT_CONFIG = {
+  brandId: '',
+  brandName: '',
+  brandColor: '#4f46e5',
+  brandLogo: '',
+  gameTitle: 'Memory Challenge',
+  headline: 'Find all matching pairs!',
+  tagline: 'Flip the cards and match every pair!',
+  rewardText: '\uD83C\uDF89 You Win! Amazing memory!',
+  gridCols: 4,
+  gridRows: 3,
+  backgroundColor: '#12131f',
+  bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+  backgroundImage: '',
+  accentColor: '#ff6b35',
+  tiles: [
+    { id: 't1', label: 'Tile 1', content: '\uD83C\uDF55', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't2', label: 'Tile 2', content: '\uD83E\uDD64', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+    { id: 't3', label: 'Tile 3', content: '\uD83D\uDEF5', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't4', label: 'Tile 4', content: '\uD83E\uDDC0', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+    { id: 't5', label: 'Tile 5', content: '\uD83D\uDD25', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't6', label: 'Tile 6', content: '\uD83D\uDCB5', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+  ],
+};
 
 const EMOJI_PRESETS = ['🍕','🥤','🛵','🧀','🔥','💵','⚽','🏆','🎯','🎁','⭐','🎵','🏅','🎮','🎪','🎨','🍔','🚀'];
 
@@ -22,30 +47,7 @@ const DEFAULT_TILE = (id) => ({
   backColor: '#232a52',
 });
 
-const DEFAULT_CONFIG = {
-  brandId: '',
-  brandName: '',
-  brandColor: '#4f46e5',
-  brandLogo: '',
-  gameTitle: 'Memory Challenge',
-  headline: 'Find all matching pairs!',
-  tagline: 'Flip the cards and match every pair!',
-  rewardText: '🎉 You Win! Amazing memory!',
-  gridCols: 4,
-  gridRows: 3,
-  backgroundColor: '#12131f',
-  bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
-  backgroundImage: '',
-  accentColor: '#ff6b35',
-  tiles: [
-    { id: 't1', label: 'Tile 1', content: '🍕', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't2', label: 'Tile 2', content: '🥤', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-    { id: 't3', label: 'Tile 3', content: '🛵', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't4', label: 'Tile 4', content: '🧀', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-    { id: 't5', label: 'Tile 5', content: '🔥', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't6', label: 'Tile 6', content: '💵', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-  ],
-};
+
 
 export default function MemoryChallengeConfig({ onSubmitted }) {
   const navigate = useNavigate();
@@ -60,37 +62,46 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const [expandedTile, setExpandedTile] = useState(null);
   const fileRefs = useRef({});
 
-  // Load current config from local storage or backend on mount
+  const brandDraftKey = user?.id ? `fanforge_mc_draft_${user.id}` : null;
+
+  // Load the brand's OWN instance config (never the global master template)
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
 
     const loadConfig = async () => {
-      // 1. Try local draft cache first
+      const userId = user?.id;
+      if (!userId) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      // 1. Restore brand-scoped draft first (in-progress edits)
       try {
-        const savedDraft = localStorage.getItem('fanforge_memory_customization');
+        const savedDraft = localStorage.getItem(`fanforge_mc_draft_${userId}`);
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
           if (parsed && parsed.tiles && parsed.tiles.length > 0 && isMounted) {
-            setConfig((prev) => ({ ...prev, ...parsed }));
+            setConfig({ ...MASTER_DEFAULT_CONFIG, ...parsed });
           }
         }
       } catch (e) {}
 
-      // 2. Fetch user instance or game config from API
+      // 2. Fetch this brand's OWN instance from backend
       try {
-        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId: user?.id });
-        if (instances && instances.length > 0 && instances[0].config && isMounted) {
-          const instConfig = instances[0].config;
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId });
+        if (instances && instances.length > 0 && isMounted) {
+          // Use the most recent instance config for THIS brand
+          const inst = instances[0];
+          const instConfig = inst?.config;
           if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
-            setConfig((prev) => ({ ...prev, ...instConfig }));
-          }
-        } else {
-          const gConfig = await fetchGameConfigApi('memory-challenge');
-          if (gConfig && gConfig.tiles && gConfig.tiles.length > 0 && isMounted) {
-            setConfig((prev) => ({ ...prev, ...gConfig }));
+            // Merge over master defaults so new fields always exist
+            setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
+            // Update local draft cache to match server
+            try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
           }
         }
+        // If no instance exists yet, brand starts from a FRESH copy of MASTER_DEFAULT_CONFIG
       } catch (e) {} finally {
         if (isMounted) setIsLoading(false);
       }
@@ -103,7 +114,10 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const updateField = (field, value) => {
     setConfig((prev) => {
       const updated = { ...prev, [field]: value };
-      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      // Cache scoped to this brand — NEVER writes to global game config
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
       return updated;
     });
     setSaved(false);
@@ -115,7 +129,9 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         ...prev,
         tiles: prev.tiles.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
       };
-      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
       return updated;
     });
     setSaved(false);
@@ -128,7 +144,9 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         ...prev,
         tiles: [...prev.tiles, DEFAULT_TILE(newId)],
       };
-      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
       return updated;
     });
     setExpandedTile(newId);
@@ -141,7 +159,9 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         ...prev,
         tiles: prev.tiles.filter((t) => t.id !== id),
       };
-      try { localStorage.setItem('fanforge_memory_customization', JSON.stringify(updated)); } catch (e) {}
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
       return updated;
     });
     setSaved(false);
@@ -164,23 +184,28 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
       return;
     }
     setIsSaving(true);
+    const userId = user?.id || '';
+    const brandName = user?.company || user?.name || config.brandName || 'Brand Account';
     try {
-      try {
-        localStorage.setItem('fanforge_memory_customization', JSON.stringify(config));
-        localStorage.setItem('fanforge_game_config_memory-challenge', JSON.stringify(config));
-      } catch (e) {}
+      // Save brand-scoped draft (does NOT write to global game config)
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(config)); } catch (e) {}
+      }
+
+      const configWithBrand = { ...config, brandId: userId, userId };
 
       const res = await submitInstanceApi({
         templateId: 'memory-challenge',
         appId: 'memory-challenge',
-        userId: user?.id || '',
-        brandName: user?.company || user?.name || config.brandName || 'Brand Account',
-        title: config.gameTitle || (config.brandName ? `${config.brandName} Memory Challenge` : 'Memory Challenge'),
+        userId,
+        brandId: userId,
+        brandName,
+        title: config.gameTitle || (brandName !== 'Brand Account' ? `${brandName} Memory Challenge` : 'Memory Challenge'),
         status: 'pending',
-        config,
+        config: configWithBrand,
       });
 
-      toast.success(`Customization saved & submitted! Generated UUID: ${res.instanceId.slice(0, 14)}... Waiting for Admin approval.`);
+      toast.success(`Customization saved & submitted! ID: ${(res.instanceId || '').slice(0, 14)}... Waiting for Admin approval.`);
       setSaved(true);
       if (onSubmitted) onSubmitted();
       setTimeout(() => navigate('/my-engagements'), 1200);
