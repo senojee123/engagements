@@ -842,6 +842,7 @@ function MemoryChallengeEngagementView({ template }) {
 
   const [activeSubTab, setActiveSubTab] = useState(isFromMyEngagements ? 'tile-editor' : 'preview');
   const [instanceStatus, setInstanceStatus] = useState(null);
+  const [instanceTitle, setInstanceTitle] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -851,6 +852,9 @@ function MemoryChallengeEngagementView({ template }) {
           if (!isMounted) return;
           const inst = instances && instances[0];
           setInstanceStatus(inst?.status || null);
+          if (inst?.title || inst?.config?.gameTitle) {
+            setInstanceTitle(inst.title || inst.config?.gameTitle);
+          }
         })
         .catch(() => {});
     }
@@ -892,7 +896,7 @@ function MemoryChallengeEngagementView({ template }) {
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
-              {template.title}
+              {isFromMyEngagements && instanceTitle ? instanceTitle : template.title}
             </h1>
 
             <p className="text-sm text-indigo-200/80 max-w-3xl leading-relaxed">
