@@ -250,6 +250,15 @@ export const submitInstanceApi = async (data) => {
     result = await request('POST', '/api/instances/submit', data);
   } catch (e) {}
 
+  try {
+    const res = await fetch('https://engagements-production.up.railway.app/api/instances/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok && !result) result = await res.json();
+  } catch (e) {}
+
   if (!result) {
     // Offline fallback — generate a local instance (does NOT touch master template)
     const id = `inst-${Date.now().toString(36)}`;
@@ -326,6 +335,14 @@ export const approveInstanceApi = async (instanceId) => {
     result = await request('POST', `/api/instances/${instanceId}/approve`);
   } catch (e) {}
 
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok && !result) result = await res.json();
+  } catch (e) {}
+
   if (!result) {
     const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
     result = {
@@ -356,6 +373,13 @@ export const rejectInstanceApi = async (instanceId) => {
     result = await request('POST', `/api/instances/${instanceId}/reject`);
   } catch (e) {}
 
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (e) {}
+
   if (!result) {
     const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
     result = {
@@ -374,6 +398,14 @@ export const launchInstanceApi = async (instanceId) => {
   let result = null;
   try {
     result = await request('POST', `/api/instances/${instanceId}/launch`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok && !result) result = await res.json();
   } catch (e) {}
 
   if (!result) {
@@ -403,6 +435,12 @@ export const launchInstanceApi = async (instanceId) => {
 export const deleteInstanceApi = async (instanceId) => {
   try {
     await request('DELETE', `/api/instances/${instanceId}`);
+  } catch (e) {}
+
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
+      method: 'DELETE',
+    });
   } catch (e) {}
 
   try {

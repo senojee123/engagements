@@ -491,7 +491,13 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                   if (instId && !instId.startsWith('def-')) params.set('instanceId', instId);
                   if (bId) params.set('brandId', bId);
                   const qs = params.toString() ? `?${params.toString()}` : '';
-                  window.location.href = `https://memory-game-black-omega.vercel.app/${qs}`;
+
+                  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                  if (isLocal) {
+                    window.location.href = `/e/memory-challenge/${instId || 'default'}${qs}`;
+                  } else {
+                    window.location.href = `https://memory-game-black-omega.vercel.app/${qs}`;
+                  }
                 },
                 isActive: activeMemoryComputed,
               },
