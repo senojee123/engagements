@@ -72,48 +72,37 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     const loadConfig = async () => {
       const userId = user?.id;
       if (!userId) {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setConfig({ ...MASTER_DEFAULT_CONFIG });
+          setIsLoading(false);
+        }
         return;
       }
 
-      // 1. Restore brand-scoped draft first (in-progress edits)
       try {
-        const savedDraft = localStorage.getItem(`fanforge_mc_draft_${userId}`);
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft);
-          if (parsed && parsed.tiles && parsed.tiles.length > 0 && isMounted) {
-            setConfig({ ...MASTER_DEFAULT_CONFIG, ...parsed });
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId });
+        if (instances && instances.length > 0 && isMounted) {
+          const inst = instances[0];
+          const instConfig = inst?.config;
+          if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
+            setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
+            try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
+            return;
           }
         }
       } catch (e) {}
 
-      // 2. Fetch this brand's OWN instance from backend
-      try {
-        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId });
-        if (instances && instances.length > 0 && isMounted) {
-          // Use the most recent instance config for THIS brand
-          const inst = instances[0];
-          const instConfig = inst?.config;
-          if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
-            // Merge over master defaults so new fields always exist
-            setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
-            // Update local draft cache to match server
-            try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
-          }
-        } else {
-          // NO instance exists for this brand — start completely fresh from master defaults
-          // (This runs after a deletion, so the old draft must also be wiped)
-          if (isMounted) {
-            setConfig({ ...MASTER_DEFAULT_CONFIG });
-          }
-          try {
-            localStorage.removeItem(`fanforge_mc_draft_${userId}`);
-            localStorage.removeItem('fanforge_memory_customization');
-          } catch (e) {}
-        }
-      } catch (e) {} finally {
-        if (isMounted) setIsLoading(false);
+      // If no active backend instance exists, reset to fresh MASTER_DEFAULT_CONFIG
+      if (isMounted) {
+        setConfig({ ...MASTER_DEFAULT_CONFIG });
       }
+      try {
+        localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+        localStorage.removeItem('fanforge_memory_customization');
+        localStorage.removeItem('fanforge_game_config_memory-challenge');
+      } catch (e) {}
+
+      if (isMounted) setIsLoading(false);
     };
 
     loadConfig();

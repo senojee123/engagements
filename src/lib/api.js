@@ -157,27 +157,31 @@ export const fetchInstancesApi = async (params = {}) => {
   if (params.status) queryParams.append('status', params.status);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-  let remoteData = [];
   try {
-    remoteData = (await request('GET', `/api/instances/${queryString}`)) || [];
-  } catch (e) {
-    remoteData = [];
-  }
+    const remoteData = await request('GET', `/api/instances/${queryString}`);
+    if (Array.isArray(remoteData)) {
+      // Update local storage cache with live backend data (evicting deleted instances)
+      try {
+        const existingCache = getCachedInstances();
+        const otherAppsCache = existingCache.filter((i) => {
+          if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
+            const targetUser = params.userId || params.brandId;
+            if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
+              return false; // Evict deleted/stale cached items for this app & user
+            }
+          }
+          return true;
+        });
+        const updatedCache = [...remoteData, ...otherAppsCache];
+        localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
+      } catch (e) {}
 
-  const cachedList = getCachedInstances();
-  const mergedMap = new Map();
+      return remoteData;
+    }
+  } catch (e) {}
 
-  for (const c of cachedList) {
-    const key = c.instanceId || c.id;
-    if (key) mergedMap.set(key, c);
-  }
-
-  for (const r of remoteData) {
-    const key = r.instanceId || r.id;
-    if (key) mergedMap.set(key, r);
-  }
-
-  let merged = Array.from(mergedMap.values());
+  // Fallback to local cache only when network request fails
+  let merged = getCachedInstances();
 
   if (params.appId) {
     merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
@@ -376,6 +380,20 @@ export const deleteInstanceApi = async (instanceId) => {
   try {
     const list = getCachedInstances().filter((i) => (i.instanceId || i.id) !== instanceId);
     localStorage.setItem('fanforge_instances_cache', JSON.stringify(list));
+
+    // Clear all associated brand draft & game config cache keys
+    if (typeof window !== 'undefined' && window.localStorage) {
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.includes(instanceId) ||
+          key.startsWith('fanforge_mc_draft_') ||
+          key.startsWith('fanforge_memory_customization') ||
+          key.startsWith('fanforge_game_config_')
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
   } catch (e) {}
 
   return { message: 'Deleted' };
