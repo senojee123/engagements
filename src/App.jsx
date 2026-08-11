@@ -39,6 +39,8 @@ import MyTemplates from './pages/library/MyTemplates';
 
 // Phase 3 Brand Engine Pages
 import BrandManager from './pages/builder/BrandManager';
+import Approvals from './pages/admin/Approvals';
+import MyEngagements from './pages/builder/MyEngagements';
 
 // Selfie Wall Activation Pages & Screens
 import SelfieWallDisplay from './components/selfieWall/SelfieWallDisplay';
@@ -160,8 +162,13 @@ export default function App() {
 
                       {/* Phase 2 Library Routes */}
                       <Route path="/library" element={<EngagementLibrary />} />
+                      <Route path="/my-engagements" element={<MyEngagements />} />
+                      <Route path="/my-engagements/:id" element={<TemplateDetails />} />
                       <Route path="/library/my-templates" element={<MyTemplates />} />
                       <Route path="/library/:id" element={<TemplateDetails />} />
+
+                      {/* Admin Approvals Route */}
+                      <Route path="/approvals" element={<ProtectedRoute allowedRoles={['Super Admin']}><Approvals /></ProtectedRoute>} />
 
                       {/* Phase 3 Brand Engine Portal */}
                       <Route path="/brands" element={<ProtectedRoute allowedRoles={['Super Admin', 'Developer']}><BrandManager /></ProtectedRoute>} />

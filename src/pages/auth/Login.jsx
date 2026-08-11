@@ -7,8 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function Login() {
-  const [email, setEmail] = useState('alex.morgan@fanforge.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -152,42 +152,7 @@ export default function Login() {
         </Button>
       </form>
 
-      {/* Demo Credentials Quick Fill */}
-      <div className="mt-6 p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 space-y-2">
-        <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider block">Demo Accounts Quick Fill:</span>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('brand@cocacola.com');
-              setPassword('Password123!');
-            }}
-            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
-          >
-            🥤 Brand
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('admin@fanforge.io');
-              setPassword('Password123!');
-            }}
-            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
-          >
-            👑 Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('developer@fanforge.io');
-              setPassword('Password123!');
-            }}
-            className="px-2 py-1.5 rounded-xl bg-white border border-indigo-200 text-indigo-700 font-bold text-xs hover:bg-indigo-100 shadow-2xs transition-all text-center"
-          >
-            💻 Developer
-          </button>
-        </div>
-      </div>
+
 
       <p className="mt-8 text-center text-xs text-slate-500">
         Don't have an account?{' '}

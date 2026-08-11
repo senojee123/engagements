@@ -346,19 +346,14 @@ export default function Navbar({ isCollapsed, setIsMobileOpen }) {
               aria-label="Open profile menu"
               aria-haspopup="true"
               aria-expanded={isProfileDropdownOpen}
-              className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 border border-slate-200/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              <img
-                src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
-                alt={user?.name || 'User'}
-                className="w-8 h-8 rounded-xl object-cover ring-2 ring-indigo-500/20 shadow-2xs"
-              />
-              <div className="hidden md:flex flex-col text-left">
+              <div className="flex flex-col text-left">
                 <span className="text-xs font-bold text-slate-900 leading-tight">
-                  {user?.name || 'Alex Morgan'}
+                  {user?.name || 'User'}
                 </span>
                 <span className="text-[10px] text-slate-500 leading-tight font-medium">
-                  {user?.company || 'Apex Sports'}
+                  {user?.company || ''}
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden md:block" />

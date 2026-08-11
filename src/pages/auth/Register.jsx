@@ -41,9 +41,16 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      await register({ fullName, companyName, email, password, role });
-      toast.success('Account created! Please verify your email.');
-      navigate('/email-verification');
+      const res = await register({ fullName, companyName, email, password, role });
+      toast.success('Account created successfully! Welcome to FanForge.');
+      const userRole = res?.user?.role || role;
+      if (userRole === 'Brand') {
+        navigate('/analytics');
+      } else if (userRole === 'Developer') {
+        navigate('/library');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Unable to create account. Please try again.');
     } finally {

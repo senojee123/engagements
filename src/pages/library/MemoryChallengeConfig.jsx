@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus, Trash2, RefreshCw, Palette,
   Image as ImageIcon, Smile, ChevronDown, ChevronUp,
-  Zap, Eye, Check, UploadCloud, Radio,
+  Zap, Eye, Check, UploadCloud, Radio, Send,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { submitInstanceApi } from '../../lib/api';
 
 const RAILWAY_API = 'https://engagements-production.up.railway.app';
 
@@ -41,8 +44,10 @@ const DEFAULT_CONFIG = {
   ],
 };
 
-export default function MemoryChallengeConfig() {
+export default function MemoryChallengeConfig({ onSubmitted }) {
+  const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,24 +112,29 @@ export default function MemoryChallengeConfig() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveAndBroadcast = async () => {
+  const handleSaveAndSendForApproval = async () => {
     if (config.tiles.length < 2) {
       toast.error('Add at least 2 tiles before saving.');
       return;
     }
     setIsSaving(true);
     try {
-      const payload = { ...config, game: 'memory-challenge' };
-      const res = await fetch(`${RAILWAY_API}/api/game-config/memory-challenge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const res = await submitInstanceApi({
+        templateId: 'memory-challenge',
+        appId: 'memory-challenge',
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || config.brandName || 'Brand Account',
+        title: config.brandName ? `${config.brandName} Memory Challenge` : 'Memory Challenge',
+        status: 'pending',
+        config,
       });
-      if (!res.ok) throw new Error('Save failed');
+
+      toast.success(`Customization saved & submitted! Generated UUID: ${res.instanceId.slice(0, 14)}... Waiting for Admin approval.`);
       setSaved(true);
-      toast.success('Config saved & broadcasted live to the game! 🎮');
+      if (onSubmitted) onSubmitted();
+      setTimeout(() => navigate('/my-engagements'), 1200);
     } catch (err) {
-      toast.error('Failed to save config. Check your connection.');
+      toast.error(err.message || 'Failed to submit customization for approval.');
     } finally {
       setIsSaving(false);
     }
@@ -184,24 +194,6 @@ export default function MemoryChallengeConfig() {
             Customise what appears on the game tiles. Changes broadcast live to the game instantly.
           </p>
         </div>
-        <button
-          onClick={handleSaveAndBroadcast}
-          disabled={isSaving}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all ${
-            saved
-              ? 'bg-emerald-600 text-white'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-          } disabled:opacity-60`}
-        >
-          {isSaving ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <Check className="w-4 h-4" />
-          ) : (
-            <Zap className="w-4 h-4" />
-          )}
-          {isSaving ? 'Broadcasting...' : saved ? 'Saved & Live!' : 'Save & Broadcast Live'}
-        </button>
       </div>
 
       {/* Grid sizing & tile count status */}
@@ -508,21 +500,22 @@ export default function MemoryChallengeConfig() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleSaveAndBroadcast}
+              onClick={handleSaveAndSendForApproval}
               disabled={isSaving || !tilesOk}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all"
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg transition-all ${
+                saved
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+              } disabled:opacity-50`}
             >
-              {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {isSaving ? 'Broadcasting...' : 'Save & Broadcast Live'}
-            </button>
-            <button
-              onClick={handlePublish}
-              disabled={isPublishing || !tilesOk}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 transition-all"
-              title="Record this config as a new version and update the live embed link"
-            >
-              {isPublishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
-              {isPublishing ? 'Publishing...' : 'Publish'}
+              {isSaving ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : saved ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {isSaving ? 'Submitting...' : saved ? 'Submitted for Approval!' : 'Save & Send for Approval'}
             </button>
           </div>
         </div>

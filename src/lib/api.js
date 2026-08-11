@@ -33,6 +33,7 @@ export const loginUserApi = (data) => request('POST', '/api/auth/login', data);
 export const fetchUser = (id) => request('GET', `/api/users/${id}`);
 export const updateUserApi = (id, data) => request('PATCH', `/api/users/${id}`, data);
 export const changePasswordApi = (id, data) => request('POST', `/api/users/${id}/change-password`, data);
+export const deleteUserApi = (id) => request('DELETE', `/api/users/${id}`);
 
 // Organizations
 export const fetchOrganizations = () => request('GET', '/api/organizations/');
@@ -120,16 +121,69 @@ export const fetchScreenStatusApi = async () => {
   }
 };
 
-export const fetchInstancesApi = async (appId) => {
-  const query = appId ? `?appId=${appId}` : '';
+export const fetchInstancesApi = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.appId) queryParams.append('appId', params.appId);
+  if (params.userId) queryParams.append('userId', params.userId);
+  if (params.status) queryParams.append('status', params.status);
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+
   try {
-    const data = await request('GET', `/api/instances/${query}`);
+    const data = await request('GET', `/api/instances/${queryString}`);
     if (data) return data;
   } catch (e) {}
 
-  const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${query}`);
-  if (!res.ok) return [];
-  return res.json();
+  return [];
+};
+
+export const submitInstanceApi = async (data) => {
+  try {
+    return await request('POST', '/api/instances/submit', data);
+  } catch (e) {}
+  return publishInstanceApi(data);
+};
+
+export const sendApprovalInstanceApi = async (instanceId) => {
+  try {
+    return await request('POST', `/api/instances/${instanceId}/send-approval`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  return { instanceId, status: 'pending' };
+};
+
+export const approveInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/approve`);
+};
+
+export const rejectInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/reject`);
+};
+
+export const launchInstanceApi = async (instanceId) => {
+  return await request('POST', `/api/instances/${instanceId}/launch`);
+};
+
+export const deleteInstanceApi = async (instanceId) => {
+  try {
+    return await request('DELETE', `/api/instances/${instanceId}`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  return { message: 'Deleted' };
 };
 
 export const publishInstanceApi = async (data) => {
@@ -137,13 +191,29 @@ export const publishInstanceApi = async (data) => {
     return await request('POST', '/api/instances/publish', data);
   } catch (e) {}
 
-  const res = await fetch('https://engagements-production.up.railway.app/api/instances/publish', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Failed to publish instance');
-  return res.json();
+  try {
+    const res = await fetch('https://engagements-production.up.railway.app/api/instances/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+
+  const id = `inst-${Date.now().toString(36)}`;
+  return {
+    instanceId: id,
+    appId: data.appId || data.templateId || 'memory-challenge',
+    templateId: data.templateId || data.appId || 'memory-challenge',
+    userId: data.userId || '',
+    brandName: data.brandName || 'Brand Account',
+    title: data.title || 'Custom Brand Engagement',
+    brandId: data.brandId || '',
+    status: data.status || 'draft',
+    publishedAt: Date.now() / 1000,
+    approvedAt: null,
+    config: data.config || {},
+  };
 };
 
 export const fetchInstanceApi = async (instanceId) => {

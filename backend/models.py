@@ -223,13 +223,18 @@ class GameConfigModel(Base):
 class InstanceModel(Base):
     __tablename__ = "instances"
 
-    id = Column(String, primary_key=True)         # UUID, minted on publish
-    app_id = Column(String, index=True, nullable=False)
+    id = Column(String, primary_key=True)         # UUID, minted on submit
+    app_id = Column(String, index=True, default="")
+    user_id = Column(String, index=True, default="")
+    brand_name = Column(String, default="")
+    template_id = Column(String, index=True, default="memory-challenge")
+    title = Column(String, default="Custom Brand Engagement")
     brand_id = Column(String, default="")
-    config_json = Column(Text, nullable=True)     # Full JSON config blob, snapshotted at publish
-    status = Column(String, default="Published")
+    config_json = Column(Text, nullable=True)     # Full JSON config blob
+    status = Column(String, default="pending")    # pending, approved, rejected, launched
     created_at = Column(Float, default=lambda: time.time())
     published_at = Column(Float, default=lambda: time.time())
+    approved_at = Column(Float, nullable=True)
 
 
 # ----------------------------------------------------

@@ -15,10 +15,11 @@ from routers import auth, users, organizations, events, activities, notification
 from sqlalchemy import text
 try:
     with engine.connect() as conn:
-        # Re-create polls, templates and screen_state to ensure all columns & seeds match
+        # Re-create polls, templates, screen_state and instances to ensure all columns & seeds match
         conn.execute(text("DROP TABLE IF EXISTS polls"))
         conn.execute(text("DROP TABLE IF EXISTS templates"))
         conn.execute(text("DROP TABLE IF EXISTS screen_state"))
+        conn.execute(text("DROP TABLE IF EXISTS instances"))
         conn.commit()
 except Exception:
     pass

@@ -9,18 +9,41 @@ import {
   Copy,
   ArrowUpRight,
   Sparkles,
+  Plus,
+  Layers,
 } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { useTemplates } from '../../context/TemplateContext';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { submitInstanceApi } from '../../lib/api';
 
 export default function TemplateCard({ template, viewMode = 'grid' }) {
   const navigate = useNavigate();
   const { toggleFavorite, isFavorite, duplicateTemplate } = useTemplates();
+  const { user, currentRole } = useAuth();
   const toast = useToast();
 
   const favorited = isFavorite(template.id);
+
+  const handleAddToMyEngagements = async (e) => {
+    e.stopPropagation();
+    try {
+      const res = await submitInstanceApi({
+        templateId: template.id,
+        appId: template.id,
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: template.title,
+        status: 'draft',
+        config: { templateId: template.id, title: template.title },
+      });
+      toast.success(`"${template.title}" successfully added to My Engagements!`);
+    } catch (err) {
+      toast.error('Failed to add engagement.');
+    }
+  };
 
   const handleFavoriteClick = async (e) => {
     e.stopPropagation();
@@ -101,6 +124,15 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
             >
               <Heart className={`w-4 h-4 ${favorited ? 'fill-current' : ''}`} />
             </button>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={Plus}
+              onClick={handleAddToMyEngagements}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white"
+            >
+              Add to My Engagements
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -205,20 +237,29 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
           </div>
         </div>
 
-        {/* Tags & Action */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex flex-wrap gap-1">
-            {template.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium">
-                #{tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1 text-indigo-600 font-bold text-xs group-hover:translate-x-1 transition-transform">
-            <span>Preview</span>
-            <ArrowUpRight className="w-4 h-4" />
-          </div>
+        {/* Action Button Footer */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          {currentRole === 'Brand' ? (
+            <Button
+              size="sm"
+              variant="primary"
+              icon={Plus}
+              onClick={handleAddToMyEngagements}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 shadow-sm"
+            >
+              Add to My Engagements
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              icon={ArrowUpRight}
+              onClick={() => navigate(`/library/${template.id}`)}
+              className="w-full border-slate-200 hover:border-indigo-500 text-slate-700 hover:text-indigo-600 font-semibold text-xs py-2"
+            >
+              View Engagement Template
+            </Button>
+          )}
         </div>
       </div>
     </div>

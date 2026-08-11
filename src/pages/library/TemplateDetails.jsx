@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Star,
@@ -46,13 +46,32 @@ import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
 import { useReactionWall, ReactionWallProvider } from '../../context/ReactionWallContext';
 import { useMemoryChallenge, MemoryChallengeProvider } from '../../context/MemoryChallengeContext';
 import { useToast } from '../../context/ToastContext';
-import { updateScreenStatusApi } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { updateScreenStatusApi, submitInstanceApi, fetchInstancesApi } from '../../lib/api';
 
 
+
+function useBackLink() {
+  const location = useLocation();
+  const { currentRole } = useAuth();
+  const isFromMyEngagements =
+    location.pathname.startsWith('/my-engagements') ||
+    location.search.includes('from=my-engagements') ||
+    location.state?.from === 'my-engagements';
+
+  return {
+    isFromMyEngagements,
+    isBrandRole: currentRole === 'Brand',
+    path: isFromMyEngagements ? '/my-engagements' : '/library',
+    label: isFromMyEngagements ? 'Back to My Engagements' : 'Back to Engagement Library',
+  };
+}
 
 function SelfieWallEngagementView({ template }) {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const backLink = useBackLink();
   const {
     approvedSelfies,
     pendingSelfies,
@@ -71,10 +90,10 @@ function SelfieWallEngagementView({ template }) {
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
       {/* Back Link */}
       <Link
-        to="/library"
+        to={backLink.path}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
       </Link>
 
       {/* Hero Header Banner with Full Horizontal Width */}
@@ -122,6 +141,31 @@ function SelfieWallEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await submitInstanceApi({
+                      templateId: 'selfie-wall',
+                      appId: 'selfie-wall',
+                      userId: user?.id || '',
+                      brandName: user?.company || user?.name || 'Brand Account',
+                      title: 'Live Fan Selfie Wall',
+                      status: 'draft',
+                      config: { templateId: 'selfie-wall' },
+                    });
+                    toast.success('Live Fan Selfie Wall successfully added to My Engagements!');
+                  } catch (e) {
+                    toast.error('Failed to add engagement.');
+                  }
+                }}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            )}
             <a
               href="/fan-zone"
               target="_blank"
@@ -217,9 +261,10 @@ function SelfieWallEngagementView({ template }) {
 }
 
 function LivePollEngagementView({ template }) {
-
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const backLink = useBackLink();
   const {
     activePoll,
     activeBrand,
@@ -235,10 +280,10 @@ function LivePollEngagementView({ template }) {
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
       {/* Back Link */}
       <Link
-        to="/library"
+        to={backLink.path}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
       </Link>
 
       {/* Hero Header Banner */}
@@ -285,6 +330,31 @@ function LivePollEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await submitInstanceApi({
+                      templateId: 'live-poll',
+                      appId: 'live-poll',
+                      userId: user?.id || '',
+                      brandName: user?.company || user?.name || 'Brand Account',
+                      title: 'Stadium Real-Time Live Poll',
+                      status: 'draft',
+                      config: { templateId: 'live-poll' },
+                    });
+                    toast.success('Stadium Real-Time Live Poll successfully added to My Engagements!');
+                  } catch (e) {
+                    toast.error('Failed to add engagement.');
+                  }
+                }}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            )}
             <a
               href="/fan-zone"
               target="_blank"
@@ -377,9 +447,10 @@ function LivePollEngagementView({ template }) {
 }
 
 function ReactionWallEngagementView({ template }) {
-
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const backLink = useBackLink();
   const {
     activeReactions,
     totalCount,
@@ -395,10 +466,10 @@ function ReactionWallEngagementView({ template }) {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
       <Link
-        to="/library"
+        to={backLink.path}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
       </Link>
 
       <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 space-y-6">
@@ -443,6 +514,31 @@ function ReactionWallEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await submitInstanceApi({
+                      templateId: 'reaction-wall',
+                      appId: 'reaction-wall',
+                      userId: user?.id || '',
+                      brandName: user?.company || user?.name || 'Brand Account',
+                      title: 'Live Fan Emoji Reaction Wall',
+                      status: 'draft',
+                      config: { templateId: 'reaction-wall' },
+                    });
+                    toast.success('Live Fan Emoji Reaction Wall successfully added to My Engagements!');
+                  } catch (e) {
+                    toast.error('Failed to add engagement.');
+                  }
+                }}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            )}
             <a
               href="/fan-zone"
               target="_blank"
@@ -535,6 +631,8 @@ function ReactionWallEngagementView({ template }) {
 function MemoryChallengeEngagementView({ template }) {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const backLink = useBackLink();
   const {
     isChallengeActive,
     launchChallenge,
@@ -548,15 +646,30 @@ function MemoryChallengeEngagementView({ template }) {
   } = useMemoryChallenge();
 
   const [activeSubTab, setActiveSubTab] = useState('customize');
+  const [instanceStatus, setInstanceStatus] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchInstancesApi({ appId: template.id, userId: user?.id })
+      .then((instances) => {
+        if (!isMounted) return;
+        const inst = instances && instances[0];
+        setInstanceStatus(inst?.status || null);
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [template.id, user?.id]);
+
+  const isApproved = instanceStatus === 'approved' || instanceStatus === 'launched' || !backLink.isBrandRole;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
       {/* Back Link */}
       <Link
-        to="/library"
+        to={backLink.path}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
       </Link>
 
       {/* Hero Header Banner */}
@@ -602,6 +715,31 @@ function MemoryChallengeEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await submitInstanceApi({
+                      templateId: 'memory-challenge',
+                      appId: 'memory-challenge',
+                      userId: user?.id || '',
+                      brandName: user?.company || user?.name || 'Brand Account',
+                      title: '3D Memory Tile Challenge',
+                      status: 'draft',
+                      config: { templateId: 'memory-challenge' },
+                    });
+                    toast.success('3D Memory Tile Challenge successfully added to My Engagements!');
+                  } catch (e) {
+                    toast.error('Failed to add engagement.');
+                  }
+                }}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            )}
             <a
               href="/fan-zone"
               target="_blank"
@@ -626,12 +764,19 @@ function MemoryChallengeEngagementView({ template }) {
               <Button
                 variant="primary"
                 icon={Tv}
+                disabled={!isApproved}
                 onClick={() => {
+                  if (!isApproved) {
+                    toast.error('Cannot launch engagement until it is approved by an Admin.');
+                    return;
+                  }
                   launchChallenge();
                   toast.success('Memory Challenge launched live to stadium display screen!');
                 }}
+                className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
+                title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
               >
-                🚀 Launch Challenge to Screen
+                {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Challenge to Screen'}
               </Button>
             )}
           </div>
@@ -642,7 +787,6 @@ function MemoryChallengeEngagementView({ template }) {
       <Tabs
         tabs={[
           { id: 'tile-editor', label: '🧩 Brand Tile Editor' },
-          { id: 'customize', label: 'Customize Display Screen & Wordings 🎨' },
           { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
         ]}
         activeTab={activeSubTab}
@@ -651,247 +795,7 @@ function MemoryChallengeEngagementView({ template }) {
 
       {/* TAB 0: BRAND TILE EDITOR */}
       {activeSubTab === 'tile-editor' && (
-        <MemoryChallengeConfig />
-      )}
-
-      {/* TAB 1: CUSTOMIZE DISPLAY SCREEN & WORDINGS */}
-      {activeSubTab === 'customize' && (
-        <Card className="bg-white border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div>
-              <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-indigo-600" /> Custom Screen Headlines, Logos & Copy
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Customize the titles, descriptions, sponsor logos, and broadcast wordings rendered on the stadium display screen.
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={Tv}
-              onClick={() => navigate('/display')}
-              className="bg-indigo-600 hover:bg-indigo-500"
-            >
-              Preview on Live Screen 📺
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 1. Main Challenge Headline */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Challenge Headline Wording
-              </label>
-              <input
-                type="text"
-                value={customization.headline || ''}
-                onChange={(e) => updateCustomization('headline', e.target.value)}
-                placeholder="e.g. Scan to Play Memory Challenge!"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Large title displayed on the side card above the QR code.</p>
-            </div>
-
-            {/* 2. Leaderboard Title */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Leaderboard Section Title
-              </label>
-              <input
-                type="text"
-                value={customization.leaderboardTitle || ''}
-                onChange={(e) => updateCustomization('leaderboardTitle', e.target.value)}
-                placeholder="e.g. Stadium Memory Leaderboard"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Header title of the live rankings table.</p>
-            </div>
-
-            {/* 3. Description Copy */}
-            <div className="space-y-2 md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Description & Instructions Copy
-              </label>
-              <textarea
-                rows={3}
-                value={customization.description || ''}
-                onChange={(e) => updateCustomization('description', e.target.value)}
-                placeholder="Test your memory on the big screen! Scan the QR code on your mobile phone to flip & match sponsor tiles..."
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Explanatory paragraph text on the display screen.</p>
-            </div>
-
-            {/* 4. Custom Sponsor Logo / Display Image (File Upload + URL) */}
-            <div className="space-y-2.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Custom Sponsor Logo / Display Image
-              </label>
-
-              {customization.logoUrl ? (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-12 h-12 rounded-lg bg-white border border-slate-200 p-1.5 flex items-center justify-center shrink-0 shadow-xs">
-                      <img
-                        src={customization.logoUrl}
-                        alt="Custom Logo Preview"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                    <div className="overflow-hidden text-left">
-                      <span className="text-xs font-bold text-slate-800 block truncate">Custom Logo Active</span>
-                      <span className="text-[10px] text-slate-400 block truncate font-mono">
-                        {customization.logoUrl.startsWith('data:') ? 'Local Image File Uploaded' : customization.logoUrl}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateCustomization('logoUrl', '');
-                      toast.info('Logo removed.');
-                    }}
-                    className="p-2 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors text-xs font-bold flex items-center gap-1 shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" /> Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <label className="flex-1 w-full cursor-pointer">
-                      <div className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 flex items-center justify-center gap-2 transition-colors">
-                        <Upload className="w-4 h-4 text-indigo-600" />
-                        <span>📁 Choose Image File from Device</span>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files && e.target.files[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              updateCustomization('logoUrl', ev.target.result);
-                              toast.success('Logo image uploaded successfully!');
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-
-                    <span className="text-xs text-slate-400 font-bold uppercase">or</span>
-
-                    <input
-                      type="text"
-                      value={customization.logoUrl || ''}
-                      onChange={(e) => updateCustomization('logoUrl', e.target.value)}
-                      placeholder="Paste Image URL..."
-                      className="flex-1 w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-400">Upload a PNG/JPG/SVG image file directly from your computer or paste a web URL.</p>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Header Brand Title */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Display Title (Top Left)
-              </label>
-              <input
-                type="text"
-                value={customization.logoText || ''}
-                onChange={(e) => updateCustomization('logoText', e.target.value)}
-                placeholder="e.g. Memory Challenge"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Main title rendered on the top header bar.</p>
-            </div>
-
-            {/* 6. Screen Badge Text */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Top Screen Badge Label
-              </label>
-              <input
-                type="text"
-                value={customization.badgeText || ''}
-                onChange={(e) => updateCustomization('badgeText', e.target.value)}
-                placeholder="e.g. LIVE ARENA DISPLAY"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Small pill badge beside the top header title.</p>
-            </div>
-
-            {/* 7. Stadium Venue Name */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                Stadium Venue Name
-              </label>
-              <input
-                type="text"
-                value={customization.venueName || ''}
-                onChange={(e) => updateCustomization('venueName', e.target.value)}
-                placeholder="e.g. Metropolis Arena Stadium Broadcast"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              <p className="text-[11px] text-slate-400">Venue location printed on top bar and bottom footer.</p>
-            </div>
-          </div>
-
-          {/* Preset Customization Buttons */}
-          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">Quick Presets:</span>
-              <button
-                onClick={() =>
-                  setCustomization({
-                    headline: 'Halftime Memory Challenge!',
-                    description: 'Match all sponsor tiles in under 30 seconds to win VIP match tickets & instant food vouchers!',
-                    leaderboardTitle: 'Halftime Top Speedsters',
-                    venueName: 'Central Arena Stadium Jumbotron',
-                    badgeText: 'HALFTIME SPECIAL',
-                    logoUrl: '',
-                    logoText: 'Halftime Memory Game',
-                  })
-                }
-                className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-colors"
-              >
-                Halftime Special
-              </button>
-              <button
-                onClick={() =>
-                  setCustomization({
-                    headline: 'Sponsor VIP Memory Challenge',
-                    description: 'Match sponsor products and brand logos on your smartphone to claim exclusive fan rewards!',
-                    leaderboardTitle: 'VIP Leaderboard Ranks',
-                    venueName: 'Metropolis Stadium Jumbotron',
-                    badgeText: 'VIP SPONSOR EDITION',
-                    logoUrl: '',
-                    logoText: 'Sponsor Memory Challenge',
-                  })
-                }
-                className="px-3 py-1.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-800 text-xs font-bold border border-cyan-200 transition-colors"
-              >
-                Sponsor VIP Theme
-              </button>
-            </div>
-
-            <Button
-              variant="primary"
-              onClick={() => toast.success('Display screen customization saved live!')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
-            >
-              Save Customization Live
-            </Button>
-          </div>
-        </Card>
+        <MemoryChallengeConfig onSubmitted={() => setInstanceStatus('pending')} />
       )}
 
       {/* TAB 2: FAN EXPERIENCE GUIDE */}
@@ -922,10 +826,29 @@ export default function TemplateDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { templates, isLoading, isFavorite, toggleFavorite, duplicateTemplate } = useTemplates();
+  const { user } = useAuth();
   const toast = useToast();
 
   const [activeTab, setActiveTab] = useState('preview');
   const [selectedBrand, setSelectedBrand] = useState(null);
+
+  const handleAddToMyEngagements = async () => {
+    if (!template) return;
+    try {
+      const res = await submitInstanceApi({
+        templateId: template.id,
+        appId: template.id,
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: template.title,
+        status: 'draft',
+        config: { templateId: template.id, title: template.title },
+      });
+      toast.success(`"${template.title}" successfully added to My Engagements!`);
+    } catch (err) {
+      toast.error('Failed to add engagement.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -938,20 +861,22 @@ export default function TemplateDetails() {
   // Find template by ID
   const template = templates.find((t) => t.id === id);
 
+  const backLink = useBackLink();
+
   if (!template) {
     return (
       <div className="space-y-6">
         <Link
-          to="/library"
+          to={backLink.path}
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+          <ArrowLeft className="w-4 h-4" /> {backLink.label}
         </Link>
         <EmptyState
           title="Template not found"
           description="This engagement template doesn't exist or may have been removed."
-          actionLabel="Back to Engagement Library"
-          onAction={() => navigate('/library')}
+          actionLabel={backLink.label}
+          onAction={() => navigate(backLink.path)}
         />
       </div>
     );
@@ -997,10 +922,10 @@ export default function TemplateDetails() {
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
       {/* Back Link */}
       <Link
-        to="/library"
+        to={backLink.path}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to Engagement Library
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
       </Link>
 
       {/* Hero Header Banner */}
@@ -1061,6 +986,16 @@ export default function TemplateDetails() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
+              <Button
+                onClick={handleAddToMyEngagements}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            )}
             <Button
               onClick={() => toggleFavorite(template.id)}
               variant="outline"
