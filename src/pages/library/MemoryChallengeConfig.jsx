@@ -193,6 +193,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
 
       const searchParams = new URLSearchParams(window.location.search);
       const urlInstanceId = searchParams.get('instanceId');
+      const configWithBrand = { ...config, brandId: userId, userId };
 
       const res = await submitInstanceApi({
         instanceId: urlInstanceId || undefined,
