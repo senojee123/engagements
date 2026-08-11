@@ -87,22 +87,23 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
           if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
             setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
             try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
-            return;
+          } else if (isMounted) {
+            setConfig({ ...MASTER_DEFAULT_CONFIG });
           }
+        } else if (isMounted) {
+          // If no active backend instance exists, reset to fresh MASTER_DEFAULT_CONFIG
+          setConfig({ ...MASTER_DEFAULT_CONFIG });
+          try {
+            localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+            localStorage.removeItem('fanforge_memory_customization');
+            localStorage.removeItem('fanforge_game_config_memory-challenge');
+          } catch (e) {}
         }
-      } catch (e) {}
-
-      // If no active backend instance exists, reset to fresh MASTER_DEFAULT_CONFIG
-      if (isMounted) {
-        setConfig({ ...MASTER_DEFAULT_CONFIG });
+      } catch (e) {
+        if (isMounted) setConfig({ ...MASTER_DEFAULT_CONFIG });
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      try {
-        localStorage.removeItem(`fanforge_mc_draft_${userId}`);
-        localStorage.removeItem('fanforge_memory_customization');
-        localStorage.removeItem('fanforge_game_config_memory-challenge');
-      } catch (e) {}
-
-      if (isMounted) setIsLoading(false);
     };
 
     loadConfig();
