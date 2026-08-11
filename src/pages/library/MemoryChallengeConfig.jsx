@@ -100,8 +100,17 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
             // Update local draft cache to match server
             try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
           }
+        } else {
+          // NO instance exists for this brand — start completely fresh from master defaults
+          // (This runs after a deletion, so the old draft must also be wiped)
+          if (isMounted) {
+            setConfig({ ...MASTER_DEFAULT_CONFIG });
+          }
+          try {
+            localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+            localStorage.removeItem('fanforge_memory_customization');
+          } catch (e) {}
         }
-        // If no instance exists yet, brand starts from a FRESH copy of MASTER_DEFAULT_CONFIG
       } catch (e) {} finally {
         if (isMounted) setIsLoading(false);
       }

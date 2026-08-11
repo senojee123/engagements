@@ -96,9 +96,25 @@ export default function MyEngagements() {
     if (e) e.stopPropagation();
     if (!window.confirm(`Are you sure you want to remove "${title}" from My Engagements?`)) return;
     try {
+      // Find the instance to get its appId before deleting
+      const inst = myInstances.find((i) => (i.instanceId || i.id) === instanceId);
       await deleteInstanceApi(instanceId);
+
+      // Clear ALL brand-scoped draft/cache keys so re-adding starts fresh from master defaults
+      if (user?.id) {
+        const userId = user.id;
+        try {
+          localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+          localStorage.removeItem(`fanforge_game_config_${instanceId}`);
+          localStorage.removeItem(`fanforge_game_config_${userId}_memory-challenge`);
+          // Also clear legacy keys
+          localStorage.removeItem('fanforge_memory_customization');
+          localStorage.removeItem('fanforge_game_config_memory-challenge');
+        } catch (e) {}
+      }
+
       toast.success(`Removed "${title}" from My Engagements`);
-      setMyInstances((prev) => prev.filter((inst) => (inst.instanceId || inst.id) !== instanceId));
+      setMyInstances((prev) => prev.filter((i) => (i.instanceId || i.id) !== instanceId));
     } catch (err) {
       toast.error('Failed to remove engagement.');
     }
