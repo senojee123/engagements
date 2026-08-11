@@ -40,8 +40,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
     setIsInstancesLoading(true);
     const searchParams = new URLSearchParams(window.location.search);
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
-    const storedUserId = localStorage.getItem('fanforge_user_id');
-    const targetBrand = brandParam || storedUserId || undefined;
+    const targetBrand = brandParam || undefined;
 
     const queryParams = { status: 'approved,launched' };
     if (targetBrand) {

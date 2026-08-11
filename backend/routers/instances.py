@@ -186,13 +186,4 @@ def list_instances(
         query = query.filter(or_(*conditions))
 
     instances = query.order_by(models.InstanceModel.created_at.desc()).all()
-
-    unique_instances = []
-    seen_apps = set()
-    for inst in instances:
-        app_key = inst.app_id or inst.template_id or "memory-challenge"
-        if app_key not in seen_apps:
-            seen_apps.add(app_key)
-            unique_instances.append(inst)
-
-    return [to_response(i) for i in unique_instances]
+    return [to_response(i) for i in instances]
