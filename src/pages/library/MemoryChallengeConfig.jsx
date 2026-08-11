@@ -27,6 +27,9 @@ export const MASTER_DEFAULT_CONFIG = {
   backgroundImage: '',
   accentColor: '#ff6b35',
   titleColor: '#f5efe0',
+  cardBackColor: '#232a52',
+  cardBackColor2: '#3a2350',
+  useDualColors: true,
   tiles: [
     { id: 't1', label: 'Tile 1', content: '\uD83C\uDF55', type: 'emoji', imageUrl: '', backColor: '#232a52' },
     { id: 't2', label: 'Tile 2', content: '\uD83E\uDD64', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
@@ -188,12 +191,36 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     reader.readAsDataURL(file);
   };
 
-  const applyCardBackColorToAll = (color) => {
+  const applySingleColorToAll = (color) => {
     setConfig((prev) => {
+      const c = color || prev.cardBackColor || '#232a52';
       const updated = {
         ...prev,
-        cardBackColor: color,
-        tiles: prev.tiles.map((t) => ({ ...t, backColor: color })),
+        cardBackColor: c,
+        useDualColors: false,
+        tiles: prev.tiles.map((t) => ({ ...t, backColor: c })),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
+    setSaved(false);
+  };
+
+  const applyDualColorsToAll = (c1, c2) => {
+    setConfig((prev) => {
+      const color1 = c1 || prev.cardBackColor || '#232a52';
+      const color2 = c2 || prev.cardBackColor2 || '#3a2350';
+      const updated = {
+        ...prev,
+        cardBackColor: color1,
+        cardBackColor2: color2,
+        useDualColors: true,
+        tiles: prev.tiles.map((t, idx) => ({
+          ...t,
+          backColor: idx % 2 === 0 ? color1 : color2,
+        })),
       };
       if (brandDraftKey) {
         try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
@@ -491,25 +518,82 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               </div>
             </div>
 
-            {/* Global Tile Card Back Color */}
-            <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-800">Global Tile Back Color</label>
-                <p className="text-[11px] text-slate-500">Set default card back color for all game tiles</p>
+            {/* Tile Back Colors: 1 Color or 2 Alternating Colors */}
+            <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-slate-900">Tile Card Back Colors</label>
+                  <p className="text-[11px] text-slate-500">Choose 1 uniform color or 2 alternating colors for card backs</p>
+                </div>
+                <div className="flex bg-white rounded-xl p-0.5 border border-slate-200 text-xs font-bold shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => applySingleColorToAll(config.cardBackColor || '#232a52')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${!config.useDualColors ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    Single Color
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyDualColorsToAll(config.cardBackColor || '#232a52', config.cardBackColor2 || '#3a2350')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${config.useDualColors ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    Dual Colors
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={config.cardBackColor || '#232a52'}
-                  onChange={(e) => applyCardBackColorToAll(e.target.value)}
-                  className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-indigo-100/60">
+                <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700">Tile Color 1</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.cardBackColor || '#232a52'}
+                      onChange={(e) => {
+                        const newC1 = e.target.value;
+                        if (config.useDualColors) {
+                          applyDualColorsToAll(newC1, config.cardBackColor2 || '#3a2350');
+                        } else {
+                          applySingleColorToAll(newC1);
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                    />
+                    <span className="text-xs text-slate-500 font-mono">{config.cardBackColor || '#232a52'}</span>
+                  </div>
+                </div>
+
+                <div className={`flex items-center justify-between bg-white p-2.5 rounded-xl border transition-all ${config.useDualColors ? 'border-slate-200 opacity-100' : 'border-slate-100 opacity-50'}`}>
+                  <span className="text-xs font-bold text-slate-700">Tile Color 2 (Optional)</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      disabled={!config.useDualColors}
+                      value={config.cardBackColor2 || '#3a2350'}
+                      onChange={(e) => {
+                        applyDualColorsToAll(config.cardBackColor || '#232a52', e.target.value);
+                      }}
+                      className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-xs text-slate-500 font-mono">{config.cardBackColor2 || '#3a2350'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => applyCardBackColorToAll(config.cardBackColor || '#232a52')}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors"
+                  onClick={() => {
+                    if (config.useDualColors) {
+                      applyDualColorsToAll(config.cardBackColor || '#232a52', config.cardBackColor2 || '#3a2350');
+                    } else {
+                      applySingleColorToAll(config.cardBackColor || '#232a52');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors"
                 >
-                  Apply to All Tiles
+                  Apply to All Cards
                 </button>
               </div>
             </div>
