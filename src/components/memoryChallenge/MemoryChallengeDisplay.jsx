@@ -16,27 +16,44 @@ function fmt(s) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
-export default function MemoryChallengeDisplay({ isStandalonePage = false, isMasterDefault = false }) {
+export default function MemoryChallengeDisplay({
+  isStandalonePage = false,
+  isMasterDefault = false,
+  instanceConfig = null,
+  instanceId = null,
+}) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gameConfig, setGameConfig] = useState(isMasterDefault ? {
-    gameTitle: 'Memory Challenge Leaderboard',
-    headline: 'Find all matching pairs!',
-    bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
-    backgroundColor: '#12131f',
-  } : null);
+  const [gameConfig, setGameConfig] = useState(
+    isMasterDefault
+      ? {
+          gameTitle: 'Memory Challenge Leaderboard',
+          headline: 'Find all matching pairs!',
+          bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+          backgroundColor: '#12131f',
+        }
+      : instanceConfig || null
+  );
 
   const targetUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/fan-zone';
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   useEffect(() => {
+    if (instanceConfig) {
+      setGameConfig(instanceConfig);
+    }
+  }, [instanceConfig]);
+
+  useEffect(() => {
     if (isMasterDefault) return;
-    fetchGameConfigApi('memory-challenge')
+    if (instanceConfig) return;
+
+    fetchGameConfigApi('memory-challenge', { instanceId })
       .then((cfg) => {
         if (cfg) setGameConfig(cfg);
       })
       .catch(() => {});
-  }, [isMasterDefault]);
+  }, [isMasterDefault, instanceConfig, instanceId]);
 
   useEffect(() => {
     const fetchScores = () => {

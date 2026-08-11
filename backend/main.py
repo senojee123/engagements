@@ -523,6 +523,21 @@ def get_game_config(
             except Exception:
                 pass
 
+    # Fallback to the most recent customized instance if no specific parameters passed
+    inst = (
+        db.query(models.InstanceModel)
+        .filter(
+            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id)
+        )
+        .order_by(models.InstanceModel.published_at.desc(), models.InstanceModel.created_at.desc())
+        .first()
+    )
+    if inst and inst.config_json:
+        try:
+            return json.loads(inst.config_json)
+        except Exception:
+            pass
+
     if game_id == "memory-challenge":
         return DEFAULT_MEMORY_CONFIG
     return {}
@@ -539,19 +554,18 @@ async def save_game_config(
     target_brand = data.get("brandId") or data.get("userId") or brandId
     target_inst = data.get("instanceId") or instanceId
 
-    if target_inst or target_brand:
-        inst = None
-        if target_inst:
-            inst = db.query(models.InstanceModel).filter_by(id=target_inst).first()
-        if not inst and target_brand:
-            inst = db.query(models.InstanceModel).filter(
-                (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id),
-                (models.InstanceModel.user_id == target_brand) | (models.InstanceModel.brand_id == target_brand)
-            ).order_by(models.InstanceModel.created_at.desc()).first()
+    inst = None
+    if target_inst:
+        inst = db.query(models.InstanceModel).filter_by(id=target_inst).first()
+    if not inst and target_brand:
+        inst = db.query(models.InstanceModel).filter(
+            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id),
+            (models.InstanceModel.user_id == target_brand) | (models.InstanceModel.brand_id == target_brand)
+        ).order_by(models.InstanceModel.created_at.desc()).first()
 
-        if inst:
-            inst.config_json = json.dumps(data)
-            db.commit()
+    if inst:
+        inst.config_json = json.dumps(data)
+        db.commit()
 
     await manager.broadcast({
         "type": "CONFIG_UPDATED",
