@@ -607,7 +607,7 @@ function ReactionWallEngagementView({ template }) {
       .catch(() => {});
   }, [user?.id]);
 
-  const isApproved = (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
+  const isApproved = !backLink.isBrandRole || (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
 
   const handleSaveAndSendForApproval = async () => {
     try {
