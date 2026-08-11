@@ -203,6 +203,25 @@ export const fetchInstancesApi = async (params = {}) => {
   return merged;
 };
 
+export const saveGameConfigApi = async (gameId, configData) => {
+  if (!gameId || !configData) return;
+  try {
+    localStorage.setItem(`fanforge_game_config_${gameId}`, JSON.stringify(configData));
+  } catch (e) {}
+
+  try {
+    await request('POST', `/api/game-config/${gameId}`, configData);
+  } catch (e) {}
+
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/game-config/${gameId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(configData),
+    });
+  } catch (e) {}
+};
+
 export const submitInstanceApi = async (data) => {
   let result = null;
   try {
@@ -214,6 +233,12 @@ export const submitInstanceApi = async (data) => {
   }
 
   saveCachedInstance(result);
+
+  if (data && data.config) {
+    const appId = data.appId || data.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, data.config);
+  }
+
   return result;
 };
 
@@ -244,6 +269,12 @@ export const sendApprovalInstanceApi = async (instanceId) => {
   }
 
   saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config);
+  }
+
   return result;
 };
 
@@ -265,6 +296,12 @@ export const approveInstanceApi = async (instanceId) => {
   }
 
   saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config);
+  }
+
   return result;
 };
 
@@ -306,6 +343,12 @@ export const launchInstanceApi = async (instanceId) => {
   }
 
   saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config);
+  }
+
   return result;
 };
 
@@ -365,12 +408,20 @@ export const fetchInstanceApi = async (instanceId) => {
 export const fetchGameConfigApi = async (appId) => {
   try {
     const data = await request('GET', `/api/game-config/${appId}`);
-    if (data) return data;
+    if (data && (data.tiles || data.headline || data.gameTitle)) {
+      try {
+        localStorage.setItem(`fanforge_game_config_${appId}`, JSON.stringify(data));
+      } catch (e) {}
+      return data;
+    }
   } catch (e) { }
 
-  const res = await fetch(`https://engagements-production.up.railway.app/api/game-config/${appId}`);
-  if (!res.ok) throw new Error('Config not found');
-  return res.json();
+  try {
+    const cached = localStorage.getItem(`fanforge_game_config_${appId}`);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  return null;
 };
 
 export const updateScreenStatusApi = async (data) => {
