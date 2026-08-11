@@ -40,7 +40,7 @@ import LivePollModerationPanel from '../../components/livePoll/LivePollModeratio
 import ReactionWallDisplay from '../../components/reactionWall/ReactionWallDisplay';
 import ReactionWallModerationPanel from '../../components/reactionWall/ReactionWallModerationPanel';
 import MemoryChallengeDisplay from '../../components/memoryChallenge/MemoryChallengeDisplay';
-import MemoryChallengeConfig from './MemoryChallengeConfig';
+import MemoryChallengeConfig, { MASTER_DEFAULT_CONFIG } from './MemoryChallengeConfig';
 import { useTemplates } from '../../context/TemplateContext';
 import { useSelfieWall, SelfieWallProvider } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
@@ -832,30 +832,28 @@ function MemoryChallengeEngagementView({ template }) {
   const toast = useToast();
   const { user } = useAuth();
   const backLink = useBackLink();
+  const isFromMyEngagements = backLink.isFromMyEngagements;
+
   const {
     isChallengeActive,
     launchChallenge,
     stopChallenge,
-    activeBrand,
-    setActiveBrand,
-    leaderboard,
-    customization,
-    updateCustomization,
-    setCustomization,
   } = useMemoryChallenge();
 
-  const [activeSubTab, setActiveSubTab] = useState('customize');
+  const [activeSubTab, setActiveSubTab] = useState(isFromMyEngagements ? 'tile-editor' : 'preview');
   const [instanceStatus, setInstanceStatus] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
-    fetchInstancesApi({ appId: template.id, userId: user?.id })
-      .then((instances) => {
-        if (!isMounted) return;
-        const inst = instances && instances[0];
-        setInstanceStatus(inst?.status || null);
-      })
-      .catch(() => {});
+    if (user?.id) {
+      fetchInstancesApi({ appId: template.id, userId: user.id })
+        .then((instances) => {
+          if (!isMounted) return;
+          const inst = instances && instances[0];
+          setInstanceStatus(inst?.status || null);
+        })
+        .catch(() => {});
+    }
     return () => { isMounted = false; };
   }, [template.id, user?.id]);
 
@@ -886,7 +884,7 @@ function MemoryChallengeEngagementView({ template }) {
                 {template.category}
               </Badge>
               <span className="bg-emerald-950 text-emerald-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-800 whitespace-nowrap">
-                ● ACTIVE BACKEND ENGAGEMENT
+                ● MASTER DEFAULT TEMPLATE
               </span>
               <span className="flex items-center gap-1 text-xs font-semibold text-cyan-300 whitespace-nowrap">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {template.popularity} ({template.ratingCount || 340} reviews)
@@ -914,34 +912,36 @@ function MemoryChallengeEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {backLink.isBrandRole && (
+            {!isFromMyEngagements ? (
+              <Button
+                onClick={async () => {
+                  const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+                  const currentBrand = user?.company || user?.name || 'Brand Account';
+                  try {
+                    const res = await submitInstanceApi({
+                      templateId: 'memory-challenge',
+                      appId: 'memory-challenge',
+                      userId: currentUserId,
+                      brandId: currentUserId,
+                      brandName: currentBrand,
+                      title: template.title || '3D Memory Tile Challenge',
+                      status: 'draft',
+                      config: MASTER_DEFAULT_CONFIG,
+                    });
+                    toast.success(`"${template.title}" added to My Engagements!`);
+                    navigate(`/my-engagements/memory-challenge?instanceId=${res.instanceId || res.id}`);
+                  } catch (e) {
+                    toast.error('Failed to add engagement.');
+                  }
+                }}
+                variant="primary"
+                icon={Plus}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md"
+              >
+                Add to My Engagements
+              </Button>
+            ) : (
               <>
-                <Button
-                  onClick={async () => {
-                    const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
-                    const currentBrand = user?.company || user?.name || 'Brand Account';
-                    try {
-                      await submitInstanceApi({
-                        templateId: 'memory-challenge',
-                        appId: 'memory-challenge',
-                        userId: currentUserId,
-                        brandId: currentUserId,
-                        brandName: currentBrand,
-                        title: template.title || '3D Memory Tile Challenge',
-                        status: 'draft',
-                        config: { templateId: 'memory-challenge' },
-                      });
-                      toast.success(`"${template.title}" successfully added to My Engagements!`);
-                    } catch (e) {
-                      toast.error('Failed to add engagement.');
-                    }
-                  }}
-                  variant="outline"
-                  icon={Plus}
-                  className="bg-white/10 text-white border-white/20 hover:bg-white/20 font-bold text-xs"
-                >
-                  Add to My Engagements
-                </Button>
                 <Button
                   onClick={async () => {
                     try {
@@ -952,7 +952,7 @@ function MemoryChallengeEngagementView({ template }) {
                         brandName: user?.company || user?.name || 'Brand Account',
                         title: template.title || '3D Memory Tile Challenge',
                         status: 'pending',
-                        config: { templateId: 'memory-challenge' },
+                        config: MASTER_DEFAULT_CONFIG,
                       });
                       setInstanceStatus('pending');
                       toast.success('3D Memory Tile Challenge saved & submitted for Admin Approval!');
@@ -967,8 +967,40 @@ function MemoryChallengeEngagementView({ template }) {
                 >
                   {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
                 </Button>
+
+                {isChallengeActive ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      stopChallenge();
+                      toast.info('Memory Challenge stopped. Stadium display returned to Idle.');
+                    }}
+                    className="bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 font-bold"
+                  >
+                    ● Live: Stop Challenge (Return to Idle)
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    icon={Tv}
+                    disabled={!isApproved}
+                    onClick={async () => {
+                      if (!isApproved) {
+                        toast.error('Cannot launch engagement until it is approved by an Admin.');
+                        return;
+                      }
+                      launchChallenge();
+                      toast.success('Memory Challenge launched live to stadium display screen & FanZone portal!');
+                    }}
+                    className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
+                    title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
+                  >
+                    {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Challenge to Screen'}
+                  </Button>
+                )}
               </>
             )}
+
             <a
               href="/fan-zone"
               target="_blank"
@@ -977,67 +1009,46 @@ function MemoryChallengeEngagementView({ template }) {
             >
               <span>Open Fan Zone Mobile Portal 📱</span>
             </a>
-
-            {isChallengeActive ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  stopChallenge();
-                  toast.info('Memory Challenge stopped. Stadium display returned to Idle.');
-                }}
-                className="bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 font-bold"
-              >
-                ● Live: Stop Challenge (Return to Idle)
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                icon={Tv}
-                disabled={!isApproved}
-                onClick={async () => {
-                  if (!isApproved) {
-                    toast.error('Cannot launch engagement until it is approved by an Admin.');
-                    return;
-                  }
-                  if (!backLink.isBrandRole) {
-                    try {
-                      await submitInstanceApi({
-                        templateId: 'memory-challenge',
-                        appId: 'memory-challenge',
-                        userId: user?.id || 'admin',
-                        brandId: user?.id || 'admin',
-                        brandName: user?.company || user?.name || 'Metropolis Arena Stadium',
-                        title: template.title || '3D Memory Tile Challenge',
-                        status: 'launched',
-                        config: { templateId: 'memory-challenge' },
-                      });
-                    } catch (e) {}
-                  }
-                  launchChallenge();
-                  toast.success('Memory Challenge launched live to stadium display screen & FanZone portal!');
-                }}
-                className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
-                title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
-              >
-                {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Challenge to Screen'}
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
       {/* Sub Tabs */}
       <Tabs
-        tabs={[
-          { id: 'tile-editor', label: '🧩 Brand Tile Editor' },
-          { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
-        ]}
+        tabs={
+          isFromMyEngagements
+            ? [
+                { id: 'tile-editor', label: '🧩 Brand Tile Editor' },
+                { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
+              ]
+            : [
+                { id: 'preview', label: '📺 Master Template Preview' },
+                { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
+              ]
+        }
         activeTab={activeSubTab}
         onChange={setActiveSubTab}
       />
 
-      {/* TAB 0: BRAND TILE EDITOR */}
-      {activeSubTab === 'tile-editor' && (
+      {/* TAB: MASTER TEMPLATE PREVIEW (READ-ONLY LIBRARY VIEW) */}
+      {!isFromMyEngagements && activeSubTab === 'preview' && (
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Tv className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h4 className="text-sm font-bold text-white">Immutable Master Template Preview</h4>
+                <p className="text-xs text-slate-400">Default stadium memory challenge cards & layout (Read-Only).</p>
+              </div>
+            </div>
+            <Badge variant="indigo" size="sm">Master Default</Badge>
+          </div>
+          <MemoryChallengeDisplay isMasterDefault={true} />
+        </div>
+      )}
+
+      {/* TAB: BRAND TILE EDITOR (MY ENGAGEMENTS INSTANCE VIEW) */}
+      {isFromMyEngagements && activeSubTab === 'tile-editor' && (
         <MemoryChallengeConfig onSubmitted={() => setInstanceStatus('pending')} />
       )}
 

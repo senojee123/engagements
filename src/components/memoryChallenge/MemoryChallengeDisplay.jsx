@@ -16,21 +16,27 @@ function fmt(s) {
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 }
 
-export default function MemoryChallengeDisplay({ isStandalonePage = false }) {
+export default function MemoryChallengeDisplay({ isStandalonePage = false, isMasterDefault = false }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gameConfig, setGameConfig] = useState(null);
+  const [gameConfig, setGameConfig] = useState(isMasterDefault ? {
+    gameTitle: 'Memory Challenge Leaderboard',
+    headline: 'Find all matching pairs!',
+    bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+    backgroundColor: '#12131f',
+  } : null);
 
   const targetUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/fan-zone';
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   useEffect(() => {
+    if (isMasterDefault) return;
     fetchGameConfigApi('memory-challenge')
       .then((cfg) => {
         if (cfg) setGameConfig(cfg);
       })
       .catch(() => {});
-  }, []);
+  }, [isMasterDefault]);
 
   useEffect(() => {
     const fetchScores = () => {

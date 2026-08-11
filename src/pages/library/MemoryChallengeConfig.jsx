@@ -11,7 +11,7 @@ import { submitInstanceApi, fetchInstancesApi } from '../../lib/api';
 
 const RAILWAY_API = 'https://engagements-production.up.railway.app';
 // Default master config — brands customize from a COPY of this, never from the stored template
-const MASTER_DEFAULT_CONFIG = {
+export const MASTER_DEFAULT_CONFIG = {
   brandId: '',
   brandName: '',
   brandColor: '#4f46e5',
