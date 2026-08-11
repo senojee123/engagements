@@ -26,6 +26,7 @@ export const MASTER_DEFAULT_CONFIG = {
   bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
   backgroundImage: '',
   accentColor: '#ff6b35',
+  titleColor: '#f5efe0',
   tiles: [
     { id: 't1', label: 'Tile 1', content: '\uD83C\uDF55', type: 'emoji', imageUrl: '', backColor: '#232a52' },
     { id: 't2', label: 'Tile 2', content: '\uD83E\uDD64', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
@@ -444,7 +445,14 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
             </div>
 
             {/* Colors row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Heading Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={config.titleColor || '#f5efe0'} onChange={(e) => updateField('titleColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
+                  <span className="text-xs text-slate-400 font-mono">{config.titleColor || '#f5efe0'}</span>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Color</label>
                 <div className="flex items-center gap-2">
@@ -517,7 +525,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-2" />
               )}
               {config.gameTitle && (
-                <p className="text-center text-sm font-black uppercase tracking-wider mb-0.5" style={{ color: config.brandColor || '#ffe08a' }}>
+                <p className="text-center text-sm font-black uppercase tracking-wider mb-0.5" style={{ color: config.titleColor || config.brandColor || '#f5efe0' }}>
                   {config.gameTitle}
                 </p>
               )}
