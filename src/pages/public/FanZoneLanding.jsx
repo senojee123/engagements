@@ -62,10 +62,28 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
             return st === 'approved' || st === 'launched' || st === 'published' || st === 'active';
           }
         );
-        if (list.length > 0) {
-          setApprovedInstances(list);
-          if (list[0].brandName) {
-            setActiveBrandName(list[0].brandName);
+
+        // Deduplicate: Keep only the single most recent active instance for each unique appId/templateId
+        const uniqueAppMap = new Map();
+        list.forEach((inst) => {
+          const key = inst.appId || inst.templateId || 'memory-challenge';
+          if (!uniqueAppMap.has(key)) {
+            uniqueAppMap.set(key, inst);
+          } else {
+            const existing = uniqueAppMap.get(key);
+            const timeExisting = existing.publishedAt || existing.approvedAt || existing.createdAt || 0;
+            const timeCurrent = inst.publishedAt || inst.approvedAt || inst.createdAt || 0;
+            if (timeCurrent > timeExisting) {
+              uniqueAppMap.set(key, inst);
+            }
+          }
+        });
+        const deduplicatedList = Array.from(uniqueAppMap.values());
+
+        if (deduplicatedList.length > 0) {
+          setApprovedInstances(deduplicatedList);
+          if (deduplicatedList[0].brandName) {
+            setActiveBrandName(deduplicatedList[0].brandName);
           }
         } else if (!targetBrand) {
           setApprovedInstances(defaultVenueInstances);
