@@ -22,6 +22,7 @@ import {
   Upload,
   Trash2,
   Image as ImageIcon,
+  Send,
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -85,6 +86,37 @@ function SelfieWallEngagementView({ template }) {
 
   const [activeSubTab, setActiveSubTab] = useState('moderation');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [instanceStatus, setInstanceStatus] = useState('draft');
+
+  useEffect(() => {
+    fetchInstancesApi({ appId: 'selfie-wall', userId: user?.id })
+      .then((instances) => {
+        if (instances && instances.length > 0) {
+          setInstanceStatus(instances[0].status || 'draft');
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  const isApproved = (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
+
+  const handleSaveAndSendForApproval = async () => {
+    try {
+      await submitInstanceApi({
+        templateId: 'selfie-wall',
+        appId: 'selfie-wall',
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: template.title || 'Live Fan Selfie Wall',
+        status: 'pending',
+        config: { templateId: 'selfie-wall' },
+      });
+      setInstanceStatus('pending');
+      toast.success('Live Fan Selfie Wall saved & submitted for Admin Approval!');
+    } catch (e) {
+      toast.error('Failed to submit for approval.');
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
@@ -141,31 +173,15 @@ function SelfieWallEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
-              <Button
-                onClick={async () => {
-                  try {
-                    const res = await submitInstanceApi({
-                      templateId: 'selfie-wall',
-                      appId: 'selfie-wall',
-                      userId: user?.id || '',
-                      brandName: user?.company || user?.name || 'Brand Account',
-                      title: 'Live Fan Selfie Wall',
-                      status: 'draft',
-                      config: { templateId: 'selfie-wall' },
-                    });
-                    toast.success('Live Fan Selfie Wall successfully added to My Engagements!');
-                  } catch (e) {
-                    toast.error('Failed to add engagement.');
-                  }
-                }}
-                variant="primary"
-                icon={Plus}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
-              >
-                Add to My Engagements
-              </Button>
-            )}
+            <Button
+              onClick={handleSaveAndSendForApproval}
+              variant="primary"
+              icon={Send}
+              disabled={instanceStatus === 'pending'}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+            >
+              {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
+            </Button>
             <a
               href="/fan-zone"
               target="_blank"
@@ -199,12 +215,19 @@ function SelfieWallEngagementView({ template }) {
               <Button
                 variant="primary"
                 icon={Tv}
+                disabled={!isApproved}
                 onClick={() => {
+                  if (!isApproved) {
+                    toast.error('Cannot launch engagement until it is approved by an Admin.');
+                    return;
+                  }
                   launchSelfieWall();
                   toast.success('Selfie Wall launched live to stadium display screen!');
                 }}
+                className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
+                title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
               >
-                🚀 Launch Selfie Wall to Screen
+                {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Selfie Wall to Screen'}
               </Button>
             )}
           </div>
@@ -275,6 +298,37 @@ function LivePollEngagementView({ template }) {
   } = useLivePoll();
 
   const [activeSubTab, setActiveSubTab] = useState('control');
+  const [instanceStatus, setInstanceStatus] = useState('draft');
+
+  useEffect(() => {
+    fetchInstancesApi({ appId: 'live-poll', userId: user?.id })
+      .then((instances) => {
+        if (instances && instances.length > 0) {
+          setInstanceStatus(instances[0].status || 'draft');
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  const isApproved = (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
+
+  const handleSaveAndSendForApproval = async () => {
+    try {
+      await submitInstanceApi({
+        templateId: 'live-poll',
+        appId: 'live-poll',
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: template.title || 'Stadium Real-Time Live Poll',
+        status: 'pending',
+        config: { templateId: 'live-poll' },
+      });
+      setInstanceStatus('pending');
+      toast.success('Stadium Live Poll saved & submitted for Admin Approval!');
+    } catch (e) {
+      toast.error('Failed to submit for approval.');
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
@@ -330,31 +384,15 @@ function LivePollEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
-              <Button
-                onClick={async () => {
-                  try {
-                    const res = await submitInstanceApi({
-                      templateId: 'live-poll',
-                      appId: 'live-poll',
-                      userId: user?.id || '',
-                      brandName: user?.company || user?.name || 'Brand Account',
-                      title: 'Stadium Real-Time Live Poll',
-                      status: 'draft',
-                      config: { templateId: 'live-poll' },
-                    });
-                    toast.success('Stadium Real-Time Live Poll successfully added to My Engagements!');
-                  } catch (e) {
-                    toast.error('Failed to add engagement.');
-                  }
-                }}
-                variant="primary"
-                icon={Plus}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
-              >
-                Add to My Engagements
-              </Button>
-            )}
+            <Button
+              onClick={handleSaveAndSendForApproval}
+              variant="primary"
+              icon={Send}
+              disabled={instanceStatus === 'pending'}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+            >
+              {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
+            </Button>
             <a
               href="/fan-zone"
               target="_blank"
@@ -379,12 +417,19 @@ function LivePollEngagementView({ template }) {
               <Button
                 variant="primary"
                 icon={Tv}
+                disabled={!isApproved}
                 onClick={() => {
+                  if (!isApproved) {
+                    toast.error('Cannot launch engagement until it is approved by an Admin.');
+                    return;
+                  }
                   launchLivePoll();
                   toast.success('Live Poll launched to stadium display screen!');
                 }}
+                className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
+                title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
               >
-                🚀 Launch Live Poll to Screen
+                {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Live Poll to Screen'}
               </Button>
             )}
           </div>
@@ -462,6 +507,37 @@ function ReactionWallEngagementView({ template }) {
   } = useReactionWall();
 
   const [activeSubTab, setActiveSubTab] = useState('control');
+  const [instanceStatus, setInstanceStatus] = useState('draft');
+
+  useEffect(() => {
+    fetchInstancesApi({ appId: 'reaction-wall', userId: user?.id })
+      .then((instances) => {
+        if (instances && instances.length > 0) {
+          setInstanceStatus(instances[0].status || 'draft');
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  const isApproved = (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
+
+  const handleSaveAndSendForApproval = async () => {
+    try {
+      await submitInstanceApi({
+        templateId: 'reaction-wall',
+        appId: 'reaction-wall',
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: template.title || 'Live Fan Emoji Reaction Wall',
+        status: 'pending',
+        config: { templateId: 'reaction-wall' },
+      });
+      setInstanceStatus('pending');
+      toast.success('Live Fan Emoji Reaction Wall saved & submitted for Admin Approval!');
+    } catch (e) {
+      toast.error('Failed to submit for approval.');
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300 w-full">
@@ -514,31 +590,15 @@ function ReactionWallEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
-              <Button
-                onClick={async () => {
-                  try {
-                    const res = await submitInstanceApi({
-                      templateId: 'reaction-wall',
-                      appId: 'reaction-wall',
-                      userId: user?.id || '',
-                      brandName: user?.company || user?.name || 'Brand Account',
-                      title: 'Live Fan Emoji Reaction Wall',
-                      status: 'draft',
-                      config: { templateId: 'reaction-wall' },
-                    });
-                    toast.success('Live Fan Emoji Reaction Wall successfully added to My Engagements!');
-                  } catch (e) {
-                    toast.error('Failed to add engagement.');
-                  }
-                }}
-                variant="primary"
-                icon={Plus}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
-              >
-                Add to My Engagements
-              </Button>
-            )}
+            <Button
+              onClick={handleSaveAndSendForApproval}
+              variant="primary"
+              icon={Send}
+              disabled={instanceStatus === 'pending'}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+            >
+              {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
+            </Button>
             <a
               href="/fan-zone"
               target="_blank"
@@ -563,12 +623,19 @@ function ReactionWallEngagementView({ template }) {
               <Button
                 variant="primary"
                 icon={Tv}
+                disabled={!isApproved}
                 onClick={() => {
+                  if (!isApproved) {
+                    toast.error('Cannot launch engagement until it is approved by an Admin.');
+                    return;
+                  }
                   launchReactionWall();
                   toast.success('Reaction Wall launched live to stadium screen!');
                 }}
+                className={!isApproved ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-800' : ''}
+                title={!isApproved ? (instanceStatus === 'pending' ? 'Waiting for Admin Approval' : 'Save & Send for Approval to enable launch') : 'Launch Live to Screen'}
               >
-                🚀 Launch Reaction Wall to Screen
+                {instanceStatus === 'pending' ? '⏳ Waiting for Admin Approval' : !isApproved ? '🔒 Approval Required to Launch' : '🚀 Launch Reaction Wall to Screen'}
               </Button>
             )}
           </div>
@@ -715,31 +782,31 @@ function MemoryChallengeEngagementView({ template }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {backLink.isBrandRole && !backLink.isFromMyEngagements && (
-              <Button
-                onClick={async () => {
-                  try {
-                    const res = await submitInstanceApi({
-                      templateId: 'memory-challenge',
-                      appId: 'memory-challenge',
-                      userId: user?.id || '',
-                      brandName: user?.company || user?.name || 'Brand Account',
-                      title: '3D Memory Tile Challenge',
-                      status: 'draft',
-                      config: { templateId: 'memory-challenge' },
-                    });
-                    toast.success('3D Memory Tile Challenge successfully added to My Engagements!');
-                  } catch (e) {
-                    toast.error('Failed to add engagement.');
-                  }
-                }}
-                variant="primary"
-                icon={Plus}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
-              >
-                Add to My Engagements
-              </Button>
-            )}
+            <Button
+              onClick={async () => {
+                try {
+                  await submitInstanceApi({
+                    templateId: 'memory-challenge',
+                    appId: 'memory-challenge',
+                    userId: user?.id || '',
+                    brandName: user?.company || user?.name || 'Brand Account',
+                    title: template.title || '3D Memory Tile Challenge',
+                    status: 'pending',
+                    config: { templateId: 'memory-challenge' },
+                  });
+                  setInstanceStatus('pending');
+                  toast.success('3D Memory Tile Challenge saved & submitted for Admin Approval!');
+                } catch (e) {
+                  toast.error('Failed to submit for approval.');
+                }
+              }}
+              variant="primary"
+              icon={Send}
+              disabled={instanceStatus === 'pending'}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md"
+            >
+              {instanceStatus === 'pending' ? '⏳ Submitted for Approval' : 'Save & Send for Approval'}
+            </Button>
             <a
               href="/fan-zone"
               target="_blank"

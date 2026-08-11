@@ -15,13 +15,14 @@ import {
   Lock,
   ArrowUpRight,
   Trash2,
+  Send,
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useTemplates } from '../../context/TemplateContext';
-import { fetchInstancesApi, launchInstanceApi, deleteInstanceApi } from '../../lib/api';
+import { fetchInstancesApi, launchInstanceApi, deleteInstanceApi, submitInstanceApi } from '../../lib/api';
 
 export default function MyEngagements() {
   const navigate = useNavigate();
@@ -57,6 +58,25 @@ export default function MyEngagements() {
       loadMyEngagements();
     } catch (err) {
       toast.error(err.message || 'Cannot launch engagement until approved by Admin.');
+    }
+  };
+
+  const handleSendForApproval = async (inst, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await submitInstanceApi({
+        templateId: inst.templateId || inst.appId,
+        appId: inst.appId || inst.templateId,
+        userId: user?.id || '',
+        brandName: user?.company || user?.name || 'Brand Account',
+        title: inst.title || 'Engagement Activation',
+        status: 'pending',
+        config: inst.config || {},
+      });
+      toast.success(`Submitted "${inst.title || 'Engagement'}" for Admin Approval!`);
+      loadMyEngagements();
+    } catch (err) {
+      toast.error('Failed to send for approval.');
     }
   };
 
@@ -352,6 +372,18 @@ export default function MyEngagements() {
                     >
                       Open Engagement
                     </Button>
+
+                    {(!inst.status || inst.status === 'draft') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={Send}
+                        onClick={(e) => handleSendForApproval(inst, e)}
+                        className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 font-bold text-xs shrink-0"
+                      >
+                        Send for Approval
+                      </Button>
+                    )}
 
                     {isApproved && (
                       <Button
