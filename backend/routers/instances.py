@@ -37,40 +37,38 @@ def to_response(inst: models.InstanceModel) -> schemas.InstanceResponse:
 @router.post("/publish", response_model=schemas.InstanceResponse)
 def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(get_db)):
     now = time.time()
-    config_json = json.dumps(data.config)
+    config_json = json.dumps(data.config or {})
     app_id = data.appId or data.templateId or "memory-challenge"
-    user_id = data.userId or ""
+    user_id = data.userId or "default-user"
+    brand_id = data.brandId or user_id
 
     instance = None
     if data.instanceId:
         instance = db.query(models.InstanceModel).filter_by(id=data.instanceId).first()
 
-    if not instance and user_id and app_id:
+    if not instance and user_id and app_id and (data.status and data.status != "draft"):
         instance = db.query(models.InstanceModel).filter_by(user_id=user_id, app_id=app_id).order_by(models.InstanceModel.created_at.desc()).first()
-
-    if not instance and app_id:
-        instance = db.query(models.InstanceModel).filter_by(app_id=app_id).order_by(models.InstanceModel.created_at.desc()).first()
 
     if instance:
         instance.config_json = config_json
         instance.status = data.status or instance.status
         instance.published_at = now
+        instance.user_id = user_id
+        instance.brand_id = brand_id
         if data.brandName:
             instance.brand_name = data.brandName
         if data.title:
             instance.title = data.title
-        if data.brandId:
-            instance.brand_id = data.brandId
     else:
-        instance_id = f"inst-{uuid.uuid4().hex[:12]}"
+        instance_id = data.instanceId or f"inst-{uuid.uuid4().hex[:12]}"
         instance = models.InstanceModel(
             id=instance_id,
             app_id=app_id,
             template_id=data.templateId or app_id,
             user_id=user_id,
-            brand_name=data.brandName or "",
+            brand_id=brand_id,
+            brand_name=data.brandName or "Default Brand",
             title=data.title or "Custom Brand Engagement",
-            brand_id=data.brandId or "",
             config_json=config_json,
             status=data.status or "draft",
             created_at=now,
@@ -78,14 +76,20 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
         )
         db.add(instance)
 
-    # Keep mutable GameConfigModel in sync
+    db.commit()
+    db.refresh(instance)
+
+    # Sync to GameConfigModel
     game_config = db.query(models.GameConfigModel).filter_by(id=app_id).first()
     if not game_config:
         game_config = models.GameConfigModel(id=app_id)
         db.add(game_config)
-def publish_instance(payload: schemas.InstanceSubmitPayload, db: Session = Depends(get_db)):
-    payload.status = "published"
-    return submit_instance(payload, db)
+    game_config.config_json = config_json
+    game_config.brand_id = brand_id
+    game_config.updated_at = now
+
+    db.commit()
+    return to_response(instance)
 
 
 @router.post("/{instance_id}/send-approval", response_model=schemas.InstanceResponse)
