@@ -91,7 +91,7 @@ export default function Dashboard() {
               <span>Engagement Operating System</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Welcome back, {user?.name || 'Alex'}!
+              Welcome back, {user?.name || user?.fullName || 'User'}!
             </h1>
             <p className="text-indigo-200/80 text-sm mt-1 max-w-xl">
               You are logged in as <span className="font-bold text-white">{currentRole}</span>. 

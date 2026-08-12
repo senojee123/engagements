@@ -38,9 +38,12 @@ export const registerUserApi = async (data) => {
   try {
     return await request('POST', '/api/auth/register', data);
   } catch (e) {
+    const name = data.fullName || data.name || 'New User';
     return {
       id: `usr-${Date.now().toString(36)}`,
-      fullName: data.fullName || 'New User',
+      name,
+      fullName: name,
+      company: data.companyName || '',
       companyName: data.companyName || '',
       email: data.email,
       role: data.role || 'Brand',
@@ -55,9 +58,12 @@ export const loginUserApi = async (data) => {
   } catch (e) {
     const email = data.email || 'user@company.com';
     const isBrand = email.includes('brand');
+    const name = email.split('@')[0] || 'Demo User';
     return {
       id: `usr-${Date.now().toString(36)}`,
-      fullName: email.split('@')[0] || 'Demo User',
+      name,
+      fullName: name,
+      company: 'FanForge Platform',
       companyName: 'FanForge Platform',
       email: email,
       role: isBrand ? 'Brand' : 'Super Admin',
@@ -73,10 +79,12 @@ export const fetchUser = async (id) => {
   } catch (e) {
     return {
       id: id || 'demo-user',
-      fullName: 'Super Admin',
+      name: 'User',
+      fullName: 'User',
+      company: 'FanForge Platform',
       companyName: 'FanForge Platform',
-      email: 'admin@fanforge.com',
-      role: 'Super Admin',
+      email: 'user@fanforge.com',
+      role: 'Brand',
       createdAt: Date.now() / 1000,
     };
   }
