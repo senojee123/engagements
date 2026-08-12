@@ -479,12 +479,12 @@ DEFAULT_MEMORY_CONFIG = {
     "cardBackColor2": "#3a2350",
     "useDualColors": True,
     "tiles": [
-        {"id": "t1", "label": "Tile 1", "content": "🍕", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
-        {"id": "t2", "label": "Tile 2", "content": "🥤", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
-        {"id": "t3", "label": "Tile 3", "content": "🛵", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
-        {"id": "t4", "label": "Tile 4", "content": "🧀", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
-        {"id": "t5", "label": "Tile 5", "content": "🔥", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
-        {"id": "t6", "label": "Tile 6", "content": "💵", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+        {"id": "t1", "label": "Soccer", "content": "⚽", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t2", "label": "Basketball", "content": "🏀", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+        {"id": "t3", "label": "Football", "content": "🏈", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t4", "label": "Tennis", "content": "🎾", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
+        {"id": "t5", "label": "Volleyball", "content": "🏐", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
+        {"id": "t6", "label": "Racing", "content": "🏎️", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},
     ]
 }
 
