@@ -2,7 +2,9 @@ const API_BASE =
   typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? (import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:8000')
-    : (import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app');
+    : (import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app');
+
+const REMOTE_API = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app';
 
 
 async function request(method, path, body, timeoutMs = 4000) {
@@ -133,7 +135,7 @@ export const clearReactionsApi = () => request('POST', '/api/reactions/clear');
 
 
 // Selfie Wall — always use Railway (single source of truth shared between fan zone + dashboard)
-const SELFIE_API = 'https://engagements-production.up.railway.app';
+const SELFIE_API = REMOTE_API;
 
 const selfieRequest = async (method, path, body) => {
   const res = await fetch(`${SELFIE_API}${path}`, {
@@ -166,7 +168,7 @@ export const fetchScreenStatusApi = async () => {
   } catch (e) { }
 
   try {
-    const res = await fetch('https://engagements-production.up.railway.app/api/screen/status');
+    const res = await fetch(`${REMOTE_API}/api/screen/status`);
     return await res.json();
   } catch (e) {
     return { isSelfieWallActive: false, activeMode: 'idle' };
@@ -299,7 +301,7 @@ export const saveGameConfigApi = async (gameId, configData, { brandId, instanceI
   } catch (e) {}
 
   try {
-    await fetch(`https://engagements-production.up.railway.app/api/game-config/${gameId}${qs}`, {
+    await fetch(`${REMOTE_API}/api/game-config/${gameId}${qs}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(brandedPayload),
@@ -314,7 +316,7 @@ export const submitInstanceApi = async (data) => {
   } catch (e) {}
 
   try {
-    const res = await fetch('https://engagements-production.up.railway.app/api/instances/submit', {
+    const res = await fetch(`${REMOTE_API}/api/instances/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -362,7 +364,7 @@ export const sendApprovalInstanceApi = async (instanceId) => {
 
   if (!result) {
     try {
-      const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
+      const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/send-approval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -400,7 +402,7 @@ export const approveInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/approve`, {
+    const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -438,7 +440,7 @@ export const rejectInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   try {
-    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/reject`, {
+    await fetch(`${REMOTE_API}/api/instances/${instanceId}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -465,7 +467,7 @@ export const launchInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/launch`, {
+    const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/launch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -502,7 +504,7 @@ export const deleteInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   try {
-    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
+    await fetch(`${REMOTE_API}/api/instances/${instanceId}`, {
       method: 'DELETE',
     });
   } catch (e) {}
