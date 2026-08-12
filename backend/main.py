@@ -11,20 +11,9 @@ import models
 import schemas
 from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
 
-# Create database tables automatically on startup
-from sqlalchemy import text
-try:
-    with engine.connect() as conn:
-        # Re-create polls, templates, screen_state and instances to ensure all columns & seeds match
-        conn.execute(text("DROP TABLE IF EXISTS polls"))
-        conn.execute(text("DROP TABLE IF EXISTS templates"))
-        conn.execute(text("DROP TABLE IF EXISTS screen_state"))
-        conn.execute(text("DROP TABLE IF EXISTS instances"))
-        conn.commit()
-except Exception:
-    pass
-
+# Create database tables automatically on startup (preserves existing data across restarts)
 Base.metadata.create_all(bind=engine)
+
 
 
 

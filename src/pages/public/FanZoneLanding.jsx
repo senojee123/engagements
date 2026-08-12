@@ -47,56 +47,26 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
       queryParams.brandId = targetBrand;
     }
 
-    const defaultVenueInstances = [
-      { id: 'def-selfie', appId: 'selfie-wall', templateId: 'selfie-wall', title: 'Live Fan Selfie Cam', status: 'approved', brandName: 'Metropolis Arena Stadium' },
-      { id: 'def-poll', appId: 'live-poll', templateId: 'live-poll', title: 'Stadium Real-Time Live Vote', status: 'approved', brandName: 'Metropolis Arena Stadium' },
-      { id: 'def-reaction', appId: 'reaction-wall', templateId: 'reaction-wall', title: 'Live Fan Emoji Reaction Wall', status: 'approved', brandName: 'Metropolis Arena Stadium' },
-      { id: 'def-memory', appId: 'memory-challenge', templateId: 'memory-challenge', title: '3D Memory Tile Challenge', status: 'approved', brandName: 'Metropolis Arena Stadium' },
-    ];
-
     fetchInstancesApi(queryParams)
       .then((data) => {
-        const list = (data || []).filter(
-          (inst) => {
-            const st = (inst.status || '').toLowerCase();
-            return st === 'approved' || st === 'launched' || st === 'published' || st === 'active';
-          }
-        );
-
-        // Deduplicate: Keep only the single most recent active instance for each unique appId/templateId
+        const list = data || [];
+        // Keep each engagement instance added to My Engagements
         const uniqueAppMap = new Map();
         list.forEach((inst) => {
-          const key = inst.appId || inst.templateId || 'memory-challenge';
-          if (!uniqueAppMap.has(key)) {
+          const key = inst.instanceId || inst.id;
+          if (key) {
             uniqueAppMap.set(key, inst);
-          } else {
-            const existing = uniqueAppMap.get(key);
-            const timeExisting = existing.publishedAt || existing.approvedAt || existing.createdAt || 0;
-            const timeCurrent = inst.publishedAt || inst.approvedAt || inst.createdAt || 0;
-            if (timeCurrent > timeExisting) {
-              uniqueAppMap.set(key, inst);
-            }
           }
         });
         const deduplicatedList = Array.from(uniqueAppMap.values());
 
-        if (deduplicatedList.length > 0) {
-          setApprovedInstances(deduplicatedList);
-          if (deduplicatedList[0].brandName) {
-            setActiveBrandName(deduplicatedList[0].brandName);
-          }
-        } else if (!targetBrand) {
-          setApprovedInstances(defaultVenueInstances);
-        } else {
-          setApprovedInstances([]);
+        setApprovedInstances(deduplicatedList);
+        if (deduplicatedList.length > 0 && deduplicatedList[0].brandName) {
+          setActiveBrandName(deduplicatedList[0].brandName);
         }
       })
       .catch(() => {
-        if (!targetBrand) {
-          setApprovedInstances(defaultVenueInstances);
-        } else {
-          setApprovedInstances([]);
-        }
+        setApprovedInstances([]);
       })
       .finally(() => setIsInstancesLoading(false));
   }, []);
@@ -482,12 +452,10 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
               <Zap className="w-8 h-8" />
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              No approved engagements are available yet.
+              No Engagements Added to My Engagements Yet
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-              {activeBrandName
-                ? `${activeBrandName} does not have any active approved engagements at this time.`
-                : 'No approved customized engagements are currently active for this venue.'}
+              Add an engagement template from the Engagement Library to "My Engagements" to display it on FanZone.
             </p>
           </div>
         ) : (
@@ -555,6 +523,32 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 onClick: () => setActiveModal('reaction-wall'),
                 isActive: activeReactionComputed,
               },
+              'lane-daze': {
+                label: 'LANE DASH',
+                icon: Trophy,
+                borderColor: 'border-cyan-600',
+                textColor: 'text-cyan-600',
+                ringColor: 'ring-cyan-500/30',
+                bgColor: 'bg-cyan-600',
+                defaultTitle: 'High-energy 3-lane arcade runner',
+                onClick: () => {
+                  window.location.href = '/builder';
+                },
+                isActive: remoteActiveMode === 'lane-daze',
+              },
+              'lane-dash': {
+                label: 'LANE DASH',
+                icon: Trophy,
+                borderColor: 'border-cyan-600',
+                textColor: 'text-cyan-600',
+                ringColor: 'ring-cyan-500/30',
+                bgColor: 'bg-cyan-600',
+                defaultTitle: 'High-energy 3-lane arcade runner',
+                onClick: () => {
+                  window.location.href = '/builder';
+                },
+                isActive: remoteActiveMode === 'lane-daze',
+              },
             };
 
             const meta = metaMap[appId] || metaMap['memory-challenge'];
@@ -579,9 +573,6 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                       }`}
                     >
                       {inst.brandName ? `${inst.brandName} • ` : ''}{meta.label}
-                    </span>
-                    <span className="text-[9px] font-mono text-slate-400 bg-white/80 px-1.5 py-0.5 rounded border border-slate-200">
-                      UUID: {(inst.instanceId || inst.id).slice(0, 8)}...
                     </span>
                     {isActive && (
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-black tracking-widest uppercase border border-emerald-300 animate-pulse">
