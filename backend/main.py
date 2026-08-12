@@ -11,20 +11,9 @@ import models
 import schemas
 from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
 
-# Create database tables automatically on startup
-from sqlalchemy import text
-try:
-    with engine.connect() as conn:
-        # Re-create polls, templates, screen_state and instances to ensure all columns & seeds match
-        conn.execute(text("DROP TABLE IF EXISTS polls"))
-        conn.execute(text("DROP TABLE IF EXISTS templates"))
-        conn.execute(text("DROP TABLE IF EXISTS screen_state"))
-        conn.execute(text("DROP TABLE IF EXISTS instances"))
-        conn.commit()
-except Exception:
-    pass
-
+# Create database tables automatically on startup (preserves existing data across restarts)
 Base.metadata.create_all(bind=engine)
+
 
 
 
@@ -495,33 +484,83 @@ DEFAULT_MEMORY_CONFIG = {
 
 
 @app.get("/api/game-config/{game_id}")
-def get_game_config(game_id: str, db: Session = Depends(get_db)):
-    config = db.query(models.GameConfigModel).filter_by(id=game_id).first()
-    if not config or not config.config_json:
-        if game_id == "memory-challenge":
-            return DEFAULT_MEMORY_CONFIG
-        return {}
-    try:
-        return json.loads(config.config_json)
-    except Exception:
-        return DEFAULT_MEMORY_CONFIG if game_id == "memory-challenge" else {}
+def get_game_config(
+    game_id: str,
+    instanceId: Optional[str] = Query(None),
+    brandId: Optional[str] = Query(None),
+    userId: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    target_brand = userId or brandId
+
+    if instanceId and instanceId.strip():
+        inst = db.query(models.InstanceModel).filter_by(id=instanceId).first()
+        if inst and inst.config_json:
+            try:
+                return json.loads(inst.config_json)
+            except Exception:
+                pass
+
+    if target_brand and target_brand.strip():
+        inst = db.query(models.InstanceModel).filter(
+            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id),
+            (models.InstanceModel.user_id == target_brand) | (models.InstanceModel.brand_id == target_brand)
+        ).order_by(models.InstanceModel.created_at.desc()).first()
+        if inst and inst.config_json:
+            try:
+                return json.loads(inst.config_json)
+            except Exception:
+                pass
+
+    # Fallback to the most recent customized instance if no specific parameters passed
+    inst = (
+        db.query(models.InstanceModel)
+        .filter(
+            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id)
+        )
+        .order_by(models.InstanceModel.published_at.desc(), models.InstanceModel.created_at.desc())
+        .first()
+    )
+    if inst and inst.config_json:
+        try:
+            return json.loads(inst.config_json)
+        except Exception:
+            pass
+
+    if game_id == "memory-challenge":
+        return DEFAULT_MEMORY_CONFIG
+    return {}
 
 
 @app.post("/api/game-config/{game_id}")
-async def save_game_config(game_id: str, data: dict, db: Session = Depends(get_db)):
-    config = db.query(models.GameConfigModel).filter_by(id=game_id).first()
-    if not config:
-        config = models.GameConfigModel(id=game_id)
-        db.add(config)
-    config.config_json = json.dumps(data)
-    config.brand_id = data.get("brandId", "")
-    config.updated_at = time.time()
-    db.commit()
+async def save_game_config(
+    game_id: str,
+    data: dict,
+    instanceId: Optional[str] = Query(None),
+    brandId: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    target_brand = data.get("brandId") or data.get("userId") or brandId
+    target_inst = data.get("instanceId") or instanceId
 
-    # Broadcast live config update to game + display screens via WebSocket
+    inst = None
+    if target_inst:
+        inst = db.query(models.InstanceModel).filter_by(id=target_inst).first()
+    if not inst and target_brand:
+        inst = db.query(models.InstanceModel).filter(
+            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id),
+            (models.InstanceModel.user_id == target_brand) | (models.InstanceModel.brand_id == target_brand)
+        ).order_by(models.InstanceModel.created_at.desc()).first()
+
+    if inst:
+        inst.config_json = json.dumps(data)
+        db.commit()
+
     await manager.broadcast({
         "type": "CONFIG_UPDATED",
         "game": game_id,
+        "brandId": target_brand,
+        "instanceId": target_inst,
         "config": data
     })
     return {"ok": True, "game": game_id}

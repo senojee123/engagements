@@ -121,6 +121,45 @@ export const fetchScreenStatusApi = async () => {
   }
 };
 
+const getCachedInstances = () => {
+  try {
+    const raw = localStorage.getItem('fanforge_instances_cache');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const notifyInstancesChanged = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new Event('fanforge_instances_updated'));
+    window.dispatchEvent(new Event('storage'));
+    const channel = new BroadcastChannel('fanforge_instances_sync');
+    channel.postMessage({ type: 'INSTANCES_UPDATED', timestamp: Date.now() });
+    channel.close();
+  } catch (e) {}
+};
+
+const saveCachedInstance = (inst) => {
+  if (!inst) return;
+  const instId = inst.instanceId || inst.id;
+  if (!instId) return;
+
+  try {
+    const list = getCachedInstances();
+    const idx = list.findIndex(
+      (i) => (i.instanceId || i.id) === instId || (i.appId === inst.appId && i.userId === inst.userId && i.userId !== 'default-user')
+    );
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...inst };
+    } else {
+      list.unshift(inst);
+    }
+    localStorage.setItem('fanforge_instances_cache', JSON.stringify(list));
+  } catch (e) {}
+};
+
 export const fetchInstancesApi = async (params = {}) => {
   const queryParams = new URLSearchParams();
   if (params.appId) queryParams.append('appId', params.appId);
@@ -130,91 +169,357 @@ export const fetchInstancesApi = async (params = {}) => {
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
   try {
-    const data = await request('GET', `/api/instances/${queryString}`);
-    if (data) return data;
+    const remoteData = await request('GET', `/api/instances/${queryString}`);
+    if (Array.isArray(remoteData)) {
+      // Update local storage cache with live backend data (evicting deleted instances)
+      try {
+        const existingCache = getCachedInstances();
+        const otherAppsCache = existingCache.filter((i) => {
+          if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
+            const targetUser = params.userId || params.brandId;
+            if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
+              return false; // Evict deleted/stale cached items for this app & user
+            }
+          }
+          return true;
+        });
+        const updatedCache = [...remoteData, ...otherAppsCache];
+        localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
+      } catch (e) {}
+
+      return remoteData;
+    }
   } catch (e) {}
 
-  return [];
+  // Fallback to local cache only when network request fails
+  let merged = getCachedInstances();
+
+  if (params.appId) {
+    merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+  }
+
+  if (params.userId || params.brandId) {
+    const targetBrand = params.userId || params.brandId;
+    merged = merged.filter(
+      (i) =>
+        i.userId === targetBrand ||
+        i.brandId === targetBrand ||
+        i.userId === 'default-user' ||
+        i.brandId === 'default-brand' ||
+        (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+    );
+  }
+
+  if (params.status) {
+    const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+    merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+  }
+
+  return merged;
+};
+
+export const saveGameConfigApi = async (gameId, configData, { brandId, instanceId } = {}) => {
+  if (!gameId || !configData) return;
+
+  const bId = brandId || configData.brandId || '';
+  const instId = instanceId || configData.instanceId || '';
+
+  // Cache scoped to the instance/brand, never the global template
+  const cacheKey = instId
+    ? `fanforge_game_config_${instId}`
+    : bId
+    ? `fanforge_game_config_${bId}_${gameId}`
+    : `fanforge_game_config_${gameId}`;
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(configData));
+    localStorage.setItem(`fanforge_game_config_${gameId}`, JSON.stringify(configData));
+  } catch (e) {}
+
+  const qp = new URLSearchParams();
+  if (instId) qp.set('instanceId', instId);
+  if (bId) qp.set('brandId', bId);
+  const qs = qp.toString() ? `?${qp.toString()}` : '';
+
+  const brandedPayload = { ...configData, brandId: bId, instanceId: instId };
+
+  try {
+    await request('POST', `/api/game-config/${gameId}${qs}`, brandedPayload);
+  } catch (e) {}
+
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/game-config/${gameId}${qs}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(brandedPayload),
+    });
+  } catch (e) {}
 };
 
 export const submitInstanceApi = async (data) => {
+  let result = null;
   try {
-    return await request('POST', '/api/instances/submit', data);
-  } catch (e) {}
-  return publishInstanceApi(data);
-};
-
-export const sendApprovalInstanceApi = async (instanceId) => {
-  try {
-    return await request('POST', `/api/instances/${instanceId}/send-approval`);
+    result = await request('POST', '/api/instances/submit', data);
   } catch (e) {}
 
   try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) return await res.json();
-  } catch (e) {}
-
-  return { instanceId, status: 'pending' };
-};
-
-export const approveInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/approve`);
-};
-
-export const rejectInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/reject`);
-};
-
-export const launchInstanceApi = async (instanceId) => {
-  return await request('POST', `/api/instances/${instanceId}/launch`);
-};
-
-export const deleteInstanceApi = async (instanceId) => {
-  try {
-    return await request('DELETE', `/api/instances/${instanceId}`);
-  } catch (e) {}
-
-  try {
-    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
-      method: 'DELETE',
-    });
-    if (res.ok) return await res.json();
-  } catch (e) {}
-
-  return { message: 'Deleted' };
-};
-
-export const publishInstanceApi = async (data) => {
-  try {
-    return await request('POST', '/api/instances/publish', data);
-  } catch (e) {}
-
-  try {
-    const res = await fetch('https://engagements-production.up.railway.app/api/instances/publish', {
+    const res = await fetch('https://engagements-production.up.railway.app/api/instances/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (res.ok) return await res.json();
+    if (res.ok && !result) result = await res.json();
   } catch (e) {}
 
-  const id = `inst-${Date.now().toString(36)}`;
-  return {
-    instanceId: id,
-    appId: data.appId || data.templateId || 'memory-challenge',
-    templateId: data.templateId || data.appId || 'memory-challenge',
-    userId: data.userId || '',
-    brandName: data.brandName || 'Brand Account',
-    title: data.title || 'Custom Brand Engagement',
-    brandId: data.brandId || '',
-    status: data.status || 'draft',
-    publishedAt: Date.now() / 1000,
-    approvedAt: null,
-    config: data.config || {},
-  };
+  if (!result) {
+    // Offline fallback — generate a local instance (does NOT touch master template)
+    const id = `inst-${Date.now().toString(36)}`;
+    result = {
+      instanceId: id,
+      appId: data.appId || data.templateId || 'memory-challenge',
+      templateId: data.templateId || data.appId || 'memory-challenge',
+      userId: data.userId || '',
+      brandName: data.brandName || 'Brand Account',
+      title: data.title || 'Custom Brand Engagement',
+      brandId: data.brandId || data.userId || '',
+      status: data.status || 'draft',
+      publishedAt: Date.now() / 1000,
+      approvedAt: null,
+      config: data.config || {},
+    };
+  }
+
+  saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
+  notifyInstancesChanged();
+  return result;
+};
+
+export const sendApprovalInstanceApi = async (instanceId) => {
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/send-approval`);
+  } catch (e) {}
+
+  if (!result) {
+    try {
+      const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/send-approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) result = await res.json();
+    } catch (e) {}
+  }
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'pending',
+    };
+  }
+
+  saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
+  return result;
+};
+
+export const approveInstanceApi = async (instanceId) => {
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/approve`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok && !result) result = await res.json();
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'approved',
+      approvedAt: Date.now() / 1000,
+    };
+  }
+
+  saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
+  return result;
+};
+
+export const rejectInstanceApi = async (instanceId) => {
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/reject`);
+  } catch (e) {}
+
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'rejected',
+    };
+  }
+
+  saveCachedInstance(result);
+  return result;
+};
+
+export const launchInstanceApi = async (instanceId) => {
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/launch`);
+  } catch (e) {}
+
+  try {
+    const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok && !result) result = await res.json();
+  } catch (e) {}
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'launched',
+      publishedAt: Date.now() / 1000,
+    };
+  }
+
+  saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
+  return result;
+};
+
+export const deleteInstanceApi = async (instanceId) => {
+  try {
+    await request('DELETE', `/api/instances/${instanceId}`);
+  } catch (e) {}
+
+  try {
+    await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`, {
+      method: 'DELETE',
+    });
+  } catch (e) {}
+
+  try {
+    const list = getCachedInstances().filter((i) => (i.instanceId || i.id) !== instanceId);
+    localStorage.setItem('fanforge_instances_cache', JSON.stringify(list));
+
+    // Clear all associated brand draft & game config cache keys
+    if (typeof window !== 'undefined' && window.localStorage) {
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.includes(instanceId) ||
+          key.startsWith('fanforge_mc_draft_') ||
+          key.startsWith('fanforge_memory_customization') ||
+          key.startsWith('fanforge_game_config_')
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+  } catch (e) {}
+
+  notifyInstancesChanged();
+  return { message: 'Deleted' };
+};
+
+/**
+ * Publish a brand's approved engagement instance.
+ * This does NOT modify the master template.
+ */
+export const publishInstanceApi = async (instanceId) => {
+  let result = null;
+  try {
+    result = await request('POST', `/api/instances/${instanceId}/publish`);
+  } catch (e) {}
+
+  if (!result) {
+    try {
+      const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) result = await res.json();
+    } catch (e) {}
+  }
+
+  if (!result) {
+    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
+    result = {
+      ...(cached || {}),
+      id: instanceId,
+      instanceId: instanceId,
+      status: 'published',
+      publishedAt: Date.now() / 1000,
+    };
+  }
+
+  saveCachedInstance(result);
+
+  if (result && result.config) {
+    const appId = result.appId || result.templateId || 'memory-challenge';
+    saveGameConfigApi(appId, result.config, {
+      brandId: result.brandId || result.userId,
+      instanceId: result.instanceId || result.id,
+    });
+  }
+
+  return result;
 };
 
 export const fetchInstanceApi = async (instanceId) => {
@@ -227,15 +532,44 @@ export const fetchInstanceApi = async (instanceId) => {
   return res.json();
 };
 
-export const fetchGameConfigApi = async (appId) => {
+/**
+ * Fetch game config for a specific brand instance.
+ * Falls back to brand cache, then master default.
+ * NEVER overwrites the master template.
+ */
+export const fetchGameConfigApi = async (appId, { instanceId, brandId } = {}) => {
+  // Build brand-scoped cache key
+  const cacheKey = instanceId
+    ? `fanforge_game_config_${instanceId}`
+    : brandId
+    ? `fanforge_game_config_${brandId}_${appId}`
+    : null;
+
+  // Build query string
+  const qp = new URLSearchParams();
+  if (instanceId) qp.set('instanceId', instanceId);
+  if (brandId) qp.set('brandId', brandId);
+  const qs = qp.toString() ? `?${qp.toString()}` : '';
+
   try {
-    const data = await request('GET', `/api/game-config/${appId}`);
-    if (data) return data;
+    const data = await request('GET', `/api/game-config/${appId}${qs}`);
+    if (data && (data.tiles || data.headline || data.gameTitle)) {
+      if (cacheKey) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+      }
+      return data;
+    }
   } catch (e) { }
 
-  const res = await fetch(`https://engagements-production.up.railway.app/api/game-config/${appId}`);
-  if (!res.ok) throw new Error('Config not found');
-  return res.json();
+  // Fallback: brand-scoped local cache
+  if (cacheKey) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  return null;
 };
 
 export const updateScreenStatusApi = async (data) => {

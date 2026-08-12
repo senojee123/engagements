@@ -7,9 +7,38 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { submitInstanceApi } from '../../lib/api';
+import { submitInstanceApi, fetchInstancesApi, publishInstanceApi } from '../../lib/api';
 
 const RAILWAY_API = 'https://engagements-production.up.railway.app';
+// Default master config — brands customize from a COPY of this, never from the stored template
+export const MASTER_DEFAULT_CONFIG = {
+  brandId: '',
+  brandName: '',
+  brandColor: '#4f46e5',
+  brandLogo: '',
+  gameTitle: 'Memory Challenge',
+  headline: 'Find all matching pairs!',
+  tagline: 'Flip the cards and match every pair!',
+  rewardText: '\uD83C\uDF89 You Win! Amazing memory!',
+  gridCols: 4,
+  gridRows: 3,
+  backgroundColor: '#12131f',
+  bgGradient: 'from-slate-950 via-indigo-950 to-slate-950',
+  backgroundImage: '',
+  accentColor: '#ff6b35',
+  titleColor: '#f5efe0',
+  cardBackColor: '#232a52',
+  cardBackColor2: '#3a2350',
+  useDualColors: true,
+  tiles: [
+    { id: 't1', label: 'Tile 1', content: '\uD83C\uDF55', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't2', label: 'Tile 2', content: '\uD83E\uDD64', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+    { id: 't3', label: 'Tile 3', content: '\uD83D\uDEF5', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't4', label: 'Tile 4', content: '\uD83E\uDDC0', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+    { id: 't5', label: 'Tile 5', content: '\uD83D\uDD25', type: 'emoji', imageUrl: '', backColor: '#232a52' },
+    { id: 't6', label: 'Tile 6', content: '\uD83D\uDCB5', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
+  ],
+};
 
 const EMOJI_PRESETS = ['🍕','🥤','🛵','🧀','🔥','💵','⚽','🏆','🎯','🎁','⭐','🎵','🏅','🎮','🎪','🎨','🍔','🚀'];
 
@@ -22,33 +51,13 @@ const DEFAULT_TILE = (id) => ({
   backColor: '#232a52',
 });
 
-const DEFAULT_CONFIG = {
-  brandId: '',
-  brandName: '',
-  brandColor: '#4f46e5',
-  brandLogo: '',
-  headline: 'Find all matching pairs!',
-  tagline: 'Flip the cards and match every pair!',
-  rewardText: '🎉 You Win! Amazing memory!',
-  gridCols: 4,
-  gridRows: 3,
-  backgroundColor: '#12131f',
-  accentColor: '#ff6b35',
-  tiles: [
-    { id: 't1', label: 'Tile 1', content: '🍕', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't2', label: 'Tile 2', content: '🥤', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-    { id: 't3', label: 'Tile 3', content: '🛵', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't4', label: 'Tile 4', content: '🧀', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-    { id: 't5', label: 'Tile 5', content: '🔥', type: 'emoji', imageUrl: '', backColor: '#232a52' },
-    { id: 't6', label: 'Tile 6', content: '💵', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
-  ],
-};
+
 
 export default function MemoryChallengeConfig({ onSubmitted }) {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
-  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [config, setConfig] = useState(MASTER_DEFAULT_CONFIG);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -57,47 +66,107 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const [expandedTile, setExpandedTile] = useState(null);
   const fileRefs = useRef({});
 
-  // Load current config from Railway on mount
+  const brandDraftKey = user?.id ? `fanforge_mc_draft_${user.id}` : null;
+
+  // Load the brand's OWN instance config (never the global master template)
   useEffect(() => {
-    fetch(`${RAILWAY_API}/api/game-config/memory-challenge`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.tiles && data.tiles.length > 0) {
-          setConfig((prev) => ({ ...prev, ...data }));
+    let isMounted = true;
+    setIsLoading(true);
+
+    const loadConfig = async () => {
+      const userId = user?.id;
+      if (!userId) {
+        if (isMounted) {
+          setConfig({ ...MASTER_DEFAULT_CONFIG });
+          setIsLoading(false);
         }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+        return;
+      }
+
+      try {
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId });
+        if (instances && instances.length > 0 && isMounted) {
+          const inst = instances[0];
+          const instConfig = inst?.config;
+          if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
+            setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
+            try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
+          } else if (isMounted) {
+            setConfig({ ...MASTER_DEFAULT_CONFIG });
+          }
+        } else if (isMounted) {
+          // If no active backend instance exists, reset to fresh MASTER_DEFAULT_CONFIG
+          setConfig({ ...MASTER_DEFAULT_CONFIG });
+          try {
+            localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+            localStorage.removeItem('fanforge_memory_customization');
+            localStorage.removeItem('fanforge_game_config_memory-challenge');
+          } catch (e) {}
+        }
+      } catch (e) {
+        if (isMounted) setConfig({ ...MASTER_DEFAULT_CONFIG });
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadConfig();
+    return () => { isMounted = false; };
+  }, [user?.id]);
 
   const updateField = (field, value) => {
-    setConfig((prev) => ({ ...prev, [field]: value }));
+    setConfig((prev) => {
+      const updated = { ...prev, [field]: value };
+      // Cache scoped to this brand — NEVER writes to global game config
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
     setSaved(false);
   };
 
   const updateTile = (id, field, value) => {
-    setConfig((prev) => ({
-      ...prev,
-      tiles: prev.tiles.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: prev.tiles.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
     setSaved(false);
   };
 
   const addTile = () => {
     const newId = `t${Date.now()}`;
-    setConfig((prev) => ({
-      ...prev,
-      tiles: [...prev.tiles, DEFAULT_TILE(newId)],
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: [...prev.tiles, DEFAULT_TILE(newId)],
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
     setExpandedTile(newId);
     setSaved(false);
   };
 
   const removeTile = (id) => {
-    setConfig((prev) => ({
-      ...prev,
-      tiles: prev.tiles.filter((t) => t.id !== id),
-    }));
+    setConfig((prev) => {
+      const updated = {
+        ...prev,
+        tiles: prev.tiles.filter((t) => t.id !== id),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
     setSaved(false);
   };
 
@@ -112,24 +181,86 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     reader.readAsDataURL(file);
   };
 
+  const handleBackgroundImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      updateField('backgroundImage', ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const applySingleColorToAll = (color) => {
+    setConfig((prev) => {
+      const c = color || prev.cardBackColor || '#232a52';
+      const updated = {
+        ...prev,
+        cardBackColor: c,
+        useDualColors: false,
+        tiles: prev.tiles.map((t) => ({ ...t, backColor: c })),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
+    setSaved(false);
+  };
+
+  const applyDualColorsToAll = (c1, c2) => {
+    setConfig((prev) => {
+      const color1 = c1 || prev.cardBackColor || '#232a52';
+      const color2 = c2 || prev.cardBackColor2 || '#3a2350';
+      const updated = {
+        ...prev,
+        cardBackColor: color1,
+        cardBackColor2: color2,
+        useDualColors: true,
+        tiles: prev.tiles.map((t, idx) => ({
+          ...t,
+          backColor: idx % 2 === 0 ? color1 : color2,
+        })),
+      };
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(updated)); } catch (e) {}
+      }
+      return updated;
+    });
+    setSaved(false);
+  };
+
   const handleSaveAndSendForApproval = async () => {
     if (config.tiles.length < 2) {
       toast.error('Add at least 2 tiles before saving.');
       return;
     }
     setIsSaving(true);
+    const userId = user?.id || '';
+    const brandName = user?.company || user?.name || config.brandName || 'Brand Account';
     try {
+      // Save brand-scoped draft (does NOT write to global game config)
+      if (brandDraftKey) {
+        try { localStorage.setItem(brandDraftKey, JSON.stringify(config)); } catch (e) {}
+      }
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlInstanceId = searchParams.get('instanceId');
+      const configWithBrand = { ...config, brandId: userId, userId };
+
       const res = await submitInstanceApi({
+        instanceId: urlInstanceId || undefined,
         templateId: 'memory-challenge',
         appId: 'memory-challenge',
-        userId: user?.id || '',
-        brandName: user?.company || user?.name || config.brandName || 'Brand Account',
-        title: config.brandName ? `${config.brandName} Memory Challenge` : 'Memory Challenge',
+        userId,
+        brandId: userId,
+        brandName,
+        title: config.gameTitle || (brandName !== 'Brand Account' ? `${brandName} Memory Challenge` : 'Memory Challenge'),
         status: 'pending',
-        config,
+        config: configWithBrand,
       });
 
-      toast.success(`Customization saved & submitted! Generated UUID: ${res.instanceId.slice(0, 14)}... Waiting for Admin approval.`);
+      toast.success(`Customization saved & submitted! ID: ${(res.instanceId || '').slice(0, 14)}... Waiting for Admin approval.`);
       setSaved(true);
       if (onSubmitted) onSubmitted();
       setTimeout(() => navigate('/my-engagements'), 1200);
@@ -147,21 +278,26 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     }
     setIsPublishing(true);
     try {
-      const res = await fetch(`${RAILWAY_API}/api/instances/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appId: 'memory-challenge',
-          brandId: config.brandId || '',
-          config,
-        }),
-      });
-      if (!res.ok) throw new Error('Publish failed');
-      const instance = await res.json();
-      setLastPublishedVersion({ id: instance.instanceId, at: instance.publishedAt });
-      toast.success(`Published as version ${instance.instanceId.slice(0, 8)} — your live link is already updated. 🔗`);
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlInstanceId = searchParams.get('instanceId');
+
+      let targetId = urlInstanceId;
+      if (!targetId && user?.id) {
+        const instances = await fetchInstancesApi({ appId: 'memory-challenge', userId: user.id });
+        if (instances && instances.length > 0) {
+          targetId = instances[0].instanceId || instances[0].id;
+        }
+      }
+
+      if (!targetId) {
+        throw new Error('No active engagement instance found to publish.');
+      }
+
+      const res = await publishInstanceApi(targetId);
+      setLastPublishedVersion({ id: res.instanceId, at: res.publishedAt });
+      toast.success(`Published version ${res.instanceId.slice(0, 8)} — live on FanZone! 🚀`);
     } catch (err) {
-      toast.error('Failed to publish. Check your connection.');
+      toast.error(err.message || 'Failed to publish. Check your connection.');
     } finally {
       setIsPublishing(false);
     }
@@ -217,6 +353,18 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               <Palette className="w-4 h-4 text-indigo-500" /> Brand & Game Settings
             </h3>
 
+            {/* Game Name / Title */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Custom Game Name / Title</label>
+              <input
+                type="text"
+                value={config.gameTitle || ''}
+                onChange={(e) => updateField('gameTitle', e.target.value)}
+                placeholder="e.g. Memory Challenge 3D"
+                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             {/* Brand Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Name</label>
@@ -241,8 +389,112 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               />
             </div>
 
+            {/* Background Theme & Background Image */}
+            {/* Background Theme & Static Background Image */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Theme</label>
+                <select
+                  value={config.bgGradient || 'from-slate-950 via-indigo-950 to-slate-950'}
+                  onChange={(e) => updateField('bgGradient', e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="from-slate-950 via-indigo-950 to-slate-950">Midnight Stadium (Default)</option>
+                  <option value="from-purple-950 via-slate-950 to-indigo-950">Neon Purple Arena</option>
+                  <option value="from-emerald-950 via-slate-950 to-teal-950">Emerald Matchday</option>
+                  <option value="from-red-950 via-slate-950 to-amber-950">Crimson Arena</option>
+                  <option value="from-slate-900 via-slate-950 to-slate-900">Dark Obsidian</option>
+                </select>
+              </div>
+
+              {/* Static Background Image Uploader & Presets */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Static Background Image
+                  </label>
+                  {config.backgroundImage && (
+                    <button
+                      type="button"
+                      onClick={() => updateField('backgroundImage', '')}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 underline"
+                    >
+                      Clear (Use Default Theme)
+                    </button>
+                  )}
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={config.backgroundImage || ''}
+                    onChange={(e) => updateField('backgroundImage', e.target.value)}
+                    placeholder="Paste image URL (https://...)"
+                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <label className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer text-xs font-bold transition-all shrink-0">
+                    <UploadCloud className="w-4 h-4" /> Upload Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBackgroundImageUpload}
+                    />
+                  </label>
+                </div>
+
+                {/* Background Presets */}
+                <div className="flex items-center gap-2 pt-1 overflow-x-auto">
+                  <span className="text-[11px] text-slate-400 font-semibold shrink-0">Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    🏟️ Stadium Lights
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    ⚽ Football Arena
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('backgroundImage', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1920&q=80')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold transition-all border border-slate-200 shrink-0"
+                  >
+                    🎮 Cyber Neon
+                  </button>
+                </div>
+
+                {config.backgroundImage ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 h-20 mt-2">
+                    <img src={config.backgroundImage} alt="Background Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold bg-slate-900/80 px-2.5 py-1 rounded-full border border-white/20">
+                        Static Background Applied
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">
+                    Default radial stadium background is active. Upload an image or select a preset to set a custom static background.
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Colors row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Heading Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={config.titleColor || '#f5efe0'} onChange={(e) => updateField('titleColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
+                  <span className="text-xs text-slate-400 font-mono">{config.titleColor || '#f5efe0'}</span>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Color</label>
                 <div className="flex items-center gap-2">
@@ -251,18 +503,98 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Accent</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Accent Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={config.accentColor} onChange={(e) => updateField('accentColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <span className="text-xs text-slate-400 font-mono">{config.accentColor}</span>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Background</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Background Color</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={config.backgroundColor} onChange={(e) => updateField('backgroundColor', e.target.value)} className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5" />
                   <span className="text-xs text-slate-400 font-mono">{config.backgroundColor}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Tile Back Colors: 1 Color or 2 Alternating Colors */}
+            <div className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-slate-900">Tile Card Back Colors</label>
+                  <p className="text-[11px] text-slate-500">Choose 1 uniform color or 2 alternating colors for card backs</p>
+                </div>
+                <div className="flex bg-white rounded-xl p-0.5 border border-slate-200 text-xs font-bold shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => applySingleColorToAll(config.cardBackColor || '#232a52')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${!config.useDualColors ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    Single Color
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyDualColorsToAll(config.cardBackColor || '#232a52', config.cardBackColor2 || '#3a2350')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${config.useDualColors ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    Dual Colors
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-indigo-100/60">
+                <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700">Tile Color 1</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.cardBackColor || '#232a52'}
+                      onChange={(e) => {
+                        const newC1 = e.target.value;
+                        if (config.useDualColors) {
+                          applyDualColorsToAll(newC1, config.cardBackColor2 || '#3a2350');
+                        } else {
+                          applySingleColorToAll(newC1);
+                        }
+                      }}
+                      className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                    />
+                    <span className="text-xs text-slate-500 font-mono">{config.cardBackColor || '#232a52'}</span>
+                  </div>
+                </div>
+
+                <div className={`flex items-center justify-between bg-white p-2.5 rounded-xl border transition-all ${config.useDualColors ? 'border-slate-200 opacity-100' : 'border-slate-100 opacity-50'}`}>
+                  <span className="text-xs font-bold text-slate-700">Tile Color 2 (Optional)</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      disabled={!config.useDualColors}
+                      value={config.cardBackColor2 || '#3a2350'}
+                      onChange={(e) => {
+                        applyDualColorsToAll(config.cardBackColor || '#232a52', e.target.value);
+                      }}
+                      className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-xs text-slate-500 font-mono">{config.cardBackColor2 || '#3a2350'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (config.useDualColors) {
+                      applyDualColorsToAll(config.cardBackColor || '#232a52', config.cardBackColor2 || '#3a2350');
+                    } else {
+                      applySingleColorToAll(config.cardBackColor || '#232a52');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors"
+                >
+                  Apply to All Cards
+                </button>
               </div>
             </div>
 
@@ -303,13 +635,23 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               <Eye className="w-4 h-4 text-indigo-500" /> Tile Preview
             </h3>
             <div
-              className="rounded-2xl p-4"
-              style={{ backgroundColor: config.backgroundColor }}
+              className="rounded-2xl p-4 transition-all duration-300 relative overflow-hidden"
+              style={{
+                backgroundColor: config.backgroundColor,
+                backgroundImage: config.backgroundImage ? `url("${config.backgroundImage}")` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
             >
               {config.brandLogo && (
-                <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-3" />
+                <img src={config.brandLogo} alt="" className="h-8 object-contain mx-auto mb-2" />
               )}
-              <p className="text-center text-xs font-bold mb-3" style={{ color: config.accentColor }}>
+              {config.gameTitle && (
+                <p className="text-center text-sm font-black uppercase tracking-wider mb-0.5" style={{ color: config.titleColor || config.brandColor || '#f5efe0' }}>
+                  {config.gameTitle}
+                </p>
+              )}
+              <p className="text-center text-xs font-semibold mb-3 text-white/90">
                 {config.headline}
               </p>
               <div
@@ -388,16 +730,30 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                 {/* Expanded editor */}
                 {expandedTile === tile.id && (
                   <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-3">
-                    {/* Label */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Label</label>
-                      <input
-                        type="text"
-                        value={tile.label}
-                        onChange={(e) => updateTile(tile.id, 'label', e.target.value)}
-                        placeholder="e.g. Dialog 5G Logo"
-                        className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                    {/* Label & Tile Back Color Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Label</label>
+                        <input
+                          type="text"
+                          value={tile.label}
+                          onChange={(e) => updateTile(tile.id, 'label', e.target.value)}
+                          placeholder="e.g. Dialog 5G Logo"
+                          className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Tile Back Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={tile.backColor || config.cardBackColor || '#232a52'}
+                            onChange={(e) => updateTile(tile.id, 'backColor', e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                          />
+                          <span className="text-xs text-slate-400 font-mono">{tile.backColor || config.cardBackColor || '#232a52'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Type toggle */}

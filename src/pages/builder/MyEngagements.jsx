@@ -22,7 +22,7 @@ import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useTemplates } from '../../context/TemplateContext';
-import { fetchInstancesApi, launchInstanceApi, deleteInstanceApi, submitInstanceApi } from '../../lib/api';
+import { fetchInstancesApi, launchInstanceApi, deleteInstanceApi, submitInstanceApi, publishInstanceApi } from '../../lib/api';
 
 export default function MyEngagements() {
   const navigate = useNavigate();
@@ -66,6 +66,7 @@ export default function MyEngagements() {
     if (e) e.stopPropagation();
     try {
       await submitInstanceApi({
+        instanceId: inst.instanceId || inst.id,
         templateId: inst.templateId || inst.appId,
         appId: inst.appId || inst.templateId,
         userId: user?.id || '',
@@ -81,13 +82,40 @@ export default function MyEngagements() {
     }
   };
 
+  const handlePublish = async (instanceId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await publishInstanceApi(instanceId);
+      toast.success('Published! Customized engagement is now live on FanZone.');
+      loadMyEngagements();
+    } catch (err) {
+      toast.error('Failed to publish engagement.');
+    }
+  };
+
   const handleDelete = async (instanceId, title, e) => {
     if (e) e.stopPropagation();
     if (!window.confirm(`Are you sure you want to remove "${title}" from My Engagements?`)) return;
     try {
+      // Find the instance to get its appId before deleting
+      const inst = myInstances.find((i) => (i.instanceId || i.id) === instanceId);
       await deleteInstanceApi(instanceId);
+
+      // Clear ALL brand-scoped draft/cache keys so re-adding starts fresh from master defaults
+      if (user?.id) {
+        const userId = user.id;
+        try {
+          localStorage.removeItem(`fanforge_mc_draft_${userId}`);
+          localStorage.removeItem(`fanforge_game_config_${instanceId}`);
+          localStorage.removeItem(`fanforge_game_config_${userId}_memory-challenge`);
+          // Also clear legacy keys
+          localStorage.removeItem('fanforge_memory_customization');
+          localStorage.removeItem('fanforge_game_config_memory-challenge');
+        } catch (e) {}
+      }
+
       toast.success(`Removed "${title}" from My Engagements`);
-      setMyInstances((prev) => prev.filter((inst) => (inst.instanceId || inst.id) !== instanceId));
+      setMyInstances((prev) => prev.filter((i) => (i.instanceId || i.id) !== instanceId));
     } catch (err) {
       toast.error('Failed to remove engagement.');
     }
@@ -104,15 +132,17 @@ export default function MyEngagements() {
   const getStatusBadge = (status) => {
     switch ((status || '').toLowerCase()) {
       case 'approved':
-        return <Badge variant="emerald" size="sm">Approved — Ready to Launch</Badge>;
+        return <Badge variant="emerald" size="sm">Approved — Ready to Publish</Badge>;
+      case 'published':
+        return <Badge variant="indigo" size="sm">Published to FanZone</Badge>;
       case 'launched':
         return <Badge variant="indigo" size="sm">🚀 Launched & Live</Badge>;
       case 'rejected':
-        return <Badge variant="rose" size="sm">Rejected by Admin</Badge>;
+        return <Badge variant="rose" size="sm">Changes Requested</Badge>;
       case 'pending':
-        return <Badge variant="amber" size="sm">Pending Approval</Badge>;
+        return <Badge variant="amber" size="sm">⏳ Under Admin Review</Badge>;
       default:
-        return <Badge variant="indigo" size="sm">Active Activation</Badge>;
+        return <Badge variant="slate" size="sm">Draft</Badge>;
     }
   };
 
@@ -266,6 +296,7 @@ export default function MyEngagements() {
             const template = findTemplate(inst);
             const statusLower = (inst.status || '').toLowerCase();
             const isApproved = statusLower === 'approved';
+            const isPublished = statusLower === 'published';
             const isLaunched = statusLower === 'launched';
             const isPending = statusLower === 'pending';
 
@@ -386,13 +417,13 @@ export default function MyEngagements() {
                       </Button>
                     )}
 
-                    {isApproved && (
+                    {(isApproved || isPublished) && (
                       <Button
                         variant="primary"
                         size="sm"
                         icon={Rocket}
                         onClick={(e) => handleLaunch(inst.instanceId, e)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-md animate-pulse"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs shadow-md animate-pulse shrink-0"
                       >
                         🚀 Launch Live
                       </Button>
@@ -404,14 +435,15 @@ export default function MyEngagements() {
                       </Badge>
                     )}
 
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={Trash2}
                       onClick={(e) => handleDelete(inst.instanceId || inst.id, inst.title || template.title, e)}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors shrink-0"
-                      title="Remove from My Engagements"
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 shadow-sm"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </div>

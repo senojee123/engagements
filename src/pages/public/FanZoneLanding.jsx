@@ -36,29 +36,72 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   const [isInstancesLoading, setIsInstancesLoading] = useState(true);
   const [activeBrandName, setActiveBrandName] = useState('');
 
-  useEffect(() => {
-    setIsInstancesLoading(true);
+  const loadInstances = (showLoading = false) => {
+    if (showLoading) setIsInstancesLoading(true);
     const searchParams = new URLSearchParams(window.location.search);
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
     const targetBrand = brandParam || undefined;
 
-    const queryParams = { status: 'approved,launched' };
+    const queryParams = {};
     if (targetBrand) {
       queryParams.brandId = targetBrand;
     }
 
     fetchInstancesApi(queryParams)
       .then((data) => {
-        const list = (data || []).filter(
-          (inst) => (inst.status || '').toLowerCase() === 'approved' || (inst.status || '').toLowerCase() === 'launched'
-        );
-        setApprovedInstances(list);
-        if (list.length > 0 && list[0].brandName) {
-          setActiveBrandName(list[0].brandName);
+        const list = data || [];
+        // Keep each engagement instance added to My Engagements
+        const uniqueAppMap = new Map();
+        list.forEach((inst) => {
+          const key = inst.instanceId || inst.id;
+          if (key) {
+            uniqueAppMap.set(key, inst);
+          }
+        });
+        const deduplicatedList = Array.from(uniqueAppMap.values());
+
+        setApprovedInstances(deduplicatedList);
+        if (deduplicatedList.length > 0 && deduplicatedList[0].brandName) {
+          setActiveBrandName(deduplicatedList[0].brandName);
         }
       })
-      .catch(() => setApprovedInstances([]))
+      .catch(() => {
+        setApprovedInstances([]);
+      })
       .finally(() => setIsInstancesLoading(false));
+  };
+
+  useEffect(() => {
+    loadInstances(true);
+
+    // Poll for new/deleted instances every 2 seconds
+    const interval = setInterval(() => {
+      loadInstances(false);
+    }, 2000);
+
+    const handleSync = () => loadInstances(false);
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('fanforge_instances_updated', handleSync);
+
+    let channel;
+    try {
+      channel = new BroadcastChannel('fanforge_instances_sync');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'INSTANCES_UPDATED') {
+          loadInstances(false);
+        }
+      };
+    } catch (e) {}
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('fanforge_instances_updated', handleSync);
+      if (channel) channel.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -210,12 +253,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
           setInstanceTiles(tiles.map((t) => t.content).filter(Boolean));
         }
       })
-      .catch(() => { })
-      .finally(() => {
-        if (!isCancelled && forcedAppId === 'memory-challenge') {
-          setActiveModal('memory-challenge');
-        }
-      });
+      .catch(() => { });
 
     return () => {
       isCancelled = true;
@@ -404,14 +442,14 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f2ee] text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 max-w-2xl mx-auto selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-[#f4f2ee] text-slate-900 font-sans flex flex-col justify-start p-4 sm:p-8 max-w-2xl mx-auto selection:bg-rose-500 selection:text-white">
       {/* Hidden Canvas for Camera Snapshot */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ---------------------------------------------------- */}
       {/* TOP BRAND HEADER */}
       {/* ---------------------------------------------------- */}
-      <header className="space-y-2 pt-4">
+      <header className="space-y-2 pt-2 pb-2">
         {fanZoneSettings.headerLogo && (
           <img
             src={fanZoneSettings.headerLogo}
@@ -430,7 +468,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
       {/* ---------------------------------------------------- */}
       {/* ACTIVE ENGAGEMENT CARDS LIST */}
       {/* ---------------------------------------------------- */}
-      <main className="my-8 space-y-4">
+      <main className="mt-4 mb-8 space-y-4 flex-1">
         {isInstancesLoading ? (
           <div className="p-8 text-center text-slate-500 font-semibold text-sm flex items-center justify-center gap-2">
             <RefreshCcw className="w-4 h-4 animate-spin text-indigo-600" />
@@ -442,12 +480,10 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
               <Zap className="w-8 h-8" />
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              No approved engagements are available yet.
+              No Engagements Added to My Engagements Yet
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-              {activeBrandName
-                ? `${activeBrandName} does not have any active approved engagements at this time.`
-                : 'No approved customized engagements are currently active for this venue.'}
+              Add an engagement template from the Engagement Library to "My Engagements" to display it on FanZone.
             </p>
           </div>
         ) : (
@@ -463,7 +499,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-emerald-600',
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
-                  window.location.href = 'https://memory-game-black-omega.vercel.app/';
+                  setActiveModal('memory-challenge');
                 },
                 isActive: activeMemoryComputed,
               },
@@ -503,6 +539,32 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 onClick: () => setActiveModal('reaction-wall'),
                 isActive: activeReactionComputed,
               },
+              'lane-daze': {
+                label: 'LANE DASH',
+                icon: Trophy,
+                borderColor: 'border-cyan-600',
+                textColor: 'text-cyan-600',
+                ringColor: 'ring-cyan-500/30',
+                bgColor: 'bg-cyan-600',
+                defaultTitle: 'High-energy 3-lane arcade runner',
+                onClick: () => {
+                  window.location.href = '/builder';
+                },
+                isActive: remoteActiveMode === 'lane-daze',
+              },
+              'lane-dash': {
+                label: 'LANE DASH',
+                icon: Trophy,
+                borderColor: 'border-cyan-600',
+                textColor: 'text-cyan-600',
+                ringColor: 'ring-cyan-500/30',
+                bgColor: 'bg-cyan-600',
+                defaultTitle: 'High-energy 3-lane arcade runner',
+                onClick: () => {
+                  window.location.href = '/builder';
+                },
+                isActive: remoteActiveMode === 'lane-daze',
+              },
             };
 
             const meta = metaMap[appId] || metaMap['memory-challenge'];
@@ -527,9 +589,6 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                       }`}
                     >
                       {inst.brandName ? `${inst.brandName} • ` : ''}{meta.label}
-                    </span>
-                    <span className="text-[9px] font-mono text-slate-400 bg-white/80 px-1.5 py-0.5 rounded border border-slate-200">
-                      UUID: {(inst.instanceId || inst.id).slice(0, 8)}...
                     </span>
                     {isActive && (
                       <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-black tracking-widest uppercase border border-emerald-300 animate-pulse">
