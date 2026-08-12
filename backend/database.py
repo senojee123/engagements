@@ -4,7 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DB_PATH = os.path.join(BASE_DIR, "engagements.db")
+if os.getenv("VERCEL") and not os.getenv("DATABASE_URL"):
+    DEFAULT_DB_PATH = "/tmp/engagements.db"
 
 # Default to SQLite file database, or use PostgreSQL DATABASE_URL if set
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
