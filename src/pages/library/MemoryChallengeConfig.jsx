@@ -9,7 +9,6 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { submitInstanceApi, fetchInstancesApi, publishInstanceApi } from '../../lib/api';
 
-const RAILWAY_API = 'https://engagements-production.up.railway.app';
 // Default master config — brands customize from a COPY of this, never from the stored template
 export const MASTER_DEFAULT_CONFIG = {
   brandId: '',
@@ -30,6 +29,7 @@ export const MASTER_DEFAULT_CONFIG = {
   cardBackColor: '#232a52',
   cardBackColor2: '#3a2350',
   useDualColors: true,
+  leaderboardTextColor: '#f5efe0',
   tiles: [
     { id: 't1', label: 'Tile 1', content: '\uD83C\uDF55', type: 'emoji', imageUrl: '', backColor: '#232a52' },
     { id: 't2', label: 'Tile 2', content: '\uD83E\uDD64', type: 'emoji', imageUrl: '', backColor: '#3a2350' },
@@ -365,30 +365,6 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               />
             </div>
 
-            {/* Brand Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Name</label>
-              <input
-                type="text"
-                value={config.brandName}
-                onChange={(e) => updateField('brandName', e.target.value)}
-                placeholder="e.g. Dialog 5G"
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            {/* Brand Logo URL */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Brand Logo URL</label>
-              <input
-                type="text"
-                value={config.brandLogo}
-                onChange={(e) => updateField('brandLogo', e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
             {/* Background Theme & Background Image */}
             {/* Background Theme & Static Background Image */}
             <div className="space-y-3">
@@ -523,7 +499,7 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
               <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-xs font-bold text-slate-900">Tile Card Back Colors</label>
-                  <p className="text-[11px] text-slate-500">Choose 1 uniform color or 2 alternating colors for card backs</p>
+                  <p className="text-[11px] text-slate-500">Choose 1 uniform color or 2 alternating colors for card backs — also tints the leaderboard row tiles</p>
                 </div>
                 <div className="flex bg-white rounded-xl p-0.5 border border-slate-200 text-xs font-bold shadow-xs">
                   <button
@@ -596,6 +572,21 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
                   Apply to All Cards
                 </button>
               </div>
+            </div>
+
+            {/* Leaderboard text color */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Leaderboard Text Color</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={config.leaderboardTextColor || '#f5efe0'}
+                  onChange={(e) => updateField('leaderboardTextColor', e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5"
+                />
+                <span className="text-xs text-slate-400 font-mono">{config.leaderboardTextColor || '#f5efe0'}</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Player names and highlighted text on the leaderboard page</p>
             </div>
 
             {/* Text fields */}

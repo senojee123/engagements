@@ -3,7 +3,9 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel
 const REMOTE_API = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app';
 
 
-async function request(method, path, body, timeoutMs = 4000) {
+// Default timeout is generous because the backend runs on serverless
+// functions that can take several seconds to cold-start after idle.
+async function request(method, path, body, timeoutMs = 12000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -33,72 +35,20 @@ async function request(method, path, body, timeoutMs = 4000) {
   }
 }
 
-// Auth
-export const registerUserApi = async (data) => {
-  try {
-    return await request('POST', '/api/auth/register', data);
-  } catch (e) {
-    const name = data.fullName || data.name || 'New User';
-    return {
-      id: `usr-${Date.now().toString(36)}`,
-      name,
-      fullName: name,
-      company: data.companyName || '',
-      companyName: data.companyName || '',
-      email: data.email,
-      role: data.role || 'Brand',
-      createdAt: Date.now() / 1000,
-    };
-  }
-};
+// Auth — no fallback: a failed request must throw, never fabricate a session.
+// Cold starts on the backend can take several seconds, so these get a longer
+// timeout than the default so a slow-but-real login isn't mistaken for a dead one.
+export const registerUserApi = (data) => request('POST', '/api/auth/register', data, 15000);
 
-export const loginUserApi = async (data) => {
-  try {
-    return await request('POST', '/api/auth/login', data);
-  } catch (e) {
-    const email = data.email || 'user@company.com';
-    const isBrand = email.includes('brand');
-    const name = email.split('@')[0] || 'Demo User';
-    return {
-      id: `usr-${Date.now().toString(36)}`,
-      name,
-      fullName: name,
-      company: 'FanForge Platform',
-      companyName: 'FanForge Platform',
-      email: email,
-      role: isBrand ? 'Brand' : 'Super Admin',
-      createdAt: Date.now() / 1000,
-    };
-  }
-};
+export const loginUserApi = (data) => request('POST', '/api/auth/login', data, 15000);
 
 // Users
 export const fetchUser = async (id) => {
-  try {
-    const user = await request('GET', `/api/users/${id}`);
-    if (user && user.id) {
-      try { localStorage.setItem('fanforge_cached_user', JSON.stringify(user)); } catch (err) {}
-    }
-    return user;
-  } catch (e) {
-    try {
-      const cached = localStorage.getItem('fanforge_cached_user');
-      if (cached) {
-        const u = JSON.parse(cached);
-        if (u && (u.id === id || !id)) return u;
-      }
-    } catch (err) {}
-    return {
-      id: id || 'demo-user',
-      name: 'User',
-      fullName: 'User',
-      company: 'FanForge Platform',
-      companyName: 'FanForge Platform',
-      email: 'user@fanforge.com',
-      role: 'Brand',
-      createdAt: Date.now() / 1000,
-    };
+  const user = await request('GET', `/api/users/${id}`, undefined, 15000);
+  if (user && user.id) {
+    try { localStorage.setItem('fanforge_cached_user', JSON.stringify(user)); } catch (err) {}
   }
+  return user;
 };
 export const updateUserApi = (id, data) => request('PATCH', `/api/users/${id}`, data);
 export const changePasswordApi = (id, data) => request('POST', `/api/users/${id}/change-password`, data);
@@ -149,7 +99,7 @@ export const fetchReactionsApi = () => request('GET', '/api/reactions/recent');
 export const clearReactionsApi = () => request('POST', '/api/reactions/clear');
 
 
-// Selfie Wall — always use Railway (single source of truth shared between fan zone + dashboard)
+// Selfie Wall — always use the live backend (single source of truth shared between fan zone + dashboard)
 const SELFIE_API = REMOTE_API;
 
 const selfieRequest = async (method, path, body) => {
@@ -175,7 +125,7 @@ export const deleteSelfieApi = (id) => selfieRequest('DELETE', `/api/selfies/${i
 export const clearSelfiesApi = () => selfieRequest('DELETE', '/api/selfies/clear');
 
 
-// Screen Status & Mode Routing (Syncs both local and Railway Cloud backend for Vercel live deployments)
+// Screen Status & Mode Routing (Syncs local and live backend for Vercel deployments)
 export const fetchScreenStatusApi = async () => {
   try {
     const data = await request('GET', '/api/screen/status');
@@ -316,14 +266,6 @@ export const saveGameConfigApi = async (gameId, configData, { brandId, instanceI
   } catch (e) {}
 
   try {
-    await fetch(`${REMOTE_API}/api/game-config/${gameId}${qs}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(brandedPayload),
-    });
-  } catch (e) {}
-
-  try {
     fetch('https://memory-challenge-9cfa8-default-rtdb.asia-southeast1.firebasedatabase.app/gameConfig.json', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -336,15 +278,6 @@ export const submitInstanceApi = async (data) => {
   let result = null;
   try {
     result = await request('POST', '/api/instances/submit', data);
-  } catch (e) {}
-
-  try {
-    const res = await fetch(`${REMOTE_API}/api/instances/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (res.ok && !result) result = await res.json();
   } catch (e) {}
 
   if (!result) {
@@ -386,16 +319,6 @@ export const sendApprovalInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   if (!result) {
-    try {
-      const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/send-approval`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) result = await res.json();
-    } catch (e) {}
-  }
-
-  if (!result) {
     const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
     result = {
       ...(cached || {}),
@@ -422,14 +345,6 @@ export const approveInstanceApi = async (instanceId) => {
   let result = null;
   try {
     result = await request('POST', `/api/instances/${instanceId}/approve`);
-  } catch (e) {}
-
-  try {
-    const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok && !result) result = await res.json();
   } catch (e) {}
 
   if (!result) {
@@ -462,13 +377,6 @@ export const rejectInstanceApi = async (instanceId) => {
     result = await request('POST', `/api/instances/${instanceId}/reject`);
   } catch (e) {}
 
-  try {
-    await fetch(`${REMOTE_API}/api/instances/${instanceId}/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (e) {}
-
   if (!result) {
     const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
     result = {
@@ -487,14 +395,6 @@ export const launchInstanceApi = async (instanceId) => {
   let result = null;
   try {
     result = await request('POST', `/api/instances/${instanceId}/launch`);
-  } catch (e) {}
-
-  try {
-    const res = await fetch(`${REMOTE_API}/api/instances/${instanceId}/launch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok && !result) result = await res.json();
   } catch (e) {}
 
   if (!result) {
@@ -524,12 +424,6 @@ export const launchInstanceApi = async (instanceId) => {
 export const deleteInstanceApi = async (instanceId) => {
   try {
     await request('DELETE', `/api/instances/${instanceId}`);
-  } catch (e) {}
-
-  try {
-    await fetch(`${REMOTE_API}/api/instances/${instanceId}`, {
-      method: 'DELETE',
-    });
   } catch (e) {}
 
   try {
@@ -566,16 +460,6 @@ export const publishInstanceApi = async (instanceId) => {
   } catch (e) {}
 
   if (!result) {
-    try {
-      const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) result = await res.json();
-    } catch (e) {}
-  }
-
-  if (!result) {
     const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
     result = {
       ...(cached || {}),
@@ -599,15 +483,7 @@ export const publishInstanceApi = async (instanceId) => {
   return result;
 };
 
-export const fetchInstanceApi = async (instanceId) => {
-  try {
-    return await request('GET', `/api/instances/${instanceId}`);
-  } catch (e) { }
-
-  const res = await fetch(`https://engagements-production.up.railway.app/api/instances/${instanceId}`);
-  if (!res.ok) throw new Error('Instance not found');
-  return res.json();
-};
+export const fetchInstanceApi = (instanceId) => request('GET', `/api/instances/${instanceId}`);
 
 /**
  * Fetch game config for a specific brand instance.
@@ -650,15 +526,6 @@ export const fetchGameConfigApi = async (appId, { instanceId, brandId } = {}) =>
 };
 
 export const updateScreenStatusApi = async (data) => {
-  // Always update Railway Cloud backend so Vercel deployment (fan-zone-five.vercel.app) updates in real-time
-  try {
-    await fetch('https://engagements-production.up.railway.app/api/screen/status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-  } catch (e) { }
-
   try {
     return await request('POST', '/api/screen/status', data);
   } catch (e) { }

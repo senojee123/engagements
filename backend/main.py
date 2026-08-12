@@ -478,6 +478,7 @@ DEFAULT_MEMORY_CONFIG = {
     "cardBackColor": "#232a52",
     "cardBackColor2": "#3a2350",
     "useDualColors": True,
+    "leaderboardTextColor": "#f5efe0",
     "tiles": [
         {"id": "t1", "label": "Soccer", "content": "⚽", "type": "emoji", "imageUrl": "", "backColor": "#232a52"},
         {"id": "t2", "label": "Basketball", "content": "🏀", "type": "emoji", "imageUrl": "", "backColor": "#3a2350"},

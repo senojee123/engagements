@@ -53,8 +53,10 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
     if data.instanceId:
         instance = db.query(models.InstanceModel).filter_by(id=data.instanceId).first()
 
-    # For non-draft submissions, find the brand's most recent instance
-    if not instance and user_id and app_id and (data.status and data.status != "draft"):
+    # Find the brand's existing instance for this app, regardless of status,
+    # so re-submitting (including repeated "add to my engagements" clicks)
+    # updates it instead of creating duplicate rows.
+    if not instance and user_id and app_id:
         instance = (
             db.query(models.InstanceModel)
             .filter(

@@ -43,7 +43,7 @@ const APP_DISPLAY_REGISTRY = {
   },
 };
 
-const RAILWAY_API = import.meta.env.VITE_API_URL || 'https://engagements-production.up.railway.app';
+const BACKEND_API = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app';
 
 export default function InstanceDisplayRouter() {
   const { appId, instanceId } = useParams();
@@ -63,7 +63,7 @@ export default function InstanceDisplayRouter() {
     let isCancelled = false;
 
     const fetchCurrentByAppId = () =>
-      fetch(`${RAILWAY_API}/api/game-config/${normalizedAppId}`)
+      fetch(`${BACKEND_API}/api/game-config/${normalizedAppId}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!isCancelled && data) setInstanceConfig(data);
@@ -79,7 +79,7 @@ export default function InstanceDisplayRouter() {
       };
     }
 
-    fetch(`${RAILWAY_API}/api/instances/${instanceId}`)
+    fetch(`${BACKEND_API}/api/instances/${instanceId}`)
       .then((res) => {
         if (!res.ok) throw new Error('Instance not found');
         return res.json();

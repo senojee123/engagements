@@ -120,7 +120,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
     syncStatus();
     const timer = setInterval(syncStatus, 2000);
 
-    const wsUrl = 'wss://engagements-production.up.railway.app/ws';
+    const wsUrl = (import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app').replace(/^http/, 'ws') + '/ws';
     let socket = null;
     try {
       socket = new WebSocket(wsUrl);

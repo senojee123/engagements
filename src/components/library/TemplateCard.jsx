@@ -24,11 +24,14 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
   const { toggleFavorite, isFavorite, duplicateTemplate } = useTemplates();
   const { user, currentRole } = useAuth();
   const toast = useToast();
+  const [isAdding, setIsAdding] = React.useState(false);
 
   const favorited = isFavorite(template.id);
 
   const handleAddToMyEngagements = async (e) => {
     e.stopPropagation();
+    if (isAdding) return;
+    setIsAdding(true);
     const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
     const currentBrand = user?.company || user?.name || 'Brand Account';
     try {
@@ -45,6 +48,8 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
       toast.success(`"${template.title}" successfully added to My Engagements!`);
     } catch (err) {
       toast.error('Failed to add engagement.');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -132,6 +137,7 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
               variant="primary"
               icon={Plus}
               onClick={handleAddToMyEngagements}
+              isLoading={isAdding}
               className="bg-indigo-600 hover:bg-indigo-500 text-white"
             >
               Add to My Engagements
@@ -248,6 +254,7 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
               variant="primary"
               icon={Plus}
               onClick={handleAddToMyEngagements}
+              isLoading={isAdding}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2 shadow-sm"
             >
               Add to My Engagements
