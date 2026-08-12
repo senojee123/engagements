@@ -54,6 +54,16 @@ $env:DATABASE_URL="postgresql://username:password@localhost:5432/fanforge"
 export DATABASE_URL="postgresql://username:password@localhost:5432/fanforge"
 ```
 
+**On Vercel (or any serverless host), `DATABASE_URL` is required** — the filesystem is
+read-only outside `/tmp`, and `/tmp` is wiped between invocations, so SQLite cannot
+persist data there. Set `DATABASE_URL` in the Vercel project's Environment Variables,
+not in source code.
+
+If using **Supabase**, use the **pooler connection string** (Settings → Connect →
+Transaction pooler, port `6543`), not the direct connection (`db.<ref>.supabase.co`,
+port `5432`). The direct host is IPv6-only and unreachable from Vercel's serverless
+runtime; the pooler host resolves to IPv4 and is built for exactly this use case.
+
 ---
 
 ## ⚡ WebSocket Events (`ws://localhost:8000/ws`)

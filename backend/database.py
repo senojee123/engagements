@@ -4,22 +4,28 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOCAL_SQLITE_PATH = os.path.join(BASE_DIR, "engagements.db")
 
-if os.getenv("VERCEL") and not os.getenv("DATABASE_URL"):
-    DEFAULT_DB_PATH = "/tmp/engagements.db"
+# Production (Vercel) must set DATABASE_URL to a real Postgres connection
+# (Supabase pooler, port 6543) as an environment variable — never hardcode
+# credentials here. Without it, this falls back to a local SQLite file,
+# which only works for local development (Vercel's filesystem is read-only
+# outside /tmp, so a misconfigured deploy fails loudly instead of silently
+# losing data).
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    if DATABASE_URL.startswith("postgresql") and "sslmode" not in DATABASE_URL:
+        DATABASE_URL += "&sslmode=require" if "?" in DATABASE_URL else "?sslmode=require"
 else:
-    DEFAULT_DB_PATH = os.path.join(BASE_DIR, "engagements.db")
-
-SUPABASE_DB_URL = "postgresql://postgres:Pabasara%402003!@db.awjaovibrslzghflwwin.supabase.co:5432/postgres"
-
-# Default to Supabase PostgreSQL if running on Vercel or if DATABASE_URL set
-DATABASE_URL = os.getenv("DATABASE_URL", SUPABASE_DB_URL)
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = f"sqlite:///{LOCAL_SQLITE_PATH}"
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
