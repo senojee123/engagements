@@ -17,17 +17,30 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    let isFinished = false;
+    const safetyTimeout = setTimeout(() => {
+      if (!isFinished) {
+        setIsLoading(false);
+      }
+    }, 2000);
+
     fetchUser(savedUserId)
       .then((fetchedUser) => {
+        isFinished = true;
         setUser(fetchedUser);
         setCurrentRole(fetchedUser.role);
         setIsAuthenticated(true);
       })
       .catch(() => {
+        isFinished = true;
         localStorage.removeItem('fanforge_user_id');
         setIsAuthenticated(false);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        isFinished = true;
+        clearTimeout(safetyTimeout);
+        setIsLoading(false);
+      });
   }, []);
 
   const login = async (email, password) => {
