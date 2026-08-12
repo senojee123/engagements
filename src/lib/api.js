@@ -311,6 +311,14 @@ export const saveGameConfigApi = async (gameId, configData, { brandId, instanceI
       body: JSON.stringify(brandedPayload),
     });
   } catch (e) {}
+
+  try {
+    fetch('https://memory-challenge-9cfa8-default-rtdb.asia-southeast1.firebasedatabase.app/gameConfig.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(brandedPayload),
+    }).catch(() => {});
+  } catch (e) {}
 };
 
 export const submitInstanceApi = async (data) => {
