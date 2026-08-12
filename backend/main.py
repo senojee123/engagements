@@ -560,6 +560,24 @@ async def save_game_config(
 
     if inst:
         inst.config_json = json.dumps(data)
+        inst.published_at = time.time()
+        db.commit()
+    else:
+        inst_id = target_inst or f"inst-{int(time.time() * 1000)}"
+        new_inst = models.InstanceModel(
+            id=inst_id,
+            app_id=game_id,
+            template_id=game_id,
+            user_id=target_brand or "default-user",
+            brand_id=target_brand or "default-brand",
+            brand_name=data.get("brandName") or "Brand Account",
+            title=data.get("gameTitle") or data.get("title") or "Custom Engagement",
+            status="pending",
+            config_json=json.dumps(data),
+            created_at=time.time(),
+            published_at=time.time()
+        )
+        db.add(new_inst)
         db.commit()
 
     await manager.broadcast({
