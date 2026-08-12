@@ -57,15 +57,25 @@ import InstanceFanRouter from './pages/public/InstanceFanRouter';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
 // Protected Route Guard Component
+// Protected Route Guard Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, isLoading, currentRole } = useAuth();
   if (isLoading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  if (allowedRoles && !allowedRoles.includes(currentRole)) {
+  if (
+    allowedRoles &&
+    !allowedRoles.includes(currentRole) &&
+    currentRole !== 'Super Admin' &&
+    currentRole !== 'Admin'
+  ) {
     return <Navigate to="/analytics" replace />;
   }
   return children;
@@ -114,8 +124,6 @@ export default function App() {
                     <Route path="/display" element={<StadiumScreenRouter />} />
                     <Route path="/screen" element={<StadiumScreenRouter />} />
 
-
-
                     {/* Authentication Routes */}
                     <Route element={<AuthLayout />}>
                       <Route path="/login" element={<Login />} />
@@ -147,10 +155,10 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     >
-                      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['Super Admin', 'Event Organizer', 'Venue Manager', 'Marketing Agency']}><Dashboard /></ProtectedRoute>} />
-                      <Route path="/organizations" element={<ProtectedRoute allowedRoles={['Super Admin', 'Marketing Agency', 'Venue Manager']}><Organizations /></ProtectedRoute>} />
-                      <Route path="/organizations/:id" element={<ProtectedRoute allowedRoles={['Super Admin', 'Marketing Agency', 'Venue Manager']}><OrganizationDetails /></ProtectedRoute>} />
-                      <Route path="/events" element={<ProtectedRoute allowedRoles={['Super Admin', 'Event Organizer', 'Marketing Agency', 'Venue Manager']}><Events /></ProtectedRoute>} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/organizations" element={<Organizations />} />
+                      <Route path="/organizations/:id" element={<OrganizationDetails />} />
+                      <Route path="/events" element={<Events />} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/rewards" element={<Rewards />} />
                       <Route path="/idle-screen" element={<IdleScreenSettings />} />
@@ -168,10 +176,10 @@ export default function App() {
                       <Route path="/library/:id" element={<TemplateDetails />} />
 
                       {/* Admin Approvals Route */}
-                      <Route path="/approvals" element={<ProtectedRoute allowedRoles={['Super Admin']}><Approvals /></ProtectedRoute>} />
+                      <Route path="/approvals" element={<ProtectedRoute allowedRoles={['Super Admin', 'Admin']}><Approvals /></ProtectedRoute>} />
 
                       {/* Phase 3 Brand Engine Portal */}
-                      <Route path="/brands" element={<ProtectedRoute allowedRoles={['Super Admin', 'Developer']}><BrandManager /></ProtectedRoute>} />
+                      <Route path="/brands" element={<ProtectedRoute allowedRoles={['Super Admin', 'Admin', 'Developer']}><BrandManager /></ProtectedRoute>} />
                     </Route>
 
                     {/* 404 Catch-All */}
