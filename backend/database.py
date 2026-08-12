@@ -10,11 +10,15 @@ if os.getenv("VERCEL") and not os.getenv("DATABASE_URL"):
 else:
     DEFAULT_DB_PATH = os.path.join(BASE_DIR, "engagements.db")
 
-# Default to SQLite file database, or use PostgreSQL DATABASE_URL if set
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
+SUPABASE_DB_URL = "postgresql+pg8000://postgres:Pabasara@2003!@db.awjaovibrslzghflwwin.supabase.co:5432/postgres"
 
+# Default to Supabase PostgreSQL if running on Vercel or if DATABASE_URL set
+DATABASE_URL = os.getenv("DATABASE_URL", SUPABASE_DB_URL)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif DATABASE_URL.startswith("postgresql://") and "+pg8000" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
-# For SQLite, check_same_thread=False allows multi-threaded async request handling
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
