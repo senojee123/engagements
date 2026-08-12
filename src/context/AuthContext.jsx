@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const loggedUser = await loginUserApi({ email, password });
     localStorage.setItem('fanforge_user_id', loggedUser.id);
+    try { localStorage.setItem('fanforge_cached_user', JSON.stringify(loggedUser)); } catch (e) {}
     setUser(loggedUser);
     setCurrentRole(loggedUser.role);
     setIsAuthenticated(true);
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       role: formData.role || 'Brand',
     });
     localStorage.setItem('fanforge_user_id', newUser.id);
+    try { localStorage.setItem('fanforge_cached_user', JSON.stringify(newUser)); } catch (e) {}
     setUser(newUser);
     setCurrentRole(newUser.role);
     setIsAuthenticated(true);
@@ -69,6 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('fanforge_user_id');
+    localStorage.removeItem('fanforge_cached_user');
     setIsAuthenticated(false);
     setUser(null);
     setCurrentRole(null);

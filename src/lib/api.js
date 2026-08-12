@@ -75,8 +75,19 @@ export const loginUserApi = async (data) => {
 // Users
 export const fetchUser = async (id) => {
   try {
-    return await request('GET', `/api/users/${id}`);
+    const user = await request('GET', `/api/users/${id}`);
+    if (user && user.id) {
+      try { localStorage.setItem('fanforge_cached_user', JSON.stringify(user)); } catch (err) {}
+    }
+    return user;
   } catch (e) {
+    try {
+      const cached = localStorage.getItem('fanforge_cached_user');
+      if (cached) {
+        const u = JSON.parse(cached);
+        if (u && (u.id === id || !id)) return u;
+      }
+    } catch (err) {}
     return {
       id: id || 'demo-user',
       name: 'User',
