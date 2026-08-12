@@ -10,7 +10,7 @@ if os.getenv("VERCEL") and not os.getenv("DATABASE_URL"):
 else:
     DEFAULT_DB_PATH = os.path.join(BASE_DIR, "engagements.db")
 
-SUPABASE_DB_URL = "postgresql://postgres:Pabasara@2003!@db.awjaovibrslzghflwwin.supabase.co:5432/postgres"
+SUPABASE_DB_URL = "postgresql://postgres:Pabasara%402003!@db.awjaovibrslzghflwwin.supabase.co:5432/postgres"
 
 # Default to Supabase PostgreSQL if running on Vercel or if DATABASE_URL set
 DATABASE_URL = os.getenv("DATABASE_URL", SUPABASE_DB_URL)
