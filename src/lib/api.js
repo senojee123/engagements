@@ -130,6 +130,17 @@ const getCachedInstances = () => {
   }
 };
 
+export const notifyInstancesChanged = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new Event('fanforge_instances_updated'));
+    window.dispatchEvent(new Event('storage'));
+    const channel = new BroadcastChannel('fanforge_instances_sync');
+    channel.postMessage({ type: 'INSTANCES_UPDATED', timestamp: Date.now() });
+    channel.close();
+  } catch (e) {}
+};
+
 const saveCachedInstance = (inst) => {
   if (!inst) return;
   const instId = inst.instanceId || inst.id;
@@ -287,6 +298,7 @@ export const submitInstanceApi = async (data) => {
     });
   }
 
+  notifyInstancesChanged();
   return result;
 };
 
@@ -462,6 +474,7 @@ export const deleteInstanceApi = async (instanceId) => {
     }
   } catch (e) {}
 
+  notifyInstancesChanged();
   return { message: 'Deleted' };
 };
 

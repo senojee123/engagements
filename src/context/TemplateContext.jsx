@@ -15,7 +15,7 @@ const DEFAULT_FALLBACK_TEMPLATES = [
     audienceSize: '100 - 100,000+',
     popularity: 4.94,
     ratingCount: 275,
-    tags: ['Subway Surfers Style', '3-Lane Runner', 'Arcade Game', 'Sponsor Power-Ups', 'Fan Engagement'],
+    tags: ['3-Lane Runner', 'Arcade Game', 'Sponsor Power-Ups', 'Fan Engagement'],
     status: 'Active Backend',
     isFeatured: true,
     supportedOutputs: ['Mobile Web', 'LED Screen', 'Projector', 'TV Display', 'Jumbotron'],

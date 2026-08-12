@@ -36,8 +36,8 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   const [isInstancesLoading, setIsInstancesLoading] = useState(true);
   const [activeBrandName, setActiveBrandName] = useState('');
 
-  useEffect(() => {
-    setIsInstancesLoading(true);
+  const loadInstances = (showLoading = false) => {
+    if (showLoading) setIsInstancesLoading(true);
     const searchParams = new URLSearchParams(window.location.search);
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
     const targetBrand = brandParam || undefined;
@@ -69,6 +69,39 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
         setApprovedInstances([]);
       })
       .finally(() => setIsInstancesLoading(false));
+  };
+
+  useEffect(() => {
+    loadInstances(true);
+
+    // Poll for new/deleted instances every 2 seconds
+    const interval = setInterval(() => {
+      loadInstances(false);
+    }, 2000);
+
+    const handleSync = () => loadInstances(false);
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('fanforge_instances_updated', handleSync);
+
+    let channel;
+    try {
+      channel = new BroadcastChannel('fanforge_instances_sync');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'INSTANCES_UPDATED') {
+          loadInstances(false);
+        }
+      };
+    } catch (e) {}
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('fanforge_instances_updated', handleSync);
+      if (channel) channel.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -220,12 +253,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
           setInstanceTiles(tiles.map((t) => t.content).filter(Boolean));
         }
       })
-      .catch(() => { })
-      .finally(() => {
-        if (!isCancelled && forcedAppId === 'memory-challenge') {
-          setActiveModal('memory-challenge');
-        }
-      });
+      .catch(() => { });
 
     return () => {
       isCancelled = true;
@@ -471,19 +499,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-emerald-600',
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
-                  const instId = inst.instanceId || inst.id;
-                  const bId = inst.brandId || inst.userId || '';
-                  const params = new URLSearchParams();
-                  if (instId && !instId.startsWith('def-')) params.set('instanceId', instId);
-                  if (bId) params.set('brandId', bId);
-                  const qs = params.toString() ? `?${params.toString()}` : '';
-
-                  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                  if (isLocal) {
-                    window.location.href = `/e/memory-challenge/${instId || 'default'}${qs}`;
-                  } else {
-                    window.location.href = `https://memory-game-black-omega.vercel.app/${qs}`;
-                  }
+                  setActiveModal('memory-challenge');
                 },
                 isActive: activeMemoryComputed,
               },

@@ -14,13 +14,14 @@ import {
   Check,
   X,
   Copy,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import { useToast } from '../../context/ToastContext';
-import { fetchInstancesApi, approveInstanceApi, rejectInstanceApi } from '../../lib/api';
+import { fetchInstancesApi, approveInstanceApi, rejectInstanceApi, deleteInstanceApi } from '../../lib/api';
 
 export default function Approvals() {
   const toast = useToast();
@@ -70,6 +71,22 @@ export default function Approvals() {
       }
     } catch (err) {
       toast.error(err.message || 'Unable to reject customization.');
+    }
+  };
+
+  const handleDelete = async (instId, title, e) => {
+    if (e) e.stopPropagation();
+    const targetId = instId || '';
+    if (!window.confirm(`Are you sure you want to delete approval request "${title || targetId}"?`)) return;
+    try {
+      await deleteInstanceApi(targetId);
+      toast.success(`Customization request ${targetId.slice(0, 10)}... deleted.`);
+      loadInstances();
+      if (selectedInstance?.instanceId === targetId) {
+        setSelectedInstance(null);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Unable to delete request.');
     }
   };
 
@@ -241,6 +258,16 @@ export default function Approvals() {
                       ✅ Approved for Brand Launch
                     </Badge>
                   )}
+
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    icon={Trash2}
+                    onClick={(e) => handleDelete(inst.instanceId || inst.id, inst.title, e)}
+                    className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm"
+                  >
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -280,6 +307,14 @@ export default function Approvals() {
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
               <Button variant="secondary" onClick={() => setSelectedInstance(null)}>
                 Close
+              </Button>
+              <Button
+                variant="danger"
+                icon={Trash2}
+                onClick={(e) => handleDelete(selectedInstance.instanceId || selectedInstance.id, selectedInstance.title, e)}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold"
+              >
+                Delete
               </Button>
               {(selectedInstance.status || 'pending').toLowerCase() === 'pending' && (
                 <>
