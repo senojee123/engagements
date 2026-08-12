@@ -499,7 +499,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-emerald-600',
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
-                  setActiveModal('memory-challenge');
+                  window.location.href = 'https://memory-challenge-psi.vercel.app/';
                 },
                 isActive: activeMemoryComputed,
               },
