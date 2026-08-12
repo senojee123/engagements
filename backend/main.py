@@ -524,7 +524,7 @@ def get_game_config(
         .filter(
             (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id)
         )
-        .order_by(models.InstanceModel.published_at.desc(), models.InstanceModel.created_at.desc())
+        .order_by(models.InstanceModel.created_at.desc())
         .first()
     )
     if inst and inst.config_json:
