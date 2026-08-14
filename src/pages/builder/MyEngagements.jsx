@@ -221,6 +221,20 @@ export default function MyEngagements() {
         ratingCount: 275,
       };
     }
+    if (tId.includes('wheel') || tId.includes('spin') || (inst.title || '').toLowerCase().includes('spin')) {
+      return {
+        id: 'spin-wheel',
+        title: inst.title || 'Spin the Wheel',
+        category: 'Contests',
+        description: 'Interactive prize wheel engagement template for stadium big screens and venue mobile fan portals. Fans spin the wheel to win instant sponsor rewards, coupons, and VIP perks.',
+        thumbnail: '/spin_wheel.jpg',
+        duration: '1-2 mins',
+        difficulty: 'Easy',
+        audienceSize: '100 - 100,000+',
+        popularity: 4.96,
+        ratingCount: 410,
+      };
+    }
 
     return {
       id: tId || 'custom-engagement',

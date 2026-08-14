@@ -219,6 +219,37 @@ def seed_templates(db: Session):
         ))
         db.commit()
 
+    if not db.query(models.TemplateModel).filter_by(id="spin-wheel").first():
+        db.add(models.TemplateModel(
+            id="spin-wheel",
+            title="Spin the Wheel",
+            category="Contests",
+            description=(
+                "Interactive prize wheel engagement template for stadium big screens and venue mobile fan portals. "
+                "Fans spin the wheel to win instant sponsor rewards, coupons, and VIP perks."
+            ),
+            thumbnail="/spin_wheel.jpg",
+            duration="1-2 mins",
+            difficulty="Easy",
+            audience_size="100 - 100,000+",
+            popularity=4.96,
+            rating_count=410,
+            tags=["Spin the Wheel", "Prize Wheel", "Instant Win", "Sponsor Rewards", "Fan Engagement"],
+            status="Active Backend",
+            is_featured=True,
+            supported_outputs=["Mobile Web", "LED Screen", "Projector", "TV Display", "Jumbotron"],
+            default_brand="coca-cola",
+            player_journey=[
+                "1. Scan QR Code displayed on venue Jumbotron or stadium screen.",
+                "2. Launch Spin the Wheel engagement portal on mobile smartphone.",
+                "3. Tap \"SPIN NOW\" button to rotate the wheel.",
+                "4. Land on a sponsored segment (VIP Upgrade, Free Drink, Discount Coupon).",
+                "5. Redeem instant digital voucher code at stadium concessions.",
+            ],
+            created_by_user_id=None,
+        ))
+        db.commit()
+
     db.commit()
 
 
