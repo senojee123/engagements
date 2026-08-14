@@ -408,7 +408,7 @@ export default function MyEngagements() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-between gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between gap-1.5 pt-1 w-full" onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="primary"
                       size="sm"
@@ -454,10 +454,10 @@ export default function MyEngagements() {
                       size="sm"
                       icon={Trash2}
                       onClick={(e) => handleDelete(inst.instanceId || inst.id, inst.title || template.title, e)}
-                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 shadow-sm"
-                    >
-                      Delete
-                    </Button>
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold shrink-0 shadow-sm w-8 h-8 flex items-center justify-center p-0"
+                      title="Delete Engagement"
+                      aria-label="Delete Engagement"
+                    />
                   </div>
                 </div>
               </div>
