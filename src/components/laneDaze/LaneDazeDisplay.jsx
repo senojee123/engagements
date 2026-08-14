@@ -40,7 +40,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
   const fanzoneUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/';
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
-  // Listen for brand changes & score updates
+  // Listen for brand changes & fetch real scores from Supabase API
   useEffect(() => {
     const handleStorage = (e) => {
       if (e.key === 'fanforge_active_brand' && e.newValue) {
@@ -51,15 +51,41 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
     };
     window.addEventListener('storage', handleStorage);
 
-    const interval = setInterval(() => {
-      setLeaderboard((prev) =>
-        prev.map((player) =>
-          player.rank === 1
-            ? { ...player, score: player.score + Math.floor(Math.random() * 30) + 10 }
-            : player
-        )
-      );
-    }, 2500);
+    const fetchScores = () => {
+      const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&order=score.desc&limit=10';
+      const headers = {
+        'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
+        'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'
+      };
+
+      fetch(url, { headers })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = data.map((row, index) => ({
+              id: index + 1,
+              rank: index + 1,
+              name: row.player_name || 'Anonymous',
+              score: Number(row.score) || 0,
+              time: '00:45s',
+              badge: index === 0 ? 'Champion' : index < 3 ? 'Elite' : 'Runner',
+              avatar: `https://images.unsplash.com/photo-${1535713875002-d1d0cf377fde}?auto=format&fit=crop&w=150&q=80`,
+              combo: 'Active',
+              reward: index === 0 ? 'Grand Prize' : 'Participant'
+            }));
+            setLeaderboard(mapped);
+          }
+        })
+        .catch((err) => {
+          console.warn('[Leaderboard] API fetch error:', err);
+        });
+    };
+
+    fetchScores();
+    const interval = setInterval(fetchScores, 6000); // Refresh every 6 seconds
 
     return () => {
       window.removeEventListener('storage', handleStorage);
