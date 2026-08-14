@@ -442,52 +442,89 @@ export default function LaneDazeConfig({ onSubmitted }) {
                 onClick={addBillboardSlot}
                 className="text-xs text-indigo-600 hover:text-indigo-700 font-bold flex items-center gap-1.5 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Ad Image
+                <Plus className="w-3.5 h-3.5" /> Add Ad (Image/Video)
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {config.billboards.map((url, idx) => (
-                <div key={idx} className="p-4 border border-slate-200 rounded-2xl bg-slate-50 space-y-3 relative group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase">Ad Slot #{idx + 1}</span>
-                    {config.billboards.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeBillboardSlot(idx)}
-                        className="text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+              {config.billboards.map((url, idx) => {
+                const isVideo = url && (
+                  url.startsWith('data:video/') || 
+                  url.toLowerCase().endsWith('.mp4') || 
+                  url.toLowerCase().endsWith('.webm') || 
+                  url.toLowerCase().endsWith('.mov') ||
+                  url.includes('video')
+                );
+                return (
+                  <div key={idx} className="p-4 border border-slate-200 rounded-2xl bg-slate-50 space-y-3.5 relative group">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Ad Slot #{idx + 1}</span>
+                      {config.billboards.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeBillboardSlot(idx)}
+                          className="text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
 
-                  <div className="w-full h-28 border border-slate-200 bg-white rounded-xl flex items-center justify-center overflow-hidden relative">
-                    {url ? (
-                      <img src={url} alt={`Ad Banner ${idx + 1}`} className="w-full h-full object-contain" />
-                    ) : (
-                      <ImageIcon className="w-8 h-8 text-slate-300" />
-                    )}
-                  </div>
+                    <div className="w-full h-28 border border-slate-200 bg-white rounded-xl flex items-center justify-center overflow-hidden relative">
+                      {url ? (
+                        isVideo ? (
+                          <video 
+                            src={url} 
+                            className="w-full h-full object-contain" 
+                            muted 
+                            loop 
+                            autoPlay 
+                            playsInline 
+                          />
+                        ) : (
+                          <img src={url} alt={`Ad Banner ${idx + 1}`} className="w-full h-full object-contain" />
+                        )
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-slate-300" />
+                      )}
+                    </div>
 
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={(el) => (fileRefs.current[`billboard_${idx}`] = el)}
-                      onChange={(e) => handleBillboardUpload(idx, e)}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileRefs.current[`billboard_${idx}`]?.click()}
-                      className="w-full py-2 px-3 border border-slate-200 bg-white rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <UploadCloud className="w-4 h-4 text-slate-500" /> Upload Ad Creative
-                    </button>
+                    <div className="space-y-2.5">
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          ref={(el) => (fileRefs.current[`billboard_${idx}`] = el)}
+                          onChange={(e) => handleBillboardUpload(idx, e)}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileRefs.current[`billboard_${idx}`]?.click()}
+                          className="w-full py-2 px-3 border border-slate-200 bg-white rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <UploadCloud className="w-4 h-4 text-slate-500" /> Upload Image / Video
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold text-slate-500 uppercase">Or Paste Hosted Video/Image URL</label>
+                        <input
+                          type="text"
+                          value={url.startsWith('data:') ? '' : url}
+                          placeholder="https://yoursite.com/looping-ad.mp4"
+                          onChange={(e) => {
+                            const newBillboards = [...config.billboards];
+                            newBillboards[idx] = e.target.value;
+                            updateField('billboards', newBillboards);
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-[11px] font-medium"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
