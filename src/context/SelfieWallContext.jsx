@@ -194,6 +194,7 @@ export const SelfieWallProvider = ({ children }) => {
     } catch (e) {}
 
     const loadSelfies = () => {
+      if (document.hidden) return;
       fetchSelfiesApi()
         .then((data) => {
           if (!isCancelled && Array.isArray(data)) {
@@ -204,7 +205,7 @@ export const SelfieWallProvider = ({ children }) => {
     };
 
     loadSelfies();
-    const interval = setInterval(loadSelfies, 3000); // 3-second auto-poll guarantee
+    const interval = setInterval(loadSelfies, 5000); // 5-second polling when active tab
 
     return () => {
       isCancelled = true;

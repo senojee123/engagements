@@ -54,38 +54,62 @@ export const updateUserApi = (id, data) => request('PATCH', `/api/users/${id}`, 
 export const changePasswordApi = (id, data) => request('POST', `/api/users/${id}/change-password`, data);
 export const deleteUserApi = (id) => request('DELETE', `/api/users/${id}`);
 
+// Generic Stale-While-Revalidate caching helper for GET requests
+async function swrRequest(path, cacheKey, defaultFallback = []) {
+  let cached = null;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) cached = JSON.parse(raw);
+  } catch (e) {}
+
+  const networkPromise = request('GET', path)
+    .then((data) => {
+      if (data) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+      }
+      return data;
+    })
+    .catch(() => cached || defaultFallback);
+
+  if (cached) {
+    networkPromise.catch(() => {});
+    return cached;
+  }
+  return networkPromise;
+}
+
 // Organizations
-export const fetchOrganizations = () => request('GET', '/api/organizations/');
+export const fetchOrganizations = () => swrRequest('/api/organizations/', 'fanforge_orgs_cache');
 export const createOrganizationApi = (data) => request('POST', '/api/organizations/', data);
 export const updateOrganizationApi = (id, data) => request('PATCH', `/api/organizations/${id}`, data);
 export const deleteOrganizationApi = (id) => request('DELETE', `/api/organizations/${id}`);
 
 // Events
-export const fetchEvents = () => request('GET', '/api/events/');
+export const fetchEvents = () => swrRequest('/api/events/', 'fanforge_events_cache');
 export const createEventApi = (data) => request('POST', '/api/events/', data);
 export const updateEventApi = (id, data) => request('PATCH', `/api/events/${id}`, data);
 export const deleteEventApi = (id) => request('DELETE', `/api/events/${id}`);
 
 // Activities
-export const fetchActivities = (limit = 20) => request('GET', `/api/activities/?limit=${limit}`);
+export const fetchActivities = (limit = 20) => swrRequest(`/api/activities/?limit=${limit}`, `fanforge_activities_${limit}`);
 
 // Notifications
-export const fetchNotifications = () => request('GET', '/api/notifications/');
+export const fetchNotifications = () => swrRequest('/api/notifications/', 'fanforge_notifs_cache');
 export const markNotificationReadApi = (id) => request('POST', `/api/notifications/${id}/read`);
 export const markAllNotificationsReadApi = () => request('POST', '/api/notifications/read-all');
 
 // Templates
-export const fetchTemplates = () => request('GET', '/api/templates/');
+export const fetchTemplates = () => swrRequest('/api/templates/', 'fanforge_templates_cache');
 export const createTemplateApi = (data) => request('POST', '/api/templates/', data);
 
 // Brand Kits
-export const fetchBrandKits = () => request('GET', '/api/brand-kits/');
+export const fetchBrandKits = () => swrRequest('/api/brand-kits/', 'fanforge_brandkits_cache');
 export const createBrandKitApi = (data) => request('POST', '/api/brand-kits/', data);
 export const updateBrandKitApi = (id, data) => request('PUT', `/api/brand-kits/${id}`, data);
 export const deleteBrandKitApi = (id) => request('DELETE', `/api/brand-kits/${id}`);
 
 // Live Polls
-export const fetchPolls = () => request('GET', '/api/polls/');
+export const fetchPolls = () => swrRequest('/api/polls/', 'fanforge_polls_cache');
 export const fetchActivePoll = () => request('GET', '/api/polls/active');
 export const submitVoteApi = (pollId, optionId) => request('POST', '/api/polls/vote', { pollId, optionId });
 export const createPollApi = (data) => request('POST', '/api/polls/', data);
@@ -310,14 +334,6 @@ export const saveGameConfigApi = async (gameId, configData, { brandId, instanceI
 
   try {
     await request('POST', `/api/game-config/${gameId}${qs}`, brandedPayload);
-  } catch (e) {}
-
-  try {
-    fetch('https://memory-challenge-9cfa8-default-rtdb.asia-southeast1.firebasedatabase.app/gameConfig.json', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(brandedPayload),
-    }).catch(() => {});
   } catch (e) {}
 };
 

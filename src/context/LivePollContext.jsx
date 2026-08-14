@@ -48,6 +48,8 @@ export const LivePollProvider = ({ children }) => {
     let isCancelled = false;
 
     const loadPollData = () => {
+      if (document.hidden) return;
+
       fetchActivePoll()
         .then((data) => {
           if (!isCancelled && data) setActivePoll(data);
@@ -62,7 +64,7 @@ export const LivePollProvider = ({ children }) => {
     };
 
     loadPollData();
-    const interval = setInterval(loadPollData, 2000);
+    const interval = setInterval(loadPollData, 5000);
 
     return () => {
       isCancelled = true;

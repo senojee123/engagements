@@ -88,8 +88,9 @@ export const AppProvider = ({ children }) => {
     };
     window.addEventListener('storage', handleStorage);
 
-    // Periodic polling to keep cross-browser sessions up to date
+    // Periodic polling to keep cross-browser sessions up to date (paused when tab is hidden)
     const interval = setInterval(() => {
+      if (document.hidden) return;
       fetchScreenStatusApi()
         .then((data) => {
           if (!cancelled && data && data.idleConfig) {
@@ -105,7 +106,7 @@ export const AppProvider = ({ children }) => {
           }
         })
         .catch(() => {});
-    }, 2500);
+    }, 8000);
 
     return () => {
       cancelled = true;
@@ -120,7 +121,7 @@ export const AppProvider = ({ children }) => {
   }, [idleScreenConfig]);
 
   const refreshActivities = async () => {
-    setActivities(await fetchActivities());
+    fetchActivities().then((acts) => setActivities(acts)).catch(() => {});
   };
 
   const updateIdleConfig = (updatedFields) => {
@@ -161,37 +162,56 @@ export const AppProvider = ({ children }) => {
     updateIdleConfig(updated);
   };
 
-  // Organization CRUD
+  // Organization CRUD — Optimistic UI
   const createOrganization = async (orgData) => {
-    const newOrg = await createOrganizationApi({
+    const tempId = `org_${Date.now()}`;
+    const newOrg = {
+      id: tempId,
       name: orgData.name,
       logo: orgData.logo || 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=150&q=80',
       industry: orgData.industry || 'Sports',
       description: orgData.description || '',
       website: orgData.website || '',
       contactEmail: orgData.contactEmail || '',
-    });
+      eventsCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
     setOrganizations((prev) => [newOrg, ...prev]);
-    await refreshActivities();
+
+    createOrganizationApi(orgData)
+      .then((savedOrg) => {
+        if (savedOrg && savedOrg.id) {
+          setOrganizations((prev) => prev.map((o) => (o.id === tempId ? savedOrg : o)));
+        }
+        refreshActivities();
+      })
+      .catch(() => {});
+
     return newOrg;
   };
 
   const updateOrganization = async (id, updatedFields) => {
-    const updated = await updateOrganizationApi(id, updatedFields);
-    setOrganizations((prev) => prev.map((org) => (org.id === id ? updated : org)));
-    await refreshActivities();
-    return updated;
+    setOrganizations((prev) => prev.map((org) => (org.id === id ? { ...org, ...updatedFields } : org)));
+    updateOrganizationApi(id, updatedFields)
+      .then((updated) => {
+        if (updated) setOrganizations((prev) => prev.map((org) => (org.id === id ? updated : org)));
+        refreshActivities();
+      })
+      .catch(() => {});
+    return { id, ...updatedFields };
   };
 
   const deleteOrganization = async (id) => {
-    await deleteOrganizationApi(id);
     setOrganizations((prev) => prev.filter((o) => o.id !== id));
-    await refreshActivities();
+    deleteOrganizationApi(id).then(() => refreshActivities()).catch(() => {});
   };
 
-  // Event CRUD
+  // Event CRUD — Optimistic UI
   const createEvent = async (eventData) => {
-    const newEvt = await createEventApi({
+    const tempId = `evt_${Date.now()}`;
+    const newEvt = {
+      id: tempId,
       name: eventData.name,
       type: eventData.type || 'Sports',
       venue: eventData.venue || 'TBD Stadium',
@@ -200,34 +220,47 @@ export const AppProvider = ({ children }) => {
       organizationId: eventData.organizationId,
       status: eventData.status || 'Draft',
       capacity: Number(eventData.capacity) || 5000,
-    });
+    };
+
     setEvents((prev) => [newEvt, ...prev]);
-    await refreshActivities();
+
+    createEventApi(eventData)
+      .then((savedEvt) => {
+        if (savedEvt && savedEvt.id) {
+          setEvents((prev) => prev.map((e) => (e.id === tempId ? savedEvt : e)));
+        }
+        refreshActivities();
+      })
+      .catch(() => {});
+
     return newEvt;
   };
 
   const updateEvent = async (id, updatedFields) => {
-    const updated = await updateEventApi(id, updatedFields);
-    setEvents((prev) => prev.map((evt) => (evt.id === id ? updated : evt)));
-    await refreshActivities();
-    return updated;
+    setEvents((prev) => prev.map((evt) => (evt.id === id ? { ...evt, ...updatedFields } : evt)));
+    updateEventApi(id, updatedFields)
+      .then((updated) => {
+        if (updated) setEvents((prev) => prev.map((evt) => (evt.id === id ? updated : evt)));
+        refreshActivities();
+      })
+      .catch(() => {});
+    return { id, ...updatedFields };
   };
 
   const deleteEvent = async (id) => {
-    await deleteEventApi(id);
     setEvents((prev) => prev.filter((e) => e.id !== id));
-    await refreshActivities();
+    deleteEventApi(id).then(() => refreshActivities()).catch(() => {});
   };
 
-  // Notifications
+  // Notifications — Optimistic UI
   const markNotificationRead = async (id) => {
-    const updated = await markNotificationReadApi(id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? updated : n)));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    markNotificationReadApi(id).catch(() => {});
   };
 
   const markAllNotificationsRead = async () => {
-    await markAllNotificationsReadApi();
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    markAllNotificationsReadApi().catch(() => {});
   };
 
   return (
