@@ -191,7 +191,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
 
   const DEFAULT_FANZONE_SETTINGS = {
     headerTitle: 'FAN ZONE',
-    headerSubtitle: 'Fan experiences go live throughout the match',
+    headerSubtitle: '',
     headerLogo: '',
     poweredByText: '',
     poweredByLogo: '',
@@ -460,9 +460,11 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
         <h1 className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight uppercase">
           {fanZoneSettings.headerTitle || 'FAN ZONE'}
         </h1>
-        <p className="text-xs sm:text-sm text-slate-600 font-medium">
-          {fanZoneSettings.headerSubtitle || 'Fan experiences go live throughout the match'}
-        </p>
+        {fanZoneSettings.headerSubtitle && (
+          <p className="text-xs sm:text-sm text-slate-600 font-medium">
+            {fanZoneSettings.headerSubtitle}
+          </p>
+        )}
       </header>
 
       {/* ---------------------------------------------------- */}
