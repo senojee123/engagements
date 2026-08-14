@@ -20,39 +20,39 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import EmailVerification from './pages/auth/EmailVerification';
 import ResetPassword from './pages/auth/ResetPassword';
 
-// Main App Pages
-import Dashboard from './pages/Dashboard';
-import Organizations from './pages/Organizations';
-import OrganizationDetails from './pages/OrganizationDetails';
-import Events from './pages/Events';
-import Analytics from './pages/Analytics';
-import Rewards from './pages/Rewards';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import IdleScreenSettings from './pages/IdleScreenSettings';
-import NotFound from './pages/NotFound';
+// Lazy-loaded Main App Pages
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Organizations = React.lazy(() => import('./pages/Organizations'));
+const OrganizationDetails = React.lazy(() => import('./pages/OrganizationDetails'));
+const Events = React.lazy(() => import('./pages/Events'));
+const Analytics = React.lazy(() => import('./pages/Analytics'));
+const Rewards = React.lazy(() => import('./pages/Rewards'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const IdleScreenSettings = React.lazy(() => import('./pages/IdleScreenSettings'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
-// Phase 2 Engagement Library Pages
-import EngagementLibrary from './pages/library/EngagementLibrary';
-import TemplateDetails from './pages/library/TemplateDetails';
-import MyTemplates from './pages/library/MyTemplates';
+// Lazy-loaded Phase 2 Engagement Library Pages
+const EngagementLibrary = React.lazy(() => import('./pages/library/EngagementLibrary'));
+const TemplateDetails = React.lazy(() => import('./pages/library/TemplateDetails'));
+const MyTemplates = React.lazy(() => import('./pages/library/MyTemplates'));
 
-// Phase 3 Brand Engine Pages
-import BrandManager from './pages/builder/BrandManager';
-import Approvals from './pages/admin/Approvals';
-import MyEngagements from './pages/builder/MyEngagements';
+// Lazy-loaded Phase 3 Brand Engine Pages
+const BrandManager = React.lazy(() => import('./pages/builder/BrandManager'));
+const Approvals = React.lazy(() => import('./pages/admin/Approvals'));
+const MyEngagements = React.lazy(() => import('./pages/builder/MyEngagements'));
 
-// Selfie Wall Activation Pages & Screens
-import SelfieWallDisplay from './components/selfieWall/SelfieWallDisplay';
-import StadiumScreenRouter from './components/selfieWall/StadiumScreenRouter';
+// Lazy-loaded Selfie Wall Activation Pages & Screens
+const SelfieWallDisplay = React.lazy(() => import('./components/selfieWall/SelfieWallDisplay'));
+const StadiumScreenRouter = React.lazy(() => import('./components/selfieWall/StadiumScreenRouter'));
 
-// Standalone Public Fan Zone Landing Page (QR Code Scan Destination)
-import FanZoneLanding from './pages/public/FanZoneLanding';
-import IdleScreenDisplay from './pages/public/IdleScreenDisplay';
+// Lazy-loaded Standalone Public Fan Zone Landing Page (QR Code Scan Destination)
+const FanZoneLanding = React.lazy(() => import('./pages/public/FanZoneLanding'));
+const IdleScreenDisplay = React.lazy(() => import('./pages/public/IdleScreenDisplay'));
 
-// New App / Instance Architecture Parametric Embed Routers
-import InstanceDisplayRouter from './pages/public/InstanceDisplayRouter';
-import InstanceFanRouter from './pages/public/InstanceFanRouter';
+// Lazy-loaded New App / Instance Architecture Parametric Embed Routers
+const InstanceDisplayRouter = React.lazy(() => import('./pages/public/InstanceDisplayRouter'));
+const InstanceFanRouter = React.lazy(() => import('./pages/public/InstanceFanRouter'));
 
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
@@ -93,7 +93,12 @@ export default function App() {
                   <LivePollProvider>
                     <ReactionWallProvider>
                       <MemoryChallengeProvider>
-                        <Routes>
+                        <React.Suspense fallback={
+                          <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        }>
+                          <Routes>
                     {/* Root Redirect */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -185,6 +190,7 @@ export default function App() {
                     {/* 404 Catch-All */}
                     <Route path="*" element={<NotFound />} />
                     </Routes>
+                  </React.Suspense>
                       </MemoryChallengeProvider>
                     </ReactionWallProvider>
                   </LivePollProvider>
