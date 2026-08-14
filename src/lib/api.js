@@ -223,12 +223,25 @@ export const fetchInstancesApi = async (params = {}) => {
         try {
           const existingCache = getCachedInstances();
           const otherAppsCache = existingCache.filter((i) => {
+            // If the query is empty (fetching all), evict ALL cached items to sync 1:1 with the server
+            if (Object.keys(params).length === 0) {
+              return false;
+            }
+            
+            // If query is for a specific appId and brand/user, filter out matching items
             if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
               const targetUser = params.userId || params.brandId;
               if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
-                return false; // Evict deleted/stale cached items for this app & user
+                return false;
               }
             }
+            
+            // If query is for a specific brand/user, filter out matching items
+            const queryBrand = params.userId || params.brandId;
+            if (queryBrand && (i.userId === queryBrand || i.brandId === queryBrand)) {
+              return false;
+            }
+
             return true;
           });
           const updatedCache = [...remoteData, ...otherAppsCache];
