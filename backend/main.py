@@ -507,6 +507,10 @@ def get_game_config(
                 return json.loads(inst.config_json)
             except Exception:
                 pass
+        # If a specific instance was requested but not found, do not fall back to other instances
+        if game_id == "memory-challenge":
+            return DEFAULT_MEMORY_CONFIG
+        return {}
 
     if target_brand and target_brand.strip():
         inst = db.query(models.InstanceModel).filter(
@@ -518,8 +522,12 @@ def get_game_config(
                 return json.loads(inst.config_json)
             except Exception:
                 pass
+        # If a specific brand was requested but not found, do not fall back to other brands
+        if game_id == "memory-challenge":
+            return DEFAULT_MEMORY_CONFIG
+        return {}
 
-    # Fallback to the most recent customized instance if no specific parameters passed
+    # Fallback to the most recent customized instance ONLY if no specific parameters were passed
     inst = (
         db.query(models.InstanceModel)
         .filter(
