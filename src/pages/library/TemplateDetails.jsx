@@ -41,6 +41,7 @@ import ReactionWallDisplay from '../../components/reactionWall/ReactionWallDispl
 import ReactionWallModerationPanel from '../../components/reactionWall/ReactionWallModerationPanel';
 import MemoryChallengeDisplay from '../../components/memoryChallenge/MemoryChallengeDisplay';
 import MemoryChallengeConfig, { MASTER_DEFAULT_CONFIG } from './MemoryChallengeConfig';
+import LaneDazeConfig from './LaneDazeConfig';
 import { useTemplates } from '../../context/TemplateContext';
 import { useSelfieWall, SelfieWallProvider } from '../../context/SelfieWallContext';
 import { useLivePoll, LivePollProvider } from '../../context/LivePollContext';
@@ -1109,6 +1110,187 @@ function MemoryChallengeEngagementView({ template }) {
   );
 }
 
+function LaneDazeEngagementView({ template }) {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { user } = useAuth();
+  const backLink = useBackLink();
+  const isFromMyEngagements = backLink.isFromMyEngagements;
+
+  const [activeSubTab, setActiveSubTab] = useState(isFromMyEngagements ? 'lane-dash-editor' : 'preview');
+  const [instanceStatus, setInstanceStatus] = useState(null);
+  const [instanceTitle, setInstanceTitle] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (user?.id) {
+      fetchInstancesApi({ appId: template.id, userId: user.id })
+        .then((instances) => {
+          if (!isMounted) return;
+          const inst = instances && instances[0];
+          setInstanceStatus(inst?.status || null);
+          if (inst?.title || inst?.config?.gameTitle) {
+            setInstanceTitle(inst.title || inst.config?.gameTitle);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { isMounted = false; };
+  }, [template.id, user?.id]);
+
+  const handleLaunch = async (instanceId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await launchInstanceApi(instanceId);
+      toast.success('Lane Dash launched live to stadium screens!');
+      setInstanceStatus('launched');
+    } catch (err) {
+      toast.error('Failed to launch live.');
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-300 w-full text-left">
+      {/* Back Link */}
+      <Link
+        to={backLink.path}
+        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" /> {backLink.label}
+      </Link>
+
+      {/* Hero Header Banner */}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start gap-6 w-full">
+          <img
+            src={template.thumbnail}
+            alt={template.title}
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-slate-700 shadow-md shrink-0"
+          />
+
+          <div className="space-y-3 flex-1 w-full text-left">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Badge variant="indigo" size="sm">
+                {template.category}
+              </Badge>
+              <span className="bg-emerald-950 text-emerald-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-800 whitespace-nowrap">
+                ● ACTIVE BACKEND TEMPLATE
+              </span>
+              <span className="flex items-center gap-1 text-xs font-semibold text-cyan-300 whitespace-nowrap">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {template.popularity} ({template.ratingCount || 275} reviews)
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              {isFromMyEngagements && instanceTitle ? instanceTitle : template.title}
+            </h1>
+
+            <p className="text-sm text-indigo-200/80 max-w-3xl leading-relaxed">
+              {template.description}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons Toolbar Row */}
+        <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="text-xs text-indigo-200/70 font-medium">
+            Active Venue: <span className="font-bold text-white">Metropolis Arena Stadium</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {isFromMyEngagements && (instanceStatus === 'approved' || instanceStatus === 'published') && (
+              <Button
+                onClick={(e) => {
+                  fetchInstancesApi({ appId: 'lane-daze', userId: user.id }).then((instances) => {
+                    const inst = instances && instances[0];
+                    if (inst) handleLaunch(inst.instanceId || inst.id, e);
+                  });
+                }}
+                variant="primary"
+                icon={Rocket}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md animate-pulse"
+              >
+                🚀 Launch Live to Screen
+              </Button>
+            )}
+            
+            {isFromMyEngagements && (
+              <a
+                href={`/fan-zone?brandId=${user?.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-white/10 text-cyan-300 border border-white/20 hover:bg-white/20 font-bold text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <span>Open Fan Zone Mobile Portal 📱</span>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sub Tabs */}
+      <Tabs
+        tabs={
+          isFromMyEngagements
+            ? [
+                { id: 'lane-dash-editor', label: '🏎️ Customize Brand' },
+                { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
+              ]
+            : [
+                { id: 'preview', label: '📺 Stadium Leaderboard Preview' },
+                { id: 'journey', label: 'Fan Experience & Player Journey 📖' },
+              ]
+        }
+        activeTab={activeSubTab}
+        onChange={setActiveSubTab}
+      />
+
+      {/* TAB: STADIUM LEADERBOARD PREVIEW */}
+      {!isFromMyEngagements && activeSubTab === 'preview' && (
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Tv className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h4 className="text-sm font-bold text-white">Immutable Leaderboard Preview</h4>
+                <p className="text-xs text-slate-400">Default stadium Lane Dash scoreboard view (Read-Only).</p>
+              </div>
+            </div>
+            <Badge variant="indigo" size="sm">Master Default</Badge>
+          </div>
+          <LaneDazeDisplay isStandalonePage={true} />
+        </div>
+      )}
+
+      {/* TAB: BRAND EDITOR */}
+      {isFromMyEngagements && activeSubTab === 'lane-dash-editor' && (
+        <LaneDazeConfig onSubmitted={() => setInstanceStatus('pending')} />
+      )}
+
+      {/* TAB: FAN EXPERIENCE GUIDE */}
+      {activeSubTab === 'journey' && template.playerJourney && (
+        <Card className="bg-white border-slate-200/80 shadow-xs p-6 col-span-1 md:col-span-2">
+          <CardHeader className="p-0 mb-4">
+            <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-indigo-600" /> Fan Experience & Player Journey
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {template.playerJourney.map((step, idx) => (
+              <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5">
+                  {idx + 1}
+                </span>
+                <p className="text-xs text-slate-700 font-medium leading-relaxed">{step}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function TemplateDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1198,6 +1380,11 @@ export default function TemplateDetails() {
   // If viewing Memory Challenge, render dedicated view directly
   if (template.id === 'memory-challenge') {
     return <MemoryChallengeEngagementView template={template} />;
+  }
+
+  // If viewing Lane Dash, render dedicated view directly
+  if (template.id === 'lane-daze') {
+    return <LaneDazeEngagementView template={template} />;
   }
 
 
