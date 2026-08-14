@@ -644,26 +644,25 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
         )}
       </main>
 
-      {/* ---------------------------------------------------- */}
-      {/* BOTTOM SPONSOR FOOTER */}
-      {/* ---------------------------------------------------- */}
-      <footer className="py-6 text-center space-y-2 border-t border-black/10">
-        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
-          POWERED BY
-        </p>
-        {fanZoneSettings.poweredByLogo && (
-          <img
-            src={fanZoneSettings.poweredByLogo}
-            alt="Powered By Logo"
-            className="h-10 max-w-[220px] object-contain mx-auto my-1"
-          />
-        )}
-        {fanZoneSettings.poweredByText && (
-          <p className="text-sm font-extrabold text-slate-900 tracking-tight">
-            {fanZoneSettings.poweredByText}
+      {(fanZoneSettings.poweredByLogo || fanZoneSettings.poweredByText) && (
+        <footer className="py-6 text-center space-y-2 border-t border-black/10">
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
+            POWERED BY
           </p>
-        )}
-      </footer>
+          {fanZoneSettings.poweredByLogo && (
+            <img
+              src={fanZoneSettings.poweredByLogo}
+              alt="Powered By Logo"
+              className="h-10 max-w-[220px] object-contain mx-auto my-1"
+            />
+          )}
+          {fanZoneSettings.poweredByText && (
+            <p className="text-sm font-extrabold text-slate-900 tracking-tight">
+              {fanZoneSettings.poweredByText}
+            </p>
+          )}
+        </footer>
+      )}
 
       {/* ---------------------------------------------------- */}
       {/* MODAL 1: SELFIE CAM LIVE CAMERA VIEWFINDER FLOW */}
