@@ -187,54 +187,88 @@ export const fetchInstancesApi = async (params = {}) => {
   if (params.status) queryParams.append('status', params.status);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
+  // Get cached data if available (SWR check)
+  let cachedData = null;
   try {
-    const remoteData = await request('GET', `/api/instances/${queryString}`);
-    if (Array.isArray(remoteData)) {
-      // Update local storage cache with live backend data (evicting deleted instances)
-      try {
-        const existingCache = getCachedInstances();
-        const otherAppsCache = existingCache.filter((i) => {
-          if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
-            const targetUser = params.userId || params.brandId;
-            if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
-              return false; // Evict deleted/stale cached items for this app & user
-            }
-          }
-          return true;
-        });
-        const updatedCache = [...remoteData, ...otherAppsCache];
-        localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
-      } catch (e) {}
-
-      return remoteData;
+    let merged = getCachedInstances();
+    if (params.appId) {
+      merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    }
+    if (params.userId || params.brandId) {
+      const targetBrand = params.userId || params.brandId;
+      merged = merged.filter(
+        (i) =>
+          i.userId === targetBrand ||
+          i.brandId === targetBrand ||
+          i.userId === 'default-user' ||
+          i.brandId === 'default-brand' ||
+          (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+      );
+    }
+    if (params.status) {
+      const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+      merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+    }
+    if (merged.length > 0) {
+      cachedData = merged;
     }
   } catch (e) {}
 
-  // Fallback to local cache only when network request fails
-  let merged = getCachedInstances();
+  // Network request wrapper
+  const networkFetch = async () => {
+    try {
+      const remoteData = await request('GET', `/api/instances/${queryString}`);
+      if (Array.isArray(remoteData)) {
+        // Update local storage cache with live backend data (evicting deleted instances)
+        try {
+          const existingCache = getCachedInstances();
+          const otherAppsCache = existingCache.filter((i) => {
+            if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
+              const targetUser = params.userId || params.brandId;
+              if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
+                return false; // Evict deleted/stale cached items for this app & user
+              }
+            }
+            return true;
+          });
+          const updatedCache = [...remoteData, ...otherAppsCache];
+          localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
+        } catch (e) {}
+        return remoteData;
+      }
+    } catch (e) {}
 
-  if (params.appId) {
-    merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    // Fallback: full local cache filtering on failure
+    let merged = getCachedInstances();
+    if (params.appId) {
+      merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    }
+    if (params.userId || params.brandId) {
+      const targetBrand = params.userId || params.brandId;
+      merged = merged.filter(
+        (i) =>
+          i.userId === targetBrand ||
+          i.brandId === targetBrand ||
+          i.userId === 'default-user' ||
+          i.brandId === 'default-brand' ||
+          (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+      );
+    }
+    if (params.status) {
+      const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+      merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+    }
+    return merged;
+  };
+
+  // If cache exists, return immediately to eliminate latency and update in background
+  if (cachedData) {
+    networkFetch().catch(() => {});
+    return cachedData;
   }
 
-  if (params.userId || params.brandId) {
-    const targetBrand = params.userId || params.brandId;
-    merged = merged.filter(
-      (i) =>
-        i.userId === targetBrand ||
-        i.brandId === targetBrand ||
-        i.userId === 'default-user' ||
-        i.brandId === 'default-brand' ||
-        (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
-    );
-  }
-
-  if (params.status) {
-    const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
-    merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
-  }
-
-  return merged;
+  // No cache found, block on network request
+  return networkFetch();
 };
 
 export const saveGameConfigApi = async (gameId, configData, { brandId, instanceId } = {}) => {
