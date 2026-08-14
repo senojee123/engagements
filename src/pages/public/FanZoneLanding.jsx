@@ -37,7 +37,6 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
   const [activeBrandName, setActiveBrandName] = useState('');
 
   const loadInstances = (showLoading = false) => {
-    if (showLoading) setIsInstancesLoading(true);
     const searchParams = new URLSearchParams(window.location.search);
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
     const targetBrand = brandParam || undefined;
@@ -47,10 +46,51 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
       queryParams.brandId = targetBrand;
     }
 
+    // 1. Read from cache instantly (SWR) to load the UI in 0ms!
+    try {
+      const cached = localStorage.getItem('fanforge_instances_cache');
+      if (cached) {
+        let list = JSON.parse(cached) || [];
+        if (targetBrand) {
+          list = list.filter(
+            (i) =>
+              i.userId === targetBrand ||
+              i.brandId === targetBrand ||
+              i.userId === 'default-user' ||
+              i.brandId === 'default-brand' ||
+              (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+          );
+        }
+        
+        // Filter unique instances
+        const uniqueAppMap = new Map();
+        list.forEach((inst) => {
+          const key = inst.instanceId || inst.id;
+          if (key) {
+            uniqueAppMap.set(key, inst);
+          }
+        });
+        const deduplicatedList = Array.from(uniqueAppMap.values());
+        
+        if (deduplicatedList.length > 0) {
+          setApprovedInstances(deduplicatedList);
+          if (deduplicatedList[0].brandName) {
+            setActiveBrandName(deduplicatedList[0].brandName);
+          }
+          // Hide loading spinner immediately since we have cached data to show!
+          setIsInstancesLoading(false);
+          showLoading = false; 
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached instances in landing:', e);
+    }
+
+    if (showLoading) setIsInstancesLoading(true);
+
     fetchInstancesApi(queryParams)
       .then((data) => {
         const list = data || [];
-        // Keep each engagement instance added to My Engagements
         const uniqueAppMap = new Map();
         list.forEach((inst) => {
           const key = inst.instanceId || inst.id;
@@ -66,7 +106,9 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
         }
       })
       .catch(() => {
-        setApprovedInstances([]);
+        if (approvedInstances.length === 0) {
+          setApprovedInstances([]);
+        }
       })
       .finally(() => setIsInstancesLoading(false));
   };
