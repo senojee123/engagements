@@ -499,7 +499,9 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-emerald-600',
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
-                  window.location.href = 'https://memory-challenge-b7b.pages.dev/';
+                  const instId = inst.instanceId || inst.id;
+                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  window.location.href = `https://memory-challenge-b7b.pages.dev/${query}`;
                 },
                 isActive: activeMemoryComputed,
               },
