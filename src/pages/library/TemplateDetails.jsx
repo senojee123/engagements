@@ -1118,6 +1118,7 @@ export default function TemplateDetails() {
 
   const [activeTab, setActiveTab] = useState('preview');
   const [selectedBrand, setSelectedBrand] = useState(null);
+  const backLink = useBackLink();
 
   const handleAddToMyEngagements = async () => {
     if (!template) return;
@@ -1147,8 +1148,6 @@ export default function TemplateDetails() {
 
   // Find template by ID
   const template = templates.find((t) => t.id === id);
-
-  const backLink = useBackLink();
 
   if (!template) {
     return (

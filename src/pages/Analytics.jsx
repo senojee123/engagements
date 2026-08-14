@@ -477,6 +477,26 @@ export default function Analytics() {
       brandsUsing: ['Red Bull', 'Nike'],
       description: '3-lane Subway Surfers-style endless runner engagement template. (No active game sessions recorded yet).',
     },
+    {
+      id: 'spin-wheel',
+      name: 'Spin the Wheel Prize Wheel',
+      category: 'Contests',
+      icon: Trophy,
+      color: 'from-purple-500 to-pink-600',
+      hasData: false,
+      totalInteractions: 0,
+      primaryMetric: '0 Spins Executed',
+      secondaryMetric: 'Template Registered',
+      topBrand: 'None',
+      metrics: [
+        { label: 'Total Wheel Spins', value: '0' },
+        { label: 'Prizes Claimed', value: '0' },
+        { label: 'Vouchers Redeemed', value: '0' },
+        { label: 'Status', value: 'Template Ready' },
+      ],
+      brandsUsing: ['Coca-Cola', 'Pepsi'],
+      description: 'Interactive prize wheel engagement template for stadium big screens and venue mobile fan portals.',
+    },
   ];
 
   // REAL BRAND ACTIVATIONS AGGREGATION
@@ -710,12 +730,13 @@ export default function Analytics() {
               </>
             ) : (
               <>
-                <option value="all">All Engagements (5 Modules)</option>
+                <option value="all">All Engagements (6 Modules)</option>
                 <option value="memory-challenge">Memory Challenge Tile Game (Firebase Live Data)</option>
                 <option value="selfie-wall">Live Fan Selfie Wall (Active Data)</option>
                 <option value="live-poll">Stadium Real-Time Live Poll (Active Data)</option>
                 <option value="reaction-wall">Live Emoji Reaction Wall (Active Data)</option>
                 <option value="lane-daze">Lane Dash Arcade Runner (No Data Yet)</option>
+                <option value="spin-wheel">Spin the Wheel Prize Wheel (Template)</option>
               </>
             )}
           </select>

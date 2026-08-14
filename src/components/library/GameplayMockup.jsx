@@ -289,6 +289,70 @@ export default function GameplayMockup({ brand, templateId = 'product-rush' }) {
         </div>
       )}
 
+      {/* ---------------------------------------------------- */}
+      {/* 4. SPIN THE WHEEL TEMPLATE PREVIEW MOCKUP */}
+      {/* ---------------------------------------------------- */}
+      {(templateId === 'spin-wheel' || templateId === 'spin-the-wheel') && (
+        <div className="p-6 space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3 text-white">
+            <div>
+              <h3 className="text-xl font-extrabold text-white">Spin the Wheel Engagement Template</h3>
+              <p className="text-xs text-cyan-300">Instant Winner Prize Wheel • Arena Fan Activation</p>
+            </div>
+            <span className="text-[10px] font-mono bg-indigo-900/80 text-cyan-300 px-3 py-1 rounded-full border border-indigo-700">
+              TEMPLATE PREVIEW
+            </span>
+          </div>
+
+          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 py-4">
+            {/* Spinning Wheel Mock Design using template image */}
+            <div className="relative w-52 h-52 rounded-full border-4 border-amber-400 shadow-2xl flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
+              <motion.img
+                src="/spin_wheel.jpg"
+                alt="Spin the Wheel Template"
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 25, ease: 'linear' }}
+                className="w-full h-full object-cover rounded-full"
+              />
+              {/* Center Spinner Cap */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-12 h-12 rounded-full bg-slate-950/90 border-2 border-amber-400 flex items-center justify-center text-amber-400 font-extrabold shadow-xl z-10 text-[11px] text-center">
+                  SPIN!
+                </div>
+              </div>
+              {/* Pointer indicator */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-8 border-r-8 border-t-[14px] border-l-transparent border-r-transparent border-t-amber-400 z-20" />
+            </div>
+
+            {/* Template Prize Segments Info */}
+            <div className="space-y-2.5 text-left max-w-xs">
+              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">Customizable Wheel Segments</span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                  <span>VIP Pass</span>
+                </div>
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0" />
+                  <span>Free Drink</span>
+                </div>
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>20% Off Merch</span>
+                </div>
+                <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-pink-400 shrink-0" />
+                  <span>Signed Jersey</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-indigo-200/80 pt-1">
+                Configure custom prize odds, brand colors, and voucher codes inside the Visual Studio.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
 
 
       {/* ---------------------------------------------------- */}
