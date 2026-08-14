@@ -552,7 +552,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 onClick: () => {
                   const instId = inst.instanceId || inst.id;
                   const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
-                  window.location.href = `/games/lane-dash/index.html${query}`;
+                  window.location.href = `https://lane-dash-game.pages.dev/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
               },
@@ -567,7 +567,7 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 onClick: () => {
                   const instId = inst.instanceId || inst.id;
                   const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
-                  window.location.href = `/games/lane-dash/index.html${query}`;
+                  window.location.href = `https://lane-dash-game.pages.dev/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
               },
