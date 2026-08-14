@@ -7,6 +7,7 @@ import {
   Copy,
   Sparkles,
   Play,
+  Rocket,
   Monitor,
   Smartphone,
   Tv,

@@ -41,7 +41,6 @@ export const MASTER_DEFAULT_LANE_CONFIG = {
 export default function LaneDazeConfig({ onSubmitted }) {
   const navigate = useNavigate();
   const toast = useToast();
-  const { user } = e => useAuth();
   const authContext = useAuth();
   const currentUser = authContext?.user;
   
