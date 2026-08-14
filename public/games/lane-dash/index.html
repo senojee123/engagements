@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Lane Dash — Endless Runner</title>
+<link rel="stylesheet" href="../../engine/runner.css">
+<style>
+  /* This reskin's brand colors — see engine/runner.css's :root for what each
+     one controls and its default. Redeclared here (matching those defaults
+     exactly) as the template a new reskin edits; omit any you don't want to
+     change. */
+  :root {
+    --rd-bg: #0a0a14;
+    --rd-gold-1: #ffe259;
+    --rd-gold-2: #ffa751;
+    --rd-accent-3: #ff5f8f;
+    --rd-accent-4: #7c4dff;
+    --rd-highlight: #ffd166;
+    --rd-mult-color: #7CFF9E;
+    --rd-collectible-color: #ffcf33;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+<div id="vignette"></div>
+<div id="speedlines"></div>
+<div id="flash-overlay"></div>
+
+<div id="loading-screen">
+  <img class="sponsor-logo" id="loading-sponsor-logo" alt="" style="display:none;">
+  <div class="title-logo" style="font-size:clamp(30px,7vw,52px);">LANE DASH</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Loading assets&hellip;</div>
+  <div class="loading-bar-track"><div class="loading-bar-fill" id="loading-bar-fill"></div></div>
+</div>
+
+<div id="hud" style="display:none;">
+  <div>
+    <div class="score-block" id="hud-score">0</div>
+    <div class="sub" id="hud-high">Best: 0</div>
+  </div>
+  <div class="hud-right">
+    <button id="hud-pause-btn" aria-label="Pause">&#10074;&#10074;</button>
+    <div class="hud-stats-card">
+      <div class="coin-block"><span class="coin-dot"></span><span id="hud-coins">0</span></div>
+      <div class="hud-divider"></div>
+      <div class="mult-block" id="hud-mult">x1</div>
+    </div>
+  </div>
+</div>
+
+<div id="countdown" class="hidden"><div id="countdown-text"></div></div>
+
+<div id="start-screen" class="overlay">
+  <img class="sponsor-logo" id="start-sponsor-logo" alt="" style="display:none;">
+  <div class="title-logo">LANE DASH</div>
+  <input type="text" id="username-input" class="name-input" placeholder="Enter your name..." maxlength="12">
+  <div class="bank-line"><span class="coin-dot"></span><span id="bank-line-text">coins &times; distance multiplier = score</span></div>
+  <button class="big-btn" id="start-btn">TAP TO RUN</button>
+</div>
+
+<div id="gameover-screen" class="overlay hidden">
+  <img class="sponsor-logo" id="gameover-sponsor-logo" alt="" style="display:none;">
+  <div class="title-logo" style="font-size:38px;">WIPED OUT</div>
+  <div class="go-score" id="go-score">0</div>
+  <div class="go-sub" id="go-coins">0 coins collected</div>
+  <div class="go-high" id="go-high">Best: 0</div>
+  <button class="big-btn" id="restart-btn">RESTART</button>
+  <button class="big-btn secondary" id="gameover-menu-btn">MAIN MENU</button>
+</div>
+
+<div id="pause-screen" class="overlay hidden">
+  <img class="sponsor-logo" id="pause-sponsor-logo" alt="" style="display:none;">
+  <div class="title-logo" style="font-size:38px;">PAUSED</div>
+  <div class="pause-line" id="pause-line-label">Score</div>
+  <div class="go-score" id="pause-score">0</div>
+  <div class="go-sub" id="pause-coins">0 coins &times; 1</div>
+  <button class="big-btn" id="pause-resume-btn">CONTINUE</button>
+  <button class="big-btn secondary" id="pause-end-btn">END RUN</button>
+  <div style="margin-top:16px; opacity:.6; font-size:13px;">Tap CONTINUE to resume</div>
+</div>
+
+<!-- Loading progress tracker: every asset-loading module (assets.js's model
+     cache users — cityModels.js / trafficVehicles.js / character.js) reports
+     into this as it goes, so the loading screen above can't be dismissed
+     until everything it counted has actually resolved. Declared before the
+     library/game scripts so it exists by the time they run. -->
+<script>
+  window.AssetLoader = {
+    total: 0,
+    loaded: 0,
+    add(n) { this.total += n; this._render(); },
+    tick() { this.loaded++; this._render(); },
+    _render() {
+      const textEl = document.getElementById('loading-text');
+      const fillEl = document.getElementById('loading-bar-fill');
+      if (!this.total) { if (textEl) textEl.textContent = 'Loading assets…'; return; }
+      const done = Math.min(this.loaded, this.total);
+      const pct = (done / this.total) * 100;
+      if (textEl) textEl.textContent = 'Loading assets… ' + done + ' / ' + this.total;
+      if (fillEl) fillEl.style.width = pct + '%';
+    },
+  };
+</script>
+
+<!-- defer on every script below: lets the browser fetch all of them in
+     parallel instead of one at a time, while still guaranteeing they
+     execute in this exact document order afterward (same order as
+     un-deferred, just not blocking the parse/fetch of each other along the
+     way) — so the dependency chain these comments describe still holds. -->
+<!-- Three.js r128 (single dependency, no build step) -->
+<script defer src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<!-- FBXLoader deps: fflate inflates binary FBX, NURBSCurve is a hard require -->
+<script defer src="https://unpkg.com/fflate@0.6.9/umd/index.js"></script>
+<script defer src="https://unpkg.com/three@0.128.0/examples/js/curves/NURBSUtils.js"></script>
+<script defer src="https://unpkg.com/three@0.128.0/examples/js/curves/NURBSCurve.js"></script>
+<script defer src="https://unpkg.com/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script defer src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<!-- Billboard image/video texture loading — safe to load this early
+     alongside the other pure-engine utilities; its one reference to
+     RunnerTheme (theme.js, loaded later) is lazy, see its own header. -->
+<script defer src="../../engine/billboard-media.js"></script>
+<!-- Opt-in FPS overlay (?debug or ?fps in the URL) — no dependencies. -->
+<script defer src="../../engine/dev-fps.js"></script>
+
+<!-- CONTENT PACK (this reskin's theme) vs ENGINE (generic, reused by every
+     reskin) — see engine/asset-registry.js's header for the full load-order
+     contract. Short version: this pack's assets.js declares AssetRegistry's
+     entries, so it has to load before engine/asset-registry.js attaches the
+     generic .create()/MeshPool machinery onto that same object; everything
+     after that point just needs AssetRegistry + ModelCache to already exist. -->
+<script defer src="assets.js"></script>
+<script defer src="../../engine/asset-registry.js"></script>
+<script defer src="cityModels.js"></script>
+<script defer src="trafficVehicles.js"></script>
+<script defer src="character.js"></script>
+<!-- Config (see config.example.js) must load before both the Supabase CDN
+     client and leaderboard-client.js, which reads window.GAME_CONFIG from it. -->
+<script defer src="config.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script defer src="../../engine/leaderboard-client.js"></script>
+<!-- This pack's tuning knobs (speed, camera, track scale, obstacle mix, ...)
+     — the thing a reskin actually edits to make Lane Dash feel different. -->
+<script defer src="theme.js"></script>
+<!-- Sponsor-controlled branding (labels/color, and billboard ad creatives)
+     — see brand.js's and billboards.js's headers for why these are
+     separate files from theme.js. -->
+<script defer src="brand.js"></script>
+<script defer src="billboards.js"></script>
+<script defer src="branding-loader.js"></script>
+<script defer src="../../engine/runner.js"></script>
+<script defer src="../../engine/touch-controls.js"></script>
+</body>
+</html>

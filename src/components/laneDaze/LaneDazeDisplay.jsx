@@ -10,7 +10,7 @@ const DEFAULT_LEADERBOARD = [
   { id: 6, rank: 6, name: 'Emma Watson', score: 1580, time: '00:41s', badge: 'Challenger', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', combo: '4x Combo', reward: 'Participant' },
 ];
 
-export default function LaneDazeDisplay({ isStandalonePage = false }) {
+export default function LaneDazeDisplay({ isStandalonePage = false, instanceConfig = null }) {
   const [leaderboard, setLeaderboard] = useState(DEFAULT_LEADERBOARD);
 
   // Active Brand Identity & Logo
@@ -25,6 +25,17 @@ export default function LaneDazeDisplay({ isStandalonePage = false }) {
       primaryColor: '#4f46e5',
     };
   });
+
+  // Sync active brand from instanceConfig prop if available
+  useEffect(() => {
+    if (instanceConfig) {
+      setActiveBrand({
+        name: instanceConfig.brandName || instanceConfig.gameTitle || 'FanForge Stadium',
+        logoUrl: instanceConfig.logoUrl || instanceConfig.sponsorLogoUrl || '',
+        primaryColor: instanceConfig.themeColor || '#4f46e5',
+      });
+    }
+  }, [instanceConfig]);
 
   const fanzoneUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/';
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;

@@ -550,7 +550,9 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-cyan-600',
                 defaultTitle: 'High-energy 3-lane arcade runner',
                 onClick: () => {
-                  window.location.href = '/builder';
+                  const instId = inst.instanceId || inst.id;
+                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  window.location.href = `/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
               },
@@ -563,7 +565,9 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 bgColor: 'bg-cyan-600',
                 defaultTitle: 'High-energy 3-lane arcade runner',
                 onClick: () => {
-                  window.location.href = '/builder';
+                  const instId = inst.instanceId || inst.id;
+                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  window.location.href = `/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
               },
