@@ -40,7 +40,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
   const fanzoneUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/';
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
-  // Listen for brand changes & fetch real scores from Supabase API
+  // Listen for brand changes & fetch real scores from Supabase API (Tenant Isolated)
   useEffect(() => {
     const handleStorage = (e) => {
       if (e.key === 'fanforge_active_brand' && e.newValue) {
@@ -52,7 +52,8 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
     window.addEventListener('storage', handleStorage);
 
     const fetchScores = () => {
-      const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&order=score.desc&limit=10';
+      const activeBrandId = activeBrand?.id || activeBrand?.userId || 'default-brand';
+      const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&brand_id=eq.${activeBrandId}&order=score.desc&limit=10`;
       const headers = {
         'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
         'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'
@@ -77,6 +78,10 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
               reward: index === 0 ? 'Grand Prize' : 'Participant'
             }));
             setLeaderboard(mapped);
+          } else {
+            setLeaderboard([
+              { id: 1, rank: 1, name: 'Be the first!', score: 0, time: '00:00s', badge: 'Challenger', avatar: '', combo: 'New', reward: '-' }
+            ]);
           }
         })
         .catch((err) => {
@@ -91,7 +96,7 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
       window.removeEventListener('storage', handleStorage);
       clearInterval(interval);
     };
-  }, []);
+  }, [activeBrand]);
 
   return (
     <div className={`w-full min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 text-white flex flex-col justify-between p-6 sm:p-10 relative overflow-hidden font-sans ${isStandalonePage ? '' : ''}`}>

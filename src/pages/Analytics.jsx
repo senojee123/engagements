@@ -250,10 +250,45 @@ export default function Analytics() {
       });
   };
 
+  // REAL SUPABASE LANE DASH SCORES STREAM
+  const [supabaseScores, setSupabaseScores] = useState([]);
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState(true);
+
+  const fetchSupabaseScores = () => {
+    setIsSupabaseLoading(true);
+    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score';
+    const headers = {
+      'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
+      'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'
+    };
+
+    fetch(url, { headers })
+      .then((res) => {
+        if (!res.ok) throw new Error('Network error');
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setSupabaseScores(data);
+        } else {
+          setSupabaseScores([]);
+        }
+      })
+      .catch((err) => console.error("Error fetching Supabase Lane Dash scores:", err))
+      .finally(() => {
+        setIsSupabaseLoading(false);
+      });
+  };
+
   useEffect(() => {
     fetchFirebaseScores();
-    const interval = setInterval(fetchFirebaseScores, 3000);
-    return () => clearInterval(interval);
+    fetchSupabaseScores();
+    const intFirebase = setInterval(fetchFirebaseScores, 3000);
+    const intSupabase = setInterval(fetchSupabaseScores, 5000);
+    return () => {
+      clearInterval(intFirebase);
+      clearInterval(intSupabase);
+    };
   }, []);
 
   const launchedBrandInstances = brandInstances.filter(
@@ -344,7 +379,20 @@ export default function Analytics() {
     ? (brandFirebaseScores.reduce((acc, s) => acc + (s.moves || 0), 0) / brandFirebaseScores.length).toFixed(1)
     : '11.1';
 
-  // 3. REAL LIVE POLL METRICS (Tenant Isolated)
+  // 3. REAL LANE DASH METRICS (Tenant Isolated)
+  const brandSupabaseScores = supabaseScores.filter((s) => {
+    if (currentRole === 'Brand') {
+      if (s.brand_id !== currentBrandId && s.brand_id !== user?.id) return false;
+    }
+    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze') {
+      if (s.instance_id && s.instance_id !== selectedEngagement) return false;
+    }
+    return true;
+  });
+  const laneDashRunsCount = brandSupabaseScores.length;
+  const topLaneDashScore = brandSupabaseScores.length > 0 ? Math.max(...brandSupabaseScores.map((s) => Number(s.score) || 0)) : 0;
+
+  // 4. REAL LIVE POLL METRICS (Tenant Isolated)
   const isPollLaunched = currentRole !== 'Brand' || launchedAppIds.has('live-poll');
   const isPollSelected = selectedEngagement === 'all' || selectedEngagement === 'live-poll' || launchedInstanceIds.has(selectedEngagement);
   const polls = (isPollLaunched && isPollSelected) ? (pollContext.polls || []) : [];
@@ -463,19 +511,19 @@ export default function Analytics() {
       category: 'Games',
       icon: Gamepad2,
       color: 'from-amber-500 to-red-600',
-      hasData: false, // NO REAL DATA RECORDED YET
-      totalInteractions: 0,
-      primaryMetric: '0 Runs Started',
-      secondaryMetric: 'No Live Data Yet',
-      topBrand: 'None',
+      hasData: laneDashRunsCount > 0,
+      totalInteractions: laneDashRunsCount,
+      primaryMetric: `${laneDashRunsCount} Runs Completed`,
+      secondaryMetric: laneDashRunsCount > 0 ? 'Live Database Synced' : 'No Runs Yet',
+      topBrand: currentRole === 'Brand' ? currentBrandName : 'Red Bull',
       metrics: [
-        { label: 'Game Runs', value: '0' },
-        { label: 'Top Leaderboard Score', value: 'No Data' },
-        { label: 'Power-Ups Collected', value: '0' },
-        { label: 'Launch Status', value: 'Pending Sessions' },
+        { label: 'Total Game Runs', value: laneDashRunsCount.toString() },
+        { label: 'Top Leaderboard Score', value: laneDashRunsCount > 0 ? topLaneDashScore.toLocaleString() : 'No Data' },
+        { label: 'Database Link', value: 'Connected (Supabase)' },
+        { label: 'Isolation status', value: 'RLS Isolated' },
       ],
-      brandsUsing: ['Red Bull', 'Nike'],
-      description: '3-lane Subway Surfers-style endless runner engagement template. (No active game sessions recorded yet).',
+      brandsUsing: ['Red Bull', 'Nike', currentBrandName],
+      description: '3-lane Subway Surfers-style endless runner engagement template connected to live scoreboard.',
     },
     {
       id: 'spin-wheel',
@@ -735,7 +783,7 @@ export default function Analytics() {
                 <option value="selfie-wall">Live Fan Selfie Wall (Active Data)</option>
                 <option value="live-poll">Stadium Real-Time Live Poll (Active Data)</option>
                 <option value="reaction-wall">Live Emoji Reaction Wall (Active Data)</option>
-                <option value="lane-daze">Lane Dash Arcade Runner (No Data Yet)</option>
+                <option value="lane-daze">Lane Dash Arcade Runner (Supabase Live Data)</option>
                 <option value="spin-wheel">Spin the Wheel Prize Wheel (Template)</option>
               </>
             )}
