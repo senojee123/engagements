@@ -187,54 +187,88 @@ export const fetchInstancesApi = async (params = {}) => {
   if (params.status) queryParams.append('status', params.status);
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
+  // Get cached data if available (SWR check)
+  let cachedData = null;
   try {
-    const remoteData = await request('GET', `/api/instances/${queryString}`);
-    if (Array.isArray(remoteData)) {
-      // Update local storage cache with live backend data (evicting deleted instances)
-      try {
-        const existingCache = getCachedInstances();
-        const otherAppsCache = existingCache.filter((i) => {
-          if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
-            const targetUser = params.userId || params.brandId;
-            if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
-              return false; // Evict deleted/stale cached items for this app & user
-            }
-          }
-          return true;
-        });
-        const updatedCache = [...remoteData, ...otherAppsCache];
-        localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
-      } catch (e) {}
-
-      return remoteData;
+    let merged = getCachedInstances();
+    if (params.appId) {
+      merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    }
+    if (params.userId || params.brandId) {
+      const targetBrand = params.userId || params.brandId;
+      merged = merged.filter(
+        (i) =>
+          i.userId === targetBrand ||
+          i.brandId === targetBrand ||
+          i.userId === 'default-user' ||
+          i.brandId === 'default-brand' ||
+          (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+      );
+    }
+    if (params.status) {
+      const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+      merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+    }
+    if (merged.length > 0) {
+      cachedData = merged;
     }
   } catch (e) {}
 
-  // Fallback to local cache only when network request fails
-  let merged = getCachedInstances();
+  // Network request wrapper
+  const networkFetch = async () => {
+    try {
+      const remoteData = await request('GET', `/api/instances/${queryString}`);
+      if (Array.isArray(remoteData)) {
+        // Update local storage cache with live backend data (evicting deleted instances)
+        try {
+          const existingCache = getCachedInstances();
+          const otherAppsCache = existingCache.filter((i) => {
+            if (params.appId && (i.appId === params.appId || i.templateId === params.appId)) {
+              const targetUser = params.userId || params.brandId;
+              if (targetUser && (i.userId === targetUser || i.brandId === targetUser)) {
+                return false; // Evict deleted/stale cached items for this app & user
+              }
+            }
+            return true;
+          });
+          const updatedCache = [...remoteData, ...otherAppsCache];
+          localStorage.setItem('fanforge_instances_cache', JSON.stringify(updatedCache));
+        } catch (e) {}
+        return remoteData;
+      }
+    } catch (e) {}
 
-  if (params.appId) {
-    merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    // Fallback: full local cache filtering on failure
+    let merged = getCachedInstances();
+    if (params.appId) {
+      merged = merged.filter((i) => i.appId === params.appId || i.templateId === params.appId);
+    }
+    if (params.userId || params.brandId) {
+      const targetBrand = params.userId || params.brandId;
+      merged = merged.filter(
+        (i) =>
+          i.userId === targetBrand ||
+          i.brandId === targetBrand ||
+          i.userId === 'default-user' ||
+          i.brandId === 'default-brand' ||
+          (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
+      );
+    }
+    if (params.status) {
+      const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
+      merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
+    }
+    return merged;
+  };
+
+  // If cache exists, return immediately to eliminate latency and update in background
+  if (cachedData) {
+    networkFetch().catch(() => {});
+    return cachedData;
   }
 
-  if (params.userId || params.brandId) {
-    const targetBrand = params.userId || params.brandId;
-    merged = merged.filter(
-      (i) =>
-        i.userId === targetBrand ||
-        i.brandId === targetBrand ||
-        i.userId === 'default-user' ||
-        i.brandId === 'default-brand' ||
-        (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
-    );
-  }
-
-  if (params.status) {
-    const statuses = params.status.split(',').map((s) => s.trim().toLowerCase());
-    merged = merged.filter((i) => statuses.includes((i.status || '').toLowerCase()));
-  }
-
-  return merged;
+  // No cache found, block on network request
+  return networkFetch();
 };
 
 export const saveGameConfigApi = async (gameId, configData, { brandId, instanceId } = {}) => {
@@ -483,7 +517,39 @@ export const publishInstanceApi = async (instanceId) => {
   return result;
 };
 
-export const fetchInstanceApi = (instanceId) => request('GET', `/api/instances/${instanceId}`);
+export const fetchInstanceApi = async (instanceId) => {
+  const cacheKey = `fanforge_instance_${instanceId}`;
+
+  // Check cache first
+  let cachedData = null;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      cachedData = JSON.parse(cached);
+    }
+  } catch (e) {}
+
+  // Network request wrapper
+  const networkFetch = async () => {
+    try {
+      const data = await request('GET', `/api/instances/${instanceId}`);
+      if (data && (data.id || data.instanceId)) {
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+        return data;
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  // If cache exists, return immediately and update cache in background
+  if (cachedData) {
+    networkFetch().catch(() => {});
+    return cachedData;
+  }
+
+  // Otherwise block on network request
+  return networkFetch();
+};
 
 /**
  * Fetch game config for a specific brand instance.
@@ -496,7 +562,18 @@ export const fetchGameConfigApi = async (appId, { instanceId, brandId } = {}) =>
     ? `fanforge_game_config_${instanceId}`
     : brandId
     ? `fanforge_game_config_${brandId}_${appId}`
-    : null;
+    : `fanforge_game_config_${appId}`;
+
+  // Check if we have cached data first (Stale-While-Revalidate pattern)
+  let cachedData = null;
+  if (cacheKey) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        cachedData = JSON.parse(cached);
+      }
+    } catch (e) {}
+  }
 
   // Build query string
   const qp = new URLSearchParams();
@@ -504,25 +581,29 @@ export const fetchGameConfigApi = async (appId, { instanceId, brandId } = {}) =>
   if (brandId) qp.set('brandId', brandId);
   const qs = qp.toString() ? `?${qp.toString()}` : '';
 
-  try {
-    const data = await request('GET', `/api/game-config/${appId}${qs}`);
-    if (data && (data.tiles || data.headline || data.gameTitle)) {
-      if (cacheKey) {
-        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
-      }
-      return data;
-    }
-  } catch (e) { }
-
-  // Fallback: brand-scoped local cache
-  if (cacheKey) {
+  // Network request wrapper
+  const networkFetch = async () => {
     try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) return JSON.parse(cached);
+      const data = await request('GET', `/api/game-config/${appId}${qs}`);
+      if (data && (data.tiles || data.headline || data.gameTitle)) {
+        if (cacheKey) {
+          try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+        }
+        return data;
+      }
     } catch (e) {}
+    return null;
+  };
+
+  // If cached data exists, return it immediately to eliminate latency,
+  // and trigger network update in the background.
+  if (cachedData) {
+    networkFetch().catch(() => {});
+    return cachedData;
   }
 
-  return null;
+  // If no cache, block on the network request
+  return networkFetch();
 };
 
 export const updateScreenStatusApi = async (data) => {
