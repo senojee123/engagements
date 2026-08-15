@@ -595,7 +595,11 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 defaultTitle: 'High-energy 3-lane arcade runner',
                 onClick: () => {
                   const instId = inst.instanceId || inst.id;
-                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  const brandId = inst.brandId || inst.userId;
+                  const queryParams = new URLSearchParams();
+                  if (instId) queryParams.append('instanceId', instId);
+                  if (brandId) queryParams.append('brandId', brandId);
+                  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
                   window.location.href = `https://lane-dash-game.pages.dev/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
@@ -610,7 +614,11 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 defaultTitle: 'High-energy 3-lane arcade runner',
                 onClick: () => {
                   const instId = inst.instanceId || inst.id;
-                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  const brandId = inst.brandId || inst.userId;
+                  const queryParams = new URLSearchParams();
+                  if (instId) queryParams.append('instanceId', instId);
+                  if (brandId) queryParams.append('brandId', brandId);
+                  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
                   window.location.href = `https://lane-dash-game.pages.dev/games/lane-dash/index.html${query}`;
                 },
                 isActive: remoteActiveMode === 'lane-daze',
