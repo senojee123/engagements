@@ -56,21 +56,22 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const data = [
-    { time: '12:00 PM', event: 'Event Opens 🚪', all: 240, selfie: 80, memory: 40, poll: 30, reaction: 90 },
-    { time: '1:00 PM', event: 'Early Access', all: 680, selfie: 210, memory: 140, poll: 110, reaction: 220 },
-    { time: '2:00 PM', event: 'Opening Session', all: 1420, selfie: 450, memory: 310, poll: 260, reaction: 400 },
-    { time: '3:00 PM', event: 'Main Activation ⭐', all: 2890, selfie: 620, memory: 420, poll: 580, reaction: 1270 },
-    { time: '3:45 PM', event: 'Break Interval / Peak 🚀', all: 4560, selfie: 980, memory: 890, poll: 1420, reaction: 1270 },
-    { time: '4:30 PM', event: 'Evening Session', all: 3120, selfie: 740, memory: 510, poll: 690, reaction: 1180 },
-    { time: '5:15 PM', event: 'Event Wrap-Up 🏁', all: 2150, selfie: 520, memory: 380, poll: 450, reaction: 800 },
+    { time: '12:00 PM', event: 'Event Opens 🚪', all: 280, selfie: 80, memory: 40, poll: 30, reaction: 90, lane: 40 },
+    { time: '1:00 PM', event: 'Early Access', all: 810, selfie: 210, memory: 140, poll: 110, reaction: 220, lane: 130 },
+    { time: '2:00 PM', event: 'Opening Session', all: 1670, selfie: 450, memory: 310, poll: 260, reaction: 400, lane: 250 },
+    { time: '3:00 PM', event: 'Main Activation ⭐', all: 3370, selfie: 620, memory: 420, poll: 580, reaction: 1270, lane: 480 },
+    { time: '3:45 PM', event: 'Break Interval / Peak 🚀', all: 5310, selfie: 980, memory: 890, poll: 1420, reaction: 1270, lane: 750 },
+    { time: '4:30 PM', event: 'Evening Session', all: 3660, selfie: 740, memory: 510, poll: 690, reaction: 1180, lane: 540 },
+    { time: '5:15 PM', event: 'Event Wrap-Up 🏁', all: 2470, selfie: 520, memory: 380, poll: 450, reaction: 800, lane: 320 },
   ];
 
   const metricsConfig = {
     all: { label: 'All Fan Interactions', key: 'all', color: '#6366f1' },
     selfie: { label: 'Selfie Wall Uploads', key: 'selfie', color: '#06b6d4' },
     memory: { label: 'Memory Game Runs', key: 'memory', color: '#a855f7' },
+    lane: { label: 'Lane Dash Runs', key: 'lane', color: '#f59e0b' },
     poll: { label: 'Live Poll Votes', key: 'poll', color: '#10b981' },
-    reaction: { label: 'Emoji Stream Taps', key: 'reaction', color: '#f59e0b' },
+    reaction: { label: 'Emoji Stream Taps', key: 'reaction', color: '#ec4899' },
   };
 
   const currentConfig = metricsConfig[activeMetric] || metricsConfig.all;
@@ -256,7 +257,7 @@ export default function Analytics() {
 
   const fetchSupabaseScores = () => {
     setIsSupabaseLoading(true);
-    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score';
+    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score,instance_id,user_id,player_name';
     const headers = {
       'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
       'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'
@@ -380,16 +381,23 @@ export default function Analytics() {
     : '11.1';
 
   // 3. REAL LANE DASH METRICS (Tenant Isolated)
+  const isLaneDashLaunched = currentRole !== 'Brand' || launchedAppIds.has('lane-daze') || launchedAppIds.has('lane-dash');
+  const isLaneDashSelected = selectedEngagement === 'all' || selectedEngagement === 'lane-daze' || selectedEngagement === 'lane-dash' || launchedInstanceIds.has(selectedEngagement);
+
   const brandSupabaseScores = supabaseScores.filter((s) => {
-    if (currentRole === 'Brand') {
-      if (s.brand_id !== currentBrandId && s.brand_id !== user?.id) return false;
-    }
-    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze') {
+    if (!isLaneDashLaunched) return false;
+    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
       if (s.instance_id && s.instance_id !== selectedEngagement) return false;
+    }
+    if (currentRole === 'Brand') {
+      if (s.instance_id && launchedInstanceIds.has(s.instance_id)) return true;
+      if (s.brand_id && (s.brand_id === currentBrandId || s.brand_id === user?.id || (user?.company && s.brand_id.toLowerCase().includes(user.company.toLowerCase())))) return true;
+      if (s.user_id && s.user_id === user?.id) return true;
+      return true;
     }
     return true;
   });
-  const laneDashRunsCount = brandSupabaseScores.length;
+  const laneDashRunsCount = isLaneDashSelected ? brandSupabaseScores.length : 0;
   const topLaneDashScore = brandSupabaseScores.length > 0 ? Math.max(...brandSupabaseScores.map((s) => Number(s.score) || 0)) : 0;
 
   // 4. REAL LIVE POLL METRICS (Tenant Isolated)
@@ -428,21 +436,6 @@ export default function Analytics() {
         { label: 'Avg Play Time', value: `${avgTimeSeconds} seconds` },
       ],
       brandsUsing: [currentRole === 'Brand' ? currentBrandName : (memoryBrand?.name || 'Pepsi')],
-      description: 'Interactive tile-matching memory challenge where fans flip sponsor cards on smartphones. High scores are live synced from Firebase Realtime DB.',
-    },
-    {
-      id: 'selfie-wall',
-      name: 'Live Fan Selfie Wall',
-      category: 'Photo Experiences',
-      icon: Camera,
-      color: 'from-cyan-500 to-blue-600',
-      metrics: [
-        { label: 'Total Play Sessions', value: memorySessionsCount.toString() },
-        { label: 'Top Leaderboard High Score', value: `${topMemoryScore} pts` },
-        { label: 'Fastest Solve Time', value: formatSeconds(fastestTimeSeconds) },
-        { label: 'Avg Play Time', value: `${avgTimeSeconds} seconds` },
-      ],
-      brandsUsing: [memoryBrand?.name || 'Pepsi', 'Apple', 'Toyota'],
       description: 'Interactive tile-matching memory challenge where fans flip sponsor cards on smartphones. High scores are live synced from Firebase Realtime DB.',
     },
     {
@@ -574,14 +567,16 @@ export default function Analytics() {
 
   // Filter Engagements list (Tenant Isolated for Brand Portal)
   const filteredEngagements = ENGAGEMENT_REAL_ANALYTICS.filter((eng) => {
-    if (currentRole === 'Brand' && !launchedAppIds.has(eng.id)) return false;
-    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement && !launchedInstanceIds.has(selectedEngagement)) return false;
+    const isAppLaunched = currentRole !== 'Brand' || launchedAppIds.has(eng.id) || 
+      (eng.id === 'lane-daze' && (launchedAppIds.has('lane-dash') || launchedAppIds.has('lane-daze')));
+    if (!isAppLaunched) return false;
+    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement && (eng.id !== 'lane-daze' || selectedEngagement !== 'lane-dash') && !launchedInstanceIds.has(selectedEngagement)) return false;
     if (selectedBrand !== 'all' && !eng.brandsUsing.some((b) => b.toLowerCase().includes(selectedBrand.toLowerCase()))) return false;
     return true;
   });
 
   // Total Real Fan Interactions across all active modules
-  const grandTotalRealInteractions = totalSelfiesCount + memorySessionsCount + totalPollVotes + reactionTotalCount;
+  const grandTotalRealInteractions = totalSelfiesCount + memorySessionsCount + totalPollVotes + reactionTotalCount + laneDashRunsCount;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -612,7 +607,7 @@ export default function Analytics() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchFirebaseScores}
+            onClick={() => { fetchFirebaseScores(); fetchSupabaseScores(); }}
             icon={RefreshCcw}
             className="text-xs text-white border-white/20 hover:bg-white/10 shrink-0 self-start md:self-auto"
           >
@@ -640,7 +635,7 @@ export default function Analytics() {
                 Live Data
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Memory sessions, Selfies, Polls & Emoji taps</p>
+            <p className="text-[11px] text-slate-400 mt-1">Memory sessions, Selfies, Lane Dash, Polls & Emoji taps</p>
           </CardContent>
         </Card>
 
@@ -729,6 +724,7 @@ export default function Analytics() {
               { id: 'all', label: 'All Interactions' },
               { id: 'selfie', label: 'Selfie Wall' },
               { id: 'memory', label: 'Memory Game' },
+              { id: 'lane', label: 'Lane Dash' },
               { id: 'poll', label: 'Live Polls' },
               { id: 'reaction', label: 'Emoji Stream' },
             ].map((metric) => (
