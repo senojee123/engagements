@@ -138,8 +138,8 @@ function AnalyticsLineChart({ activeMetric = 'all', realCounts = {} }) {
         <div className="min-w-[650px] relative">
           <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto overflow-visible">
             <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={currentConfig.color} stopOpacity="0.3" />
+              <linearGradient id={`chartGradient_${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={currentConfig.color} stopOpacity="0.35" />
                 <stop offset="100%" stopColor={currentConfig.color} stopOpacity="0.0" />
               </linearGradient>
             </defs>
@@ -159,7 +159,7 @@ function AnalyticsLineChart({ activeMetric = 'all', realCounts = {} }) {
             })}
 
             {/* Area Fill */}
-            <path d={areaD} fill="url(#chartGradient)" />
+            <path d={areaD} fill={`url(#chartGradient_${activeMetric})`} />
 
             {/* Smooth Bezier Line */}
             <path d={pathD} fill="none" stroke={currentConfig.color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -186,25 +186,38 @@ function AnalyticsLineChart({ activeMetric = 'all', realCounts = {} }) {
             })}
           </svg>
 
-          {/* Interactive Tooltip Card */}
-          {hoveredIdx !== null && (
-            <div
-              className="absolute bg-slate-900 text-white p-3 rounded-2xl shadow-xl text-xs space-y-1 pointer-events-none transition-all border border-slate-700 z-20"
-              style={{
-                left: `${(points[hoveredIdx].x / chartWidth) * 100}%`,
-                top: `${(points[hoveredIdx].y / chartHeight) * 100}%`,
-                transform: 'translate(-50%, -120%)',
-              }}
-            >
-              <div className="flex items-center gap-1.5 text-[10px] text-cyan-300 font-mono font-bold">
-                <Clock className="w-3 h-3" />
-                <span>{points[hoveredIdx].time} • {points[hoveredIdx].event}</span>
+          {/* Interactive Tooltip Card with Edge Boundary Protection */}
+          {hoveredIdx !== null && (() => {
+            let leftPct = (points[hoveredIdx].x / chartWidth) * 100;
+            let transformStyle = 'translate(-50%, -125%)';
+
+            // Boundary adjustments for start/end points to prevent viewport/card overflow
+            if (hoveredIdx === 0) {
+              transformStyle = 'translate(0%, -125%)';
+            } else if (hoveredIdx === points.length - 1) {
+              transformStyle = 'translate(-100%, -125%)';
+            }
+
+            return (
+              <div
+                className="absolute bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl text-xs space-y-1 pointer-events-none transition-all duration-150 border border-slate-700/80 z-30 min-w-44 whitespace-nowrap"
+                style={{
+                  left: `${leftPct}%`,
+                  top: `${(points[hoveredIdx].y / chartHeight) * 100}%`,
+                  transform: transformStyle,
+                }}
+              >
+                <div className="flex items-center gap-1.5 text-[10px] text-cyan-300 font-mono font-bold">
+                  <Clock className="w-3 h-3 text-cyan-400" />
+                  <span>{points[hoveredIdx].time} • {points[hoveredIdx].event}</span>
+                </div>
+                <div className="text-sm font-black text-white font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentConfig.color }} />
+                  <span>{points[hoveredIdx].val.toLocaleString()} {currentConfig.label}</span>
+                </div>
               </div>
-              <div className="text-sm font-black text-white font-mono">
-                {points[hoveredIdx].val.toLocaleString()} {currentConfig.label}
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
