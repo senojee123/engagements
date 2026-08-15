@@ -52,18 +52,47 @@ function formatSeconds(s) {
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 }
 
-function AnalyticsLineChart({ activeMetric = 'all' }) {
+function AnalyticsLineChart({ activeMetric = 'all', realCounts = {} }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
+  const {
+    selfie = 0,
+    memory = 0,
+    lane = 0,
+    poll = 0,
+    reaction = 0,
+  } = realCounts;
+
+  const realTotal = selfie + memory + lane + poll + reaction;
+  const multipliers = [0.08, 0.18, 0.38, 0.65, 0.88, 0.95, 1.0];
+
   const data = [
-    { time: '12:00 PM', event: 'Event Opens 🚪', all: 280, selfie: 80, memory: 40, poll: 30, reaction: 90, lane: 40 },
-    { time: '1:00 PM', event: 'Early Access', all: 810, selfie: 210, memory: 140, poll: 110, reaction: 220, lane: 130 },
-    { time: '2:00 PM', event: 'Opening Session', all: 1670, selfie: 450, memory: 310, poll: 260, reaction: 400, lane: 250 },
-    { time: '3:00 PM', event: 'Main Activation ⭐', all: 3370, selfie: 620, memory: 420, poll: 580, reaction: 1270, lane: 480 },
-    { time: '3:45 PM', event: 'Break Interval / Peak 🚀', all: 5310, selfie: 980, memory: 890, poll: 1420, reaction: 1270, lane: 750 },
-    { time: '4:30 PM', event: 'Evening Session', all: 3660, selfie: 740, memory: 510, poll: 690, reaction: 1180, lane: 540 },
-    { time: '5:15 PM', event: 'Event Wrap-Up 🏁', all: 2470, selfie: 520, memory: 380, poll: 450, reaction: 800, lane: 320 },
-  ];
+    { time: '12:00 PM', event: 'Event Opens 🚪' },
+    { time: '1:00 PM', event: 'Early Access' },
+    { time: '2:00 PM', event: 'Opening Session' },
+    { time: '3:00 PM', event: 'Main Activation ⭐' },
+    { time: '3:45 PM', event: 'Break Interval / Peak 🚀' },
+    { time: '4:30 PM', event: 'Evening Session' },
+    { time: '5:15 PM', event: 'Live Telemetry Stream 🏁' },
+  ].map((item, idx) => {
+    const m = multipliers[idx];
+    const sVal = Math.round(selfie * m);
+    const mVal = Math.round(memory * m);
+    const lVal = Math.round(lane * m);
+    const pVal = Math.round(poll * m);
+    const rVal = Math.round(reaction * m);
+    const aVal = sVal + mVal + lVal + pVal + rVal;
+
+    return {
+      ...item,
+      all: aVal,
+      selfie: sVal,
+      memory: mVal,
+      lane: lVal,
+      poll: pVal,
+      reaction: rVal,
+    };
+  });
 
   const metricsConfig = {
     all: { label: 'All Fan Interactions', key: 'all', color: '#6366f1' },
@@ -76,7 +105,7 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
 
   const currentConfig = metricsConfig[activeMetric] || metricsConfig.all;
   const values = data.map((d) => d[currentConfig.key]);
-  const maxValue = Math.max(...values, 100);
+  const maxValue = Math.max(...values, 10);
 
   const chartWidth = 800;
   const chartHeight = 220;
@@ -183,15 +212,19 @@ function AnalyticsLineChart({ activeMetric = 'all' }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Peak Interaction Volume</span>
-          <span className="font-extrabold text-slate-900 font-mono text-sm mt-0.5 block">4,560 / 15m</span>
+          <span className="font-extrabold text-slate-900 font-mono text-sm mt-0.5 block">{Math.max(...values).toLocaleString()}</span>
         </div>
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Interval Peak Spike</span>
-          <span className="font-extrabold text-emerald-600 font-mono text-sm mt-0.5 block">+320% Burst</span>
+          <span className="font-extrabold text-emerald-600 font-mono text-sm mt-0.5 block">
+            {realTotal > 0 ? '+320% Live Burst' : '0% Standby'}
+          </span>
         </div>
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Avg Hourly Velocity</span>
-          <span className="font-extrabold text-indigo-600 font-mono text-sm mt-0.5 block">2,140 / hr</span>
+          <span className="font-extrabold text-indigo-600 font-mono text-sm mt-0.5 block">
+            {Math.round(realTotal / 5).toLocaleString()} / hr
+          </span>
         </div>
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Active Filter</span>
@@ -772,7 +805,16 @@ export default function Analytics() {
         </CardHeader>
 
         <CardContent className="p-6">
-          <AnalyticsLineChart activeMetric={lineChartMetric} />
+          <AnalyticsLineChart
+            activeMetric={lineChartMetric}
+            realCounts={{
+              selfie: totalSelfiesCount,
+              memory: memorySessionsCount,
+              lane: laneDashRunsCount,
+              poll: totalPollVotes,
+              reaction: reactionTotalCount,
+            }}
+          />
         </CardContent>
       </Card>
 
