@@ -431,21 +431,18 @@ export default function Analytics() {
   const isLaneDashSelected = selectedEngagement === 'all' || selectedEngagement === 'lane-daze' || selectedEngagement === 'lane-dash' || launchedInstanceIds.has(selectedEngagement);
 
   const brandSupabaseScores = supabaseScores.filter((s) => {
-    if (!isLaneDashLaunched) return false;
+    if (currentRole === 'Brand') {
+      if (!isLaneDashLaunched) return false;
+      if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
+        if (s.instance_id && s.instance_id !== selectedEngagement) return false;
+      }
+      if (s.instance_id && launchedInstanceIds.has(s.instance_id)) return true;
+      if (s.brand_id && (s.brand_id === currentBrandId || s.brand_id === user?.id || (user?.company && s.brand_id.toLowerCase().includes(user.company.toLowerCase())))) return true;
+      if (s.user_id && s.user_id === user?.id) return true;
+      return false;
+    }
     if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
       if (s.instance_id && s.instance_id !== selectedEngagement) return false;
-    }
-    if (currentRole === 'Brand') {
-      const matchesInstance = Boolean(s.instance_id && launchedInstanceIds.has(s.instance_id));
-      const matchesBrand = Boolean(
-        s.brand_id && (
-          s.brand_id === currentBrandId ||
-          s.brand_id === user?.id ||
-          (user?.company && s.brand_id.toLowerCase().includes(user.company.toLowerCase())) ||
-          (currentBrandName && s.brand_id.toLowerCase().includes(currentBrandName.toLowerCase()))
-        )
-      );
-      return matchesInstance || matchesBrand;
     }
     return true;
   });
