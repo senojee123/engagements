@@ -303,7 +303,7 @@ export default function Analytics() {
 
   const fetchSupabaseScores = () => {
     setIsSupabaseLoading(true);
-    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score,instance_id,player_name';
+    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score,instance_id,player_name,created_at&created_at=gt.2026-08-15T12:00:00Z';
     const headers = {
       'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
       'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'

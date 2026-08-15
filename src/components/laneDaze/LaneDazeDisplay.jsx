@@ -61,7 +61,7 @@ export default function LaneDazeDisplay({
       const targetBrand = brandId || instanceConfig?.brandId || instanceConfig?.userId || activeBrand?.id || activeBrand?.userId || 'default-brand';
       
       const filterQuery = targetInstance ? `instance_id=eq.${targetInstance}` : `brand_id=eq.${targetBrand}`;
-      const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&${filterQuery}&order=score.desc&limit=10`;
+      const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&created_at=gt.2026-08-15T12:00:00Z&${filterQuery}&order=score.desc&limit=10`;
       const headers = {
         'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
         'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'

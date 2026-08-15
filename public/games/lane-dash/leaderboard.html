@@ -292,7 +292,8 @@
 
         let query = client
           .from(window.GAME_CONFIG.SCORES_TABLE || 'scores')
-          .select('player_name, score');
+          .select('player_name, score')
+          .gt('created_at', '2026-08-15T12:00:00Z');
 
         if (targetInstanceId) {
           query = query.eq('instance_id', targetInstanceId);
