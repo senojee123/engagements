@@ -21,6 +21,7 @@ export default function MemoryChallengeDisplay({
   isMasterDefault = false,
   instanceConfig = null,
   instanceId = null,
+  brandId = null,
 }) {
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,17 @@ export default function MemoryChallengeDisplay({
           if (!data) {
             setScores([]);
           } else {
-            const sorted = Object.values(data)
+            let list = Object.values(data);
+            const targetInstance = instanceId || instanceConfig?.instanceId;
+            const targetBrand = brandId || instanceConfig?.brandId || instanceConfig?.userId;
+
+            if (targetInstance) {
+              list = list.filter((s) => s.instanceId === targetInstance);
+            } else if (targetBrand) {
+              list = list.filter((s) => s.brandId === targetBrand || s.userId === targetBrand || (s.brandName && s.brandName.toLowerCase().includes(targetBrand.toLowerCase())));
+            }
+
+            const sorted = list
               .sort((a, b) => b.score - a.score || a.seconds - b.seconds)
               .slice(0, 10);
             setScores(sorted);
@@ -76,7 +87,7 @@ export default function MemoryChallengeDisplay({
     fetchScores();
     const interval = setInterval(fetchScores, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [instanceId, brandId, instanceConfig]);
 
   const bgGradient = gameConfig?.bgGradient || 'from-slate-950 via-indigo-950 to-slate-950';
   const customBgColor = gameConfig?.backgroundColor || '#12131f';

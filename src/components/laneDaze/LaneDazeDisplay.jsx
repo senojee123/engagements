@@ -10,7 +10,12 @@ const DEFAULT_LEADERBOARD = [
   { id: 6, rank: 6, name: 'Emma Watson', score: 1580, time: '00:41s', badge: 'Challenger', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80', combo: '4x Combo', reward: 'Participant' },
 ];
 
-export default function LaneDazeDisplay({ isStandalonePage = false, instanceConfig = null }) {
+export default function LaneDazeDisplay({
+  isStandalonePage = false,
+  instanceConfig = null,
+  instanceId = null,
+  brandId = null,
+}) {
   const [leaderboard, setLeaderboard] = useState(DEFAULT_LEADERBOARD);
 
   // Active Brand Identity & Logo
@@ -52,8 +57,11 @@ export default function LaneDazeDisplay({ isStandalonePage = false, instanceConf
     window.addEventListener('storage', handleStorage);
 
     const fetchScores = () => {
-      const activeBrandId = activeBrand?.id || activeBrand?.userId || 'default-brand';
-      const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&brand_id=eq.${activeBrandId}&order=score.desc&limit=10`;
+      const targetInstance = instanceId || instanceConfig?.instanceId;
+      const targetBrand = brandId || instanceConfig?.brandId || instanceConfig?.userId || activeBrand?.id || activeBrand?.userId || 'default-brand';
+      
+      const filterQuery = targetInstance ? `instance_id=eq.${targetInstance}` : `brand_id=eq.${targetBrand}`;
+      const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=player_name,score&${filterQuery}&order=score.desc&limit=10`;
       const headers = {
         'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
         'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'

@@ -287,10 +287,20 @@
 
     async function loadScores() {
       try {
-        const { data, error } = await client
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetInstanceId = urlParams.get('instanceId') || urlParams.get('id');
+
+        let query = client
           .from(window.GAME_CONFIG.SCORES_TABLE || 'scores')
-          .select('player_name, score')
-          .eq('brand_id', activeBrandId)
+          .select('player_name, score');
+
+        if (targetInstanceId) {
+          query = query.eq('instance_id', targetInstanceId);
+        } else {
+          query = query.eq('brand_id', activeBrandId);
+        }
+
+        const { data, error } = await query
           .order('score', { ascending: false })
           .limit(10);
 
