@@ -617,7 +617,7 @@ export default function Analytics() {
       </div>
 
       {/* Headline Metric Cards (Unified KPI Bar Theme) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Card 1: Total Real Fan Interactions */}
         <Card className="bg-white hover:shadow-md transition-shadow border-slate-200/80">
           <CardContent className="p-5">
@@ -660,7 +660,28 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Card 3: Selfie Wall Uploads */}
+        {/* Card 3: Lane Dash Arcade Runner */}
+        <Card className="bg-white hover:shadow-md transition-shadow border-slate-200/80">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Lane Dash Runner</span>
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Gamepad2 className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline justify-between">
+              <span className="text-2xl font-black text-slate-900 tracking-tight">
+                {laneDashRunsCount} Game Runs
+              </span>
+              <Badge variant="indigo" size="sm">
+                {topLaneDashScore > 0 ? `Top: ${topLaneDashScore.toLocaleString()} pts` : 'Supabase Sync'}
+              </Badge>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Arcade runner live synced | RLS Isolated</p>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Selfie Wall Uploads */}
         <Card className="bg-white hover:shadow-md transition-shadow border-slate-200/80">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -681,7 +702,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Card 4: Live Poll & Emojis */}
+        {/* Card 5: Live Poll & Emojis */}
         <Card className="bg-white hover:shadow-md transition-shadow border-slate-200/80">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
