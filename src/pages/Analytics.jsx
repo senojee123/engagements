@@ -259,15 +259,33 @@ export default function Analytics() {
   const [brandInstances, setBrandInstances] = useState([]);
   const [isInstancesLoading, setIsInstancesLoading] = useState(false);
 
+  const loadBrandInstances = () => {
+    const targetUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
+    fetchInstancesApi({ userId: targetUserId, brandId: targetUserId })
+      .then((instances) => setBrandInstances(instances || []))
+      .catch(() => setBrandInstances([]));
+  };
+
   useEffect(() => {
-    if (currentRole === 'Brand' && user?.id) {
-      setIsInstancesLoading(true);
-      fetchInstancesApi({ userId: user.id })
-        .then((instances) => setBrandInstances(instances || []))
-        .catch(() => setBrandInstances([]))
-        .finally(() => setIsInstancesLoading(false));
-    }
-  }, [currentRole, user]);
+    setIsInstancesLoading(true);
+    loadBrandInstances();
+    const timer = setTimeout(() => setIsInstancesLoading(false), 500);
+
+    const handleSync = () => loadBrandInstances();
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('fanforge_instances_updated', handleSync);
+
+    const interval = setInterval(loadBrandInstances, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('fanforge_instances_updated', handleSync);
+    };
+  }, [user]);
 
   // Fetch real live context states
   const selfieContext = useSelfieWall() || {};
@@ -338,17 +356,17 @@ export default function Analytics() {
     };
   }, []);
 
-  const launchedBrandInstances = brandInstances.filter(
-    (inst) => (inst.status || '').toLowerCase() === 'launched'
+  const activeBrandInstances = brandInstances.filter(
+    (inst) => (inst.status || '').toLowerCase() !== 'deleted'
   );
 
-  const launchedAppIds = new Set(launchedBrandInstances.map((inst) => inst.appId || inst.templateId));
-  const launchedInstanceIds = new Set(launchedBrandInstances.map((inst) => inst.instanceId || inst.id));
+  const activeAppIds = new Set(activeBrandInstances.map((inst) => inst.appId || inst.templateId));
+  const activeInstanceIds = new Set(activeBrandInstances.map((inst) => inst.instanceId || inst.id));
 
-  const currentBrandId = user?.id || '';
-  const currentBrandName = user?.company || user?.companyName || user?.name || user?.email || 'Brand';
+  const currentBrandId = user?.id || localStorage.getItem('fanforge_user_id') || '';
+  const currentBrandName = user?.company || user?.companyName || user?.name || user?.email || 'Brand Account';
 
-  if (currentRole === 'Brand' && !isInstancesLoading && launchedBrandInstances.length === 0) {
+  if (currentRole === 'Brand' && !isInstancesLoading && activeBrandInstances.length === 0) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200/80 text-center space-y-6 shadow-xs">
@@ -358,10 +376,10 @@ export default function Analytics() {
           <div className="max-w-lg mx-auto space-y-2">
             <Badge variant="indigo" size="md">Brand Portal Analytics</Badge>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              No launched engagements yet.
+              No registered engagements yet.
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-              Launch an engagement to start viewing analytics.
+              Add or launch an engagement template from the library to start viewing analytics.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -387,30 +405,30 @@ export default function Analytics() {
   }
 
   // 1. REAL SELFIE WALL METRICS (Tenant Isolated)
-  const isSelfieLaunched = currentRole !== 'Brand' || launchedAppIds.has('selfie-wall');
-  const isSelfieSelected = selectedEngagement === 'all' || selectedEngagement === 'selfie-wall' || launchedInstanceIds.has(selectedEngagement);
-  const selfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.selfies || []) : [];
-  const approvedSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.approvedSelfies || []) : [];
-  const pendingSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.pendingSelfies || []) : [];
-  const flaggedSelfies = (isSelfieLaunched && isSelfieSelected) ? (selfieContext.flaggedSelfies || []) : [];
+  const isSelfieActive = currentRole !== 'Brand' || activeAppIds.has('selfie-wall');
+  const isSelfieSelected = selectedEngagement === 'all' || selectedEngagement === 'selfie-wall' || activeInstanceIds.has(selectedEngagement);
+  const selfies = (isSelfieActive && isSelfieSelected) ? (selfieContext.selfies || []) : [];
+  const approvedSelfies = (isSelfieActive && isSelfieSelected) ? (selfieContext.approvedSelfies || []) : [];
+  const pendingSelfies = (isSelfieActive && isSelfieSelected) ? (selfieContext.pendingSelfies || []) : [];
+  const flaggedSelfies = (isSelfieActive && isSelfieSelected) ? (selfieContext.flaggedSelfies || []) : [];
   const selfieBrand = selfieContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
   const totalSelfiesCount = selfies.length > 0 ? selfies.length : approvedSelfies.length + pendingSelfies.length;
   const selfieAiPassRate = totalSelfiesCount > 0 ? Math.round((approvedSelfies.length / totalSelfiesCount) * 100) : 100;
 
-  // 2. REAL MEMORY CHALLENGE METRICS (Filtered strictly by Brand ID & Launched Instance UUID)
+  // 2. REAL MEMORY CHALLENGE METRICS (Filtered strictly by Brand ID & Active Instance UUID)
   const brandFirebaseScores = firebaseScores.filter((s) => {
-    if (currentRole !== 'Brand') return true;
-    if (!launchedAppIds.has('memory-challenge')) return false;
     if (selectedEngagement !== 'all' && selectedEngagement !== 'memory-challenge') {
       if (s.instanceId && s.instanceId !== selectedEngagement) return false;
       if (s.appId && s.appId !== selectedEngagement) return false;
     }
-    if (s.instanceId && launchedInstanceIds.has(s.instanceId)) return true;
+    if (currentRole !== 'Brand') return true;
+    if (!activeAppIds.has('memory-challenge')) return false;
+    if (s.instanceId && activeInstanceIds.has(s.instanceId)) return true;
     if (s.brandId && (s.brandId === currentBrandId || s.brandId === user?.id)) return true;
     if (s.userId && s.userId === user?.id) return true;
     if (s.brandName && currentBrandName && s.brandName.toLowerCase().includes(currentBrandName.toLowerCase())) return true;
-    return true;
+    return false;
   });
 
   const leaderboard = memoryContext.leaderboard || [];
@@ -427,22 +445,19 @@ export default function Analytics() {
     : '11.1';
 
   // 3. REAL LANE DASH METRICS (Tenant Isolated)
-  const isLaneDashLaunched = currentRole !== 'Brand' || launchedAppIds.has('lane-daze') || launchedAppIds.has('lane-dash');
-  const isLaneDashSelected = selectedEngagement === 'all' || selectedEngagement === 'lane-daze' || selectedEngagement === 'lane-dash' || launchedInstanceIds.has(selectedEngagement);
+  const isLaneDashActive = currentRole !== 'Brand' || activeAppIds.has('lane-daze') || activeAppIds.has('lane-dash');
+  const isLaneDashSelected = selectedEngagement === 'all' || selectedEngagement === 'lane-daze' || selectedEngagement === 'lane-dash' || activeInstanceIds.has(selectedEngagement);
 
   const brandSupabaseScores = supabaseScores.filter((s) => {
+    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
+      if (s.instance_id && s.instance_id !== selectedEngagement) return false;
+    }
     if (currentRole === 'Brand') {
-      if (!isLaneDashLaunched) return false;
-      if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
-        if (s.instance_id && s.instance_id !== selectedEngagement) return false;
-      }
-      if (s.instance_id && launchedInstanceIds.has(s.instance_id)) return true;
+      if (!isLaneDashActive) return false;
+      if (s.instance_id && activeInstanceIds.has(s.instance_id)) return true;
       if (s.brand_id && (s.brand_id === currentBrandId || s.brand_id === user?.id || (user?.company && s.brand_id.toLowerCase().includes(user.company.toLowerCase())))) return true;
       if (s.user_id && s.user_id === user?.id) return true;
       return false;
-    }
-    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
-      if (s.instance_id && s.instance_id !== selectedEngagement) return false;
     }
     return true;
   });
@@ -450,19 +465,19 @@ export default function Analytics() {
   const topLaneDashScore = brandSupabaseScores.length > 0 ? Math.max(...brandSupabaseScores.map((s) => Number(s.score) || 0)) : 0;
 
   // 4. REAL LIVE POLL METRICS (Tenant Isolated)
-  const isPollLaunched = currentRole !== 'Brand' || launchedAppIds.has('live-poll');
-  const isPollSelected = selectedEngagement === 'all' || selectedEngagement === 'live-poll' || launchedInstanceIds.has(selectedEngagement);
-  const polls = (isPollLaunched && isPollSelected) ? (pollContext.polls || []) : [];
-  const activePoll = (isPollLaunched && isPollSelected) ? (pollContext.activePoll || null) : null;
+  const isPollActive = currentRole !== 'Brand' || activeAppIds.has('live-poll');
+  const isPollSelected = selectedEngagement === 'all' || selectedEngagement === 'live-poll' || activeInstanceIds.has(selectedEngagement);
+  const polls = (isPollActive && isPollSelected) ? (pollContext.polls || []) : [];
+  const activePoll = (isPollActive && isPollSelected) ? (pollContext.activePoll || null) : null;
   const pollBrand = pollContext.activeBrand || DEFAULT_BRAND_KITS[0];
   const totalPollVotes = polls.reduce((acc, p) => acc + (p.totalVotes || 0), 0);
   const activePollVotes = activePoll?.totalVotes || 0;
 
-  // 4. REAL EMOJI REACTION WALL METRICS (Tenant Isolated)
-  const isReactionLaunched = currentRole !== 'Brand' || launchedAppIds.has('reaction-wall');
-  const isReactionSelected = selectedEngagement === 'all' || selectedEngagement === 'reaction-wall' || launchedInstanceIds.has(selectedEngagement);
-  const reactionTotalCount = (isReactionLaunched && isReactionSelected) ? (reactionContext.totalCount || 0) : 0;
-  const reactionActiveCount = (isReactionLaunched && isReactionSelected) ? ((reactionContext.activeReactions || []).length) : 0;
+  // 5. REAL EMOJI REACTION WALL METRICS (Tenant Isolated)
+  const isReactionActive = currentRole !== 'Brand' || activeAppIds.has('reaction-wall');
+  const isReactionSelected = selectedEngagement === 'all' || selectedEngagement === 'reaction-wall' || activeInstanceIds.has(selectedEngagement);
+  const reactionTotalCount = (isReactionActive && isReactionSelected) ? (reactionContext.totalCount || 0) : 0;
+  const reactionActiveCount = (isReactionActive && isReactionSelected) ? ((reactionContext.activeReactions || []).length) : 0;
   const reactionBrand = reactionContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
   // REAL ENGAGEMENTS ANALYTICS ARRAY
@@ -616,10 +631,10 @@ export default function Analytics() {
 
   // Filter Engagements list (Tenant Isolated for Brand Portal)
   const filteredEngagements = ENGAGEMENT_REAL_ANALYTICS.filter((eng) => {
-    const isAppLaunched = currentRole !== 'Brand' || launchedAppIds.has(eng.id) || 
-      (eng.id === 'lane-daze' && (launchedAppIds.has('lane-dash') || launchedAppIds.has('lane-daze')));
-    if (!isAppLaunched) return false;
-    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement && (eng.id !== 'lane-daze' || selectedEngagement !== 'lane-dash') && !launchedInstanceIds.has(selectedEngagement)) return false;
+    const isAppActive = currentRole !== 'Brand' || activeAppIds.has(eng.id) || 
+      (eng.id === 'lane-daze' && (activeAppIds.has('lane-dash') || activeAppIds.has('lane-daze')));
+    if (!isAppActive) return false;
+    if (selectedEngagement !== 'all' && eng.id !== selectedEngagement && (eng.id !== 'lane-daze' || selectedEngagement !== 'lane-dash') && !activeInstanceIds.has(selectedEngagement)) return false;
     if (selectedBrand !== 'all' && !eng.brandsUsing.some((b) => b.toLowerCase().includes(selectedBrand.toLowerCase()))) return false;
     return true;
   });
@@ -844,10 +859,10 @@ export default function Analytics() {
           >
             {currentRole === 'Brand' ? (
               <>
-                <option value="all">All Launched Engagements ({launchedBrandInstances.length})</option>
-                {launchedBrandInstances.map((inst) => (
-                  <option key={inst.instanceId || inst.id} value={inst.instanceId || inst.appId}>
-                    {inst.title || inst.appId} (UUID: {(inst.instanceId || inst.id).slice(0, 10)}...)
+                <option value="all">All Brand Engagements ({activeBrandInstances.length})</option>
+                {activeBrandInstances.map((inst) => (
+                  <option key={inst.instanceId || inst.id} value={inst.instanceId || inst.id}>
+                    {inst.title || inst.appId} (Status: {inst.status || 'draft'} | UUID: {(inst.instanceId || inst.id).slice(0, 10)}...)
                   </option>
                 ))}
               </>
