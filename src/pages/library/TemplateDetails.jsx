@@ -90,28 +90,37 @@ function SelfieWallEngagementView({ template }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [instanceStatus, setInstanceStatus] = useState('draft');
 
+  const searchParams = new URLSearchParams(useLocation().search);
+  const urlInstanceId = searchParams.get('instanceId');
+
   useEffect(() => {
     fetchInstancesApi({ appId: 'selfie-wall', userId: user?.id })
       .then((instances) => {
         if (instances && instances.length > 0) {
-          setInstanceStatus(instances[0].status || 'draft');
+          const match = urlInstanceId
+            ? instances.find((i) => (i.instanceId || i.id) === urlInstanceId) || instances[0]
+            : instances[0];
+          setInstanceStatus(match.status || 'draft');
         }
       })
       .catch(() => {});
-  }, [user?.id]);
+  }, [user?.id, urlInstanceId]);
 
   const isApproved = !backLink.isBrandRole || (instanceStatus || '').toLowerCase() === 'approved' || (instanceStatus || '').toLowerCase() === 'launched';
 
   const handleSaveAndSendForApproval = async () => {
+    const targetInstId = urlInstanceId || `inst-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     try {
       await submitInstanceApi({
+        instanceId: targetInstId,
         templateId: 'selfie-wall',
         appId: 'selfie-wall',
         userId: user?.id || '',
+        brandId: user?.id || '',
         brandName: user?.company || user?.name || 'Brand Account',
         title: template.title || 'Live Fan Selfie Wall',
         status: 'pending',
-        config: { templateId: 'selfie-wall' },
+        config: { templateId: 'selfie-wall', instanceId: targetInstId },
       });
       setInstanceStatus('pending');
       toast.success('Live Fan Selfie Wall saved & submitted for Admin Approval!');
@@ -181,8 +190,10 @@ function SelfieWallEngagementView({ template }) {
                   onClick={async () => {
                     const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
                     const currentBrand = user?.company || user?.name || 'Brand Account';
+                    const newInstId = `inst-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
                     try {
                       await submitInstanceApi({
+                        instanceId: newInstId,
                         templateId: 'selfie-wall',
                         appId: 'selfie-wall',
                         userId: currentUserId,
@@ -190,7 +201,7 @@ function SelfieWallEngagementView({ template }) {
                         brandName: currentBrand,
                         title: template.title || 'Live Fan Selfie Wall',
                         status: 'draft',
-                        config: { templateId: 'selfie-wall' },
+                        config: { templateId: 'selfie-wall', instanceId: newInstId },
                       });
                       toast.success(`"${template.title}" successfully added to My Engagements!`);
                     } catch (e) {

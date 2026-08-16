@@ -192,7 +192,7 @@ const saveCachedInstance = (inst) => {
   try {
     const list = getCachedInstances();
     const idx = list.findIndex(
-      (i) => (i.instanceId || i.id) === instId || (i.appId === inst.appId && i.userId === inst.userId && i.userId !== 'default-user')
+      (i) => (i.instanceId || i.id) === instId
     );
     if (idx >= 0) {
       list[idx] = { ...list[idx], ...inst };
@@ -322,7 +322,9 @@ export const saveGameConfigApi = async (gameId, configData, { brandId, instanceI
     : `fanforge_game_config_${gameId}`;
   try {
     localStorage.setItem(cacheKey, JSON.stringify(configData));
-    localStorage.setItem(`fanforge_game_config_${gameId}`, JSON.stringify(configData));
+    if (!instId) {
+      localStorage.setItem(`fanforge_game_config_${gameId}`, JSON.stringify(configData));
+    }
   } catch (e) {}
 
   const qp = new URLSearchParams();

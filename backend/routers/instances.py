@@ -53,20 +53,6 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
     if data.instanceId:
         instance = db.query(models.InstanceModel).filter_by(id=data.instanceId).first()
 
-    # Find the brand's existing instance for this app, regardless of status,
-    # so re-submitting (including repeated "add to my engagements" clicks)
-    # updates it instead of creating duplicate rows.
-    if not instance and user_id and app_id:
-        instance = (
-            db.query(models.InstanceModel)
-            .filter(
-                models.InstanceModel.app_id == app_id,
-                (models.InstanceModel.user_id == user_id) | (models.InstanceModel.brand_id == brand_id),
-            )
-            .order_by(models.InstanceModel.created_at.desc())
-            .first()
-        )
-
     if instance:
         # Update existing brand instance — master template is untouched
         instance.config_json = config_json

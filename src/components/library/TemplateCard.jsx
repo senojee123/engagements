@@ -34,8 +34,10 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
     setIsAdding(true);
     const currentUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
     const currentBrand = user?.company || user?.name || 'Brand Account';
+    const newInstanceId = `inst-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     try {
       const res = await submitInstanceApi({
+        instanceId: newInstanceId,
         templateId: template.id,
         appId: template.id,
         userId: currentUserId,
@@ -43,7 +45,7 @@ export default function TemplateCard({ template, viewMode = 'grid' }) {
         brandName: currentBrand,
         title: template.title,
         status: 'draft',
-        config: { templateId: template.id, title: template.title },
+        config: { templateId: template.id, title: template.title, instanceId: newInstanceId },
       });
       toast.success(`"${template.title}" successfully added to My Engagements!`);
     } catch (err) {

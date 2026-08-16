@@ -317,7 +317,7 @@ export default function MyEngagements() {
             return (
               <div
                 key={inst.instanceId || inst.id}
-                onClick={() => navigate(`/my-engagements/${template.id}`)}
+                onClick={() => navigate(`/my-engagements/${template.id}?instanceId=${inst.instanceId || inst.id}`)}
                 className="group bg-white rounded-2xl border border-slate-200/80 hover:border-indigo-400 transition-all duration-200 hover:shadow-xl flex flex-col justify-between overflow-hidden relative cursor-pointer"
               >
                 {/* Thumbnail Banner */}
@@ -413,7 +413,7 @@ export default function MyEngagements() {
                       variant="primary"
                       size="sm"
                       icon={ArrowUpRight}
-                      onClick={() => navigate(`/my-engagements/${template.id}`)}
+                      onClick={() => navigate(`/my-engagements/${template.id}?instanceId=${inst.instanceId || inst.id}`)}
                       className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex-1 shadow-sm"
                     >
                       Open Engagement
