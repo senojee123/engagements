@@ -8,6 +8,7 @@ from database import get_db
 import models
 import schemas
 from routers.activity_log import log_activity
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -35,13 +36,13 @@ def to_response(db: Session, evt: models.EventModel) -> schemas.EventResponse:
 
 
 @router.get("/", response_model=List[schemas.EventResponse])
-def list_events(db: Session = Depends(get_db)):
+def list_events(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     events = db.query(models.EventModel).order_by(models.EventModel.start_date.desc()).all()
     return [to_response(db, evt) for evt in events]
 
 
 @router.post("/", response_model=schemas.EventResponse)
-def create_event(data: schemas.EventCreate, db: Session = Depends(get_db)):
+def create_event(data: schemas.EventCreate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     today = time.strftime("%Y-%m-%d")
     evt = models.EventModel(
         id=f"evt-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}",
@@ -63,7 +64,7 @@ def create_event(data: schemas.EventCreate, db: Session = Depends(get_db)):
 
 
 @router.patch("/{event_id}", response_model=schemas.EventResponse)
-def update_event(event_id: str, data: schemas.EventUpdate, db: Session = Depends(get_db)):
+def update_event(event_id: str, data: schemas.EventUpdate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     evt = db.query(models.EventModel).filter(models.EventModel.id == event_id).first()
     if not evt:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -87,7 +88,7 @@ def update_event(event_id: str, data: schemas.EventUpdate, db: Session = Depends
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: str, db: Session = Depends(get_db)):
+def delete_event(event_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     evt = db.query(models.EventModel).filter(models.EventModel.id == event_id).first()
     if not evt:
         raise HTTPException(status_code=404, detail="Event not found")

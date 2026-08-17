@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/reactions", tags=["reactions"])
 
@@ -65,7 +66,7 @@ async def emit_reaction(data: schemas.ReactionEmitSchema, db: Session = Depends(
 
 
 @router.post("/clear")
-async def clear_reactions(db: Session = Depends(get_db)):
+async def clear_reactions(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     db.query(models.ReactionModel).delete()
     db.commit()
 

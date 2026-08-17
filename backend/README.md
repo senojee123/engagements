@@ -66,6 +66,28 @@ runtime; the pooler host resolves to IPv4 and is built for exactly this use case
 
 ---
 
+## 🔐 Authentication
+
+`POST /api/auth/login` and `/register` return `{ "user": {...}, "accessToken": "..." }`.
+Send the token back on every subsequent request as `Authorization: Bearer <accessToken>`.
+Tokens are signed with `SECRET_KEY` and expire after 7 days.
+
+Set `SECRET_KEY` as an environment variable in production:
+
+```bash
+# Windows (PowerShell)
+$env:SECRET_KEY="<a long random value>"
+
+# Linux / macOS
+export SECRET_KEY="<a long random value>"
+```
+
+Without it, the backend falls back to a fixed, publicly-known development value
+and prints a warning on startup — tokens signed with it are forgeable, so this
+fallback must never be used in production.
+
+---
+
 ## ⚡ WebSocket Events (`ws://localhost:8000/ws`)
 
 All connected stadium display screens (`/display`) and moderation desks connect to `ws://localhost:8000/ws`.

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/brand-kits", tags=["brand-kits"])
 
@@ -73,13 +74,13 @@ def apply_fields(brand: models.BrandKitModel, data: dict):
 
 
 @router.get("/", response_model=List[schemas.BrandKitResponse])
-def list_brand_kits(db: Session = Depends(get_db)):
+def list_brand_kits(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     brands = db.query(models.BrandKitModel).all()
     return [to_response(b) for b in brands]
 
 
 @router.post("/", response_model=schemas.BrandKitResponse)
-def create_brand_kit(data: schemas.BrandKitCreate, db: Session = Depends(get_db)):
+def create_brand_kit(data: schemas.BrandKitCreate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(require_admin)):
     brand = models.BrandKitModel(id=f"brand-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}")
     apply_fields(brand, data.model_dump())
     db.add(brand)
@@ -89,7 +90,7 @@ def create_brand_kit(data: schemas.BrandKitCreate, db: Session = Depends(get_db)
 
 
 @router.put("/{brand_id}", response_model=schemas.BrandKitResponse)
-def update_brand_kit(brand_id: str, data: schemas.BrandKitUpdate, db: Session = Depends(get_db)):
+def update_brand_kit(brand_id: str, data: schemas.BrandKitUpdate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(require_admin)):
     brand = db.query(models.BrandKitModel).filter(models.BrandKitModel.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand kit not found")
@@ -101,7 +102,7 @@ def update_brand_kit(brand_id: str, data: schemas.BrandKitUpdate, db: Session = 
 
 
 @router.delete("/{brand_id}")
-def delete_brand_kit(brand_id: str, db: Session = Depends(get_db)):
+def delete_brand_kit(brand_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(require_admin)):
     brand = db.query(models.BrandKitModel).filter(models.BrandKitModel.id == brand_id).first()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand kit not found")

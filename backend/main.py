@@ -10,6 +10,7 @@ from database import engine, Base, get_db
 import models
 import schemas
 from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
+from deps import get_current_user, is_owner_or_admin
 
 # Create database tables automatically on startup (preserves existing data across restarts)
 Base.metadata.create_all(bind=engine)
@@ -23,11 +24,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Enable CORS for frontend applications (Vite dev server at localhost:5174 or production domain)
+# Enable CORS for frontend applications (Vite dev server at localhost:5174 or production domain).
+# allow_credentials is False because auth is a Bearer token in the Authorization header,
+# never a cookie — combining a wildcard origin with allow_credentials=True would let any
+# site make credentialed cross-site requests, which we don't need and don't want.
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=".*",
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -252,7 +256,7 @@ async def upload_selfie(data: schemas.SelfieCreate, db: Session = Depends(get_db
 
 
 @app.post("/api/selfies/{selfie_id}/approve", response_model=schemas.SelfieResponse)
-async def approve_selfie(selfie_id: str, db: Session = Depends(get_db)):
+async def approve_selfie(selfie_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
     if not selfie:
         raise HTTPException(status_code=404, detail="Selfie not found")
@@ -288,7 +292,7 @@ async def approve_selfie(selfie_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/api/selfies/{selfie_id}/reject", response_model=schemas.SelfieResponse)
-async def reject_selfie(selfie_id: str, db: Session = Depends(get_db)):
+async def reject_selfie(selfie_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
     if not selfie:
         raise HTTPException(status_code=404, detail="Selfie not found")
@@ -317,7 +321,7 @@ async def reject_selfie(selfie_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/api/selfies/bulk-approve")
-async def bulk_approve(req: schemas.BulkActionRequest, db: Session = Depends(get_db)):
+async def bulk_approve(req: schemas.BulkActionRequest, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     now = time.time()
     db.query(models.SelfieModel).filter(models.SelfieModel.id.in_(req.ids)).update(
         {"status": "approved", "approved_at": now}, synchronize_session=False
@@ -329,7 +333,7 @@ async def bulk_approve(req: schemas.BulkActionRequest, db: Session = Depends(get
 
 
 @app.delete("/api/selfies/clear")
-async def clear_all_selfies(db: Session = Depends(get_db)):
+async def clear_all_selfies(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     db.query(models.SelfieModel).delete()
     db.commit()
     await manager.broadcast({"type": "SELFIES_UPDATED"})
@@ -337,7 +341,7 @@ async def clear_all_selfies(db: Session = Depends(get_db)):
 
 
 @app.delete("/api/selfies/{selfie_id}")
-async def delete_selfie(selfie_id: str, db: Session = Depends(get_db)):
+async def delete_selfie(selfie_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     selfie = db.query(models.SelfieModel).filter(models.SelfieModel.id == selfie_id).first()
     if selfie:
         db.delete(selfie)
@@ -366,7 +370,7 @@ def get_idle_config(db: Session = Depends(get_db)):
 
 
 @app.post("/api/idle-config", response_model=schemas.IdleConfigResponse)
-async def update_idle_config(data: schemas.IdleConfigUpdate, db: Session = Depends(get_db)):
+async def update_idle_config(data: schemas.IdleConfigUpdate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     config = db.query(models.IdleConfigModel).filter_by(id="default_config").first()
     if not config:
         config = models.IdleConfigModel(id="default_config")
@@ -420,7 +424,7 @@ def get_screen_status(db: Session = Depends(get_db)):
 
 
 @app.post("/api/screen/status")
-async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = Depends(get_db)):
+async def update_screen_status(data: schemas.ScreenStatusUpdate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     state = db.query(models.ScreenStateModel).filter_by(id="main_screen").first()
     if not state:
         state = models.ScreenStateModel(id="main_screen")
@@ -553,7 +557,8 @@ async def save_game_config(
     data: dict,
     instanceId: Optional[str] = Query(None),
     brandId: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
 ):
     target_brand = data.get("brandId") or data.get("userId") or brandId
     target_inst = data.get("instanceId") or instanceId
@@ -568,17 +573,21 @@ async def save_game_config(
         ).order_by(models.InstanceModel.created_at.desc()).first()
 
     if inst:
+        # Overwriting an existing instance's config requires owning it (or being admin).
+        if not is_owner_or_admin(current_user, inst.user_id, inst.brand_id):
+            raise HTTPException(status_code=403, detail="Not authorized to modify this engagement")
         inst.config_json = json.dumps(data)
         inst.published_at = time.time()
         db.commit()
     else:
+        # New instance — ownership is always the authenticated caller, never the client-supplied brand.
         inst_id = target_inst or f"inst-{int(time.time() * 1000)}"
         new_inst = models.InstanceModel(
             id=inst_id,
             app_id=game_id,
             template_id=game_id,
-            user_id=target_brand or "default-user",
-            brand_id=target_brand or "default-brand",
+            user_id=current_user.id,
+            brand_id=target_brand or current_user.id,
             brand_name=data.get("brandName") or "Brand Account",
             title=data.get("gameTitle") or data.get("title") or "Custom Engagement",
             status="pending",

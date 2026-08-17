@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 
 
 @router.get("/", response_model=List[schemas.ActivityResponse])
-def list_activities(limit: int = Query(20, ge=1, le=200), db: Session = Depends(get_db)):
+def list_activities(limit: int = Query(20, ge=1, le=200), db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     activities = (
         db.query(models.ActivityModel)
         .order_by(models.ActivityModel.created_at.desc())

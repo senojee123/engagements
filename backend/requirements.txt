@@ -7,3 +7,4 @@ passlib>=1.7.4
 bcrypt==4.0.1
 psycopg2-binary>=2.9.9
 pg8000>=1.30.5
+PyJWT>=2.8.0

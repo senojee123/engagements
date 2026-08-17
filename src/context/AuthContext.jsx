@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
       .catch(() => {
         isFinished = true;
         localStorage.removeItem('fanforge_user_id');
+        localStorage.removeItem('fanforge_access_token');
         setIsAuthenticated(false);
       })
       .finally(() => {
@@ -44,8 +45,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const loggedUser = await loginUserApi({ email, password });
+    const result = await loginUserApi({ email, password });
+    const loggedUser = result.user;
     localStorage.setItem('fanforge_user_id', loggedUser.id);
+    localStorage.setItem('fanforge_access_token', result.accessToken);
     try { localStorage.setItem('fanforge_cached_user', JSON.stringify(loggedUser)); } catch (e) {}
     setUser(loggedUser);
     setCurrentRole(loggedUser.role);
@@ -54,14 +57,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (formData) => {
-    const newUser = await registerUserApi({
+    const result = await registerUserApi({
       fullName: formData.fullName || 'New User',
       companyName: formData.companyName || '',
       email: formData.email,
       password: formData.password,
       role: formData.role || 'Brand',
     });
+    const newUser = result.user;
     localStorage.setItem('fanforge_user_id', newUser.id);
+    localStorage.setItem('fanforge_access_token', result.accessToken);
     try { localStorage.setItem('fanforge_cached_user', JSON.stringify(newUser)); } catch (e) {}
     setUser(newUser);
     setCurrentRole(newUser.role);
@@ -71,6 +76,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('fanforge_user_id');
+    localStorage.removeItem('fanforge_access_token');
     localStorage.removeItem('fanforge_cached_user');
     setIsAuthenticated(false);
     setUser(null);

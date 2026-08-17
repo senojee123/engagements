@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/polls", tags=["polls"])
 
@@ -56,7 +57,7 @@ def get_active_poll(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.PollResponseSchema)
-def create_poll(data: schemas.PollCreateSchema, db: Session = Depends(get_db)):
+def create_poll(data: schemas.PollCreateSchema, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     poll_id = f"poll-{int(time.time() * 1000)}-{uuid.uuid4().hex[:4]}"
     
     # Process options list
@@ -102,8 +103,8 @@ async def cast_vote(data: schemas.VoteCreateSchema, db: Session = Depends(get_db
             found = True
             break
     
-    if not found and options:
-        options[0]["votes"] += 1
+    if not found:
+        raise HTTPException(status_code=400, detail="Invalid option ID")
 
     poll.options = options
     poll.total_votes = sum(int(opt.get("votes", 0)) for opt in options)
@@ -129,7 +130,7 @@ async def cast_vote(data: schemas.VoteCreateSchema, db: Session = Depends(get_db
 
 
 @router.post("/{poll_id}/activate", response_model=schemas.PollResponseSchema)
-async def activate_poll(poll_id: str, db: Session = Depends(get_db)):
+async def activate_poll(poll_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     # Deactivate all existing
     db.query(models.PollModel).update({models.PollModel.is_active: False})
     
@@ -165,7 +166,7 @@ async def activate_poll(poll_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{poll_id}/reset", response_model=schemas.PollResponseSchema)
-async def reset_poll_votes(poll_id: str, db: Session = Depends(get_db)):
+async def reset_poll_votes(poll_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     poll = db.query(models.PollModel).filter(models.PollModel.id == poll_id).first()
     if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
@@ -195,7 +196,7 @@ async def reset_poll_votes(poll_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{poll_id}")
-async def delete_poll(poll_id: str, db: Session = Depends(get_db)):
+async def delete_poll(poll_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     poll = db.query(models.PollModel).filter(models.PollModel.id == poll_id).first()
     if poll:
         db.delete(poll)

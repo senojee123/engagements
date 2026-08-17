@@ -81,7 +81,7 @@ export default function LaneDazeDisplay({
               score: Number(row.score) || 0,
               time: '00:45s',
               badge: index === 0 ? 'Champion' : index < 3 ? 'Elite' : 'Runner',
-              avatar: `https://images.unsplash.com/photo-${1535713875002-d1d0cf377fde}?auto=format&fit=crop&w=150&q=80`,
+              avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
               combo: 'Active',
               reward: index === 0 ? 'Grand Prize' : 'Participant'
             }));

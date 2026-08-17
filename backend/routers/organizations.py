@@ -8,6 +8,7 @@ from database import get_db
 import models
 import schemas
 from routers.activity_log import log_activity
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
@@ -30,13 +31,13 @@ def to_response(db: Session, org: models.OrganizationModel) -> schemas.Organizat
 
 
 @router.get("/", response_model=List[schemas.OrganizationResponse])
-def list_organizations(db: Session = Depends(get_db)):
+def list_organizations(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     orgs = db.query(models.OrganizationModel).order_by(models.OrganizationModel.created_at.desc()).all()
     return [to_response(db, org) for org in orgs]
 
 
 @router.post("/", response_model=schemas.OrganizationResponse)
-def create_organization(data: schemas.OrganizationCreate, db: Session = Depends(get_db)):
+def create_organization(data: schemas.OrganizationCreate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     org = models.OrganizationModel(
         id=f"org-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}",
         name=data.name,
@@ -55,7 +56,7 @@ def create_organization(data: schemas.OrganizationCreate, db: Session = Depends(
 
 
 @router.patch("/{org_id}", response_model=schemas.OrganizationResponse)
-def update_organization(org_id: str, data: schemas.OrganizationUpdate, db: Session = Depends(get_db)):
+def update_organization(org_id: str, data: schemas.OrganizationUpdate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     org = db.query(models.OrganizationModel).filter(models.OrganizationModel.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
@@ -74,7 +75,7 @@ def update_organization(org_id: str, data: schemas.OrganizationUpdate, db: Sessi
 
 
 @router.delete("/{org_id}")
-def delete_organization(org_id: str, db: Session = Depends(get_db)):
+def delete_organization(org_id: str, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     org = db.query(models.OrganizationModel).filter(models.OrganizationModel.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")

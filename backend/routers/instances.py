@@ -9,8 +9,14 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user, require_admin, is_owner_or_admin
 
 router = APIRouter(prefix="/api/instances", tags=["instances"])
+
+
+def _require_owner_or_admin(instance: models.InstanceModel, current_user: models.UserModel):
+    if not is_owner_or_admin(current_user, instance.user_id, instance.brand_id):
+        raise HTTPException(status_code=403, detail="Not authorized to modify this instance")
 
 
 def to_response(inst: models.InstanceModel) -> schemas.InstanceResponse:
@@ -36,7 +42,11 @@ def to_response(inst: models.InstanceModel) -> schemas.InstanceResponse:
 
 @router.post("/submit", response_model=schemas.InstanceResponse)
 @router.post("/publish", response_model=schemas.InstanceResponse)
-def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(get_db)):
+def submit_instance(
+    data: schemas.InstancePublishRequest,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
+):
     """
     Submit or update a brand engagement instance.
     Each brand gets their own isolated instance — the master template is never modified.
@@ -44,8 +54,6 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
     now = time.time()
     config_json = json.dumps(data.config or {})
     app_id = data.appId or data.templateId or "memory-challenge"
-    user_id = data.userId or "default-user"
-    brand_id = data.brandId or user_id
 
     instance = None
 
@@ -54,18 +62,21 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
         instance = db.query(models.InstanceModel).filter_by(id=data.instanceId).first()
 
     if instance:
-        # Update existing brand instance — master template is untouched
+        # Updating an existing instance requires owning it (or being admin) —
+        # ownership is never taken from the request body, only from who's authenticated.
+        _require_owner_or_admin(instance, current_user)
         instance.config_json = config_json
         instance.status = data.status or instance.status
         instance.published_at = now
-        instance.user_id = user_id
-        instance.brand_id = brand_id
         if data.brandName:
             instance.brand_name = data.brandName
         if data.title:
             instance.title = data.title
     else:
-        # Create a fresh brand-specific instance from the default template
+        # Create a fresh brand-specific instance from the default template.
+        # user_id is always the authenticated caller — never trusted from the client.
+        user_id = current_user.id
+        brand_id = data.brandId or user_id
         instance_id = data.instanceId or f"inst-{uuid.uuid4().hex[:12]}"
         instance = models.InstanceModel(
             id=instance_id,
@@ -88,10 +99,15 @@ def submit_instance(data: schemas.InstancePublishRequest, db: Session = Depends(
 
 
 @router.post("/{instance_id}/send-approval", response_model=schemas.InstanceResponse)
-def send_approval_instance(instance_id: str, db: Session = Depends(get_db)):
+def send_approval_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
+):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
+    _require_owner_or_admin(instance, current_user)
     instance.status = "pending"
     db.commit()
     db.refresh(instance)
@@ -99,7 +115,11 @@ def send_approval_instance(instance_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{instance_id}/approve", response_model=schemas.InstanceResponse)
-def approve_instance(instance_id: str, db: Session = Depends(get_db)):
+def approve_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(require_admin),
+):
     """Approve the brand's instance. Does NOT touch the master template."""
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
@@ -112,7 +132,11 @@ def approve_instance(instance_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{instance_id}/reject", response_model=schemas.InstanceResponse)
-def reject_instance(instance_id: str, db: Session = Depends(get_db)):
+def reject_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(require_admin),
+):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -123,7 +147,11 @@ def reject_instance(instance_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{instance_id}/publish", response_model=schemas.InstanceResponse)
-def publish_instance(instance_id: str, db: Session = Depends(get_db)):
+def publish_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
+):
     """
     Publish the brand's approved instance.
     The brand's customized version is now live on FanZone.
@@ -132,6 +160,7 @@ def publish_instance(instance_id: str, db: Session = Depends(get_db)):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
+    _require_owner_or_admin(instance, current_user)
     instance.status = "published"
     instance.published_at = time.time()
     db.commit()
@@ -140,7 +169,11 @@ def publish_instance(instance_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{instance_id}/launch", response_model=schemas.InstanceResponse)
-def launch_instance(instance_id: str, db: Session = Depends(get_db)):
+def launch_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
+):
     """
     Launch the brand's published instance live to stadium displays.
     Master template remains unchanged.
@@ -148,6 +181,7 @@ def launch_instance(instance_id: str, db: Session = Depends(get_db)):
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
+    _require_owner_or_admin(instance, current_user)
     instance.status = "launched"
     instance.published_at = time.time()
     db.commit()
@@ -164,11 +198,16 @@ def get_instance(instance_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{instance_id}")
-def delete_instance(instance_id: str, db: Session = Depends(get_db)):
+def delete_instance(
+    instance_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.UserModel = Depends(get_current_user),
+):
     """Delete a brand's engagement instance. Master template is untouched."""
     instance = db.query(models.InstanceModel).filter_by(id=instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
+    _require_owner_or_admin(instance, current_user)
     db.delete(instance)
     db.commit()
     return {"message": "Instance deleted successfully"}

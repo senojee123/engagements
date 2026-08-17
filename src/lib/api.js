@@ -2,6 +2,16 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel
 
 const REMOTE_API = import.meta.env.VITE_API_URL || 'https://engagements-six.vercel.app';
 
+// Attaches the stored session token, if any, to outgoing requests. Harmless
+// on public endpoints; required on endpoints that now enforce authentication.
+function authHeaders() {
+  try {
+    const token = localStorage.getItem('fanforge_access_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch (e) {
+    return {};
+  }
+}
 
 // Default timeout is generous because the backend runs on serverless
 // functions that can take several seconds to cold-start after idle.
@@ -12,7 +22,10 @@ async function request(method, path, body, timeoutMs = 12000) {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...authHeaders(),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
@@ -129,7 +142,10 @@ const SELFIE_API = REMOTE_API;
 const selfieRequest = async (method, path, body) => {
   const res = await fetch(`${SELFIE_API}${path}`, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...authHeaders(),
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {

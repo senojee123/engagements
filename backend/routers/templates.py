@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
+from deps import get_current_user
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
 
@@ -35,7 +36,7 @@ def to_response(t: models.TemplateModel) -> schemas.TemplateResponse:
 
 
 @router.get("/", response_model=List[schemas.TemplateResponse])
-def list_templates(db: Session = Depends(get_db)):
+def list_templates(db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     seed_templates(db)
     templates = db.query(models.TemplateModel).order_by(models.TemplateModel.created_at.desc()).all()
     return [to_response(t) for t in templates]
@@ -43,7 +44,7 @@ def list_templates(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.TemplateResponse)
-def create_template(data: schemas.TemplateCreate, db: Session = Depends(get_db)):
+def create_template(data: schemas.TemplateCreate, db: Session = Depends(get_db), current_user: models.UserModel = Depends(get_current_user)):
     tags = data.tags if data.tags is not None else ["Custom"]
     tpl = models.TemplateModel(
         id=f"tpl-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}",

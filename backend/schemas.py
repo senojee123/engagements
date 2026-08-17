@@ -139,6 +139,11 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+class AuthResponse(BaseModel):
+    user: UserResponse
+    accessToken: str
+
+
 # ----------------------------------------------------
 # ORGANIZATION SCHEMAS
 # ----------------------------------------------------

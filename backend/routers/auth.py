@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from security import hash_password, verify_password
+from security import hash_password, verify_password, create_access_token
 from routers.users import to_response
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=schemas.UserResponse)
+@router.post("/register", response_model=schemas.AuthResponse)
 def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
     existing = db.query(models.UserModel).filter(models.UserModel.email == data.email).first()
     if existing:
@@ -29,12 +29,16 @@ def register(data: schemas.RegisterRequest, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return to_response(new_user)
+
+    token = create_access_token(new_user.id, new_user.role)
+    return schemas.AuthResponse(user=to_response(new_user), accessToken=token)
 
 
-@router.post("/login", response_model=schemas.UserResponse)
+@router.post("/login", response_model=schemas.AuthResponse)
 def login(data: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.UserModel).filter(models.UserModel.email == data.email).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    return to_response(user)
+
+    token = create_access_token(user.id, user.role)
+    return schemas.AuthResponse(user=to_response(user), accessToken=token)
