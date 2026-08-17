@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -7,9 +9,9 @@ from database import get_db
 import models
 from security import decode_access_token
 
-# Only "Super Admin" is assignable through the current registration UI;
-# "Admin" is kept for compatibility with the role name App.jsx already
-# checks for and with any account created via a direct API call.
+# The only two roles that actually exist: "Brand" (self-service, default for
+# everyone) and "Super Admin" (full platform access). "Admin" is kept as a
+# synonym for compatibility with the role name App.jsx already checks for.
 ADMIN_ROLES = {"Super Admin", "Admin"}
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -32,6 +34,22 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[models.UserModel]:
+    """Like get_current_user, but returns None instead of raising when no/invalid
+    token is present — for endpoints (like registration) that must work both
+    anonymously and, with elevated behavior, for an already-authenticated admin."""
+    if credentials is None:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except jwt.PyJWTError:
+        return None
+    return db.query(models.UserModel).filter(models.UserModel.id == payload.get("sub")).first()
 
 
 def require_admin(user: models.UserModel = Depends(get_current_user)) -> models.UserModel:
