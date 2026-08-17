@@ -68,7 +68,7 @@ export default function AuthLayout() {
               <div>
                 <h4 className="text-sm font-semibold text-white">Enterprise Role Governance</h4>
                 <p className="text-xs text-indigo-200/70 mt-0.5">
-                  Granular permission control across Super Admins, Brands, and Venue Managers.
+                  Granular permission control across Admins and Brands.
                 </p>
               </div>
             </div>

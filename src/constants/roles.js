@@ -7,7 +7,7 @@ export const AVAILABLE_ROLES = [
     permissions: ['org.manage', 'events.manage', 'campaigns.create'],
   },
   {
-    id: 'Super Admin',
+    id: 'Admin',
     name: 'Admin',
     description: 'Full system control, organization management, and security permissions.',
     badgeColor: 'indigo',

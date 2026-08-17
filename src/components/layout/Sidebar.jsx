@@ -54,7 +54,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
     if (currentRole === 'Developer') {
       return item.path === '/analytics';
     }
-    if (item.path === '/approvals' && currentRole !== 'Super Admin') {
+    if (item.path === '/approvals' && currentRole !== 'Admin' && currentRole !== 'Super Admin') {
       return false;
     }
     return true;

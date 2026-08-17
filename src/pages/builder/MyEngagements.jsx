@@ -66,6 +66,13 @@ export default function MyEngagements() {
 
   useEffect(() => {
     loadMyEngagements();
+    const handleSync = () => loadMyEngagements();
+    window.addEventListener('fanforge_instances_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('fanforge_instances_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [user]);
 
   const handleLaunch = async (instanceId, e) => {

@@ -433,22 +433,7 @@ export const sendApprovalInstanceApi = async (instanceId) => {
 };
 
 export const approveInstanceApi = async (instanceId) => {
-  let result = null;
-  try {
-    result = await request('POST', `/api/instances/${instanceId}/approve`);
-  } catch (e) {}
-
-  if (!result) {
-    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
-    result = {
-      ...(cached || {}),
-      id: instanceId,
-      instanceId: instanceId,
-      status: 'approved',
-      approvedAt: Date.now() / 1000,
-    };
-  }
-
+  const result = await request('POST', `/api/instances/${instanceId}/approve`);
   saveCachedInstance(result);
 
   if (result && result.config) {
@@ -459,26 +444,14 @@ export const approveInstanceApi = async (instanceId) => {
     });
   }
 
+  notifyInstancesChanged();
   return result;
 };
 
 export const rejectInstanceApi = async (instanceId) => {
-  let result = null;
-  try {
-    result = await request('POST', `/api/instances/${instanceId}/reject`);
-  } catch (e) {}
-
-  if (!result) {
-    const cached = getCachedInstances().find((i) => (i.instanceId || i.id) === instanceId);
-    result = {
-      ...(cached || {}),
-      id: instanceId,
-      instanceId: instanceId,
-      status: 'rejected',
-    };
-  }
-
+  const result = await request('POST', `/api/instances/${instanceId}/reject`);
   saveCachedInstance(result);
+  notifyInstancesChanged();
   return result;
 };
 
@@ -509,13 +482,19 @@ export const launchInstanceApi = async (instanceId) => {
     });
   }
 
+  notifyInstancesChanged();
   return result;
 };
 
 export const deleteInstanceApi = async (instanceId) => {
   try {
     await request('DELETE', `/api/instances/${instanceId}`);
-  } catch (e) {}
+  } catch (err) {
+    // If already deleted on server (404), clean up local cache gracefully
+    if (!err.message?.includes('404') && !err.message?.includes('not found')) {
+      throw err;
+    }
+  }
 
   try {
     const list = getCachedInstances().filter((i) => (i.instanceId || i.id) !== instanceId);

@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, Trash2, RefreshCw, Palette,
   Image as ImageIcon, Smile, ChevronDown, ChevronUp,
-  Zap, Eye, Check, UploadCloud, Radio, Send,
+  Zap, Eye, Check, UploadCloud, Radio, Send, Clock,
 } from 'lucide-react';
+import Badge from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { submitInstanceApi, fetchInstancesApi, publishInstanceApi } from '../../lib/api';
@@ -58,6 +59,8 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
   const toast = useToast();
   const { user } = useAuth();
   const [config, setConfig] = useState(MASTER_DEFAULT_CONFIG);
+  const [instanceStatus, setInstanceStatus] = useState('draft');
+  const [instanceId, setInstanceId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -88,6 +91,8 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         if (instances && instances.length > 0 && isMounted) {
           const inst = instances[0];
           const instConfig = inst?.config;
+          setInstanceStatus(inst?.status || 'draft');
+          setInstanceId(inst?.instanceId || inst?.id || null);
           if (instConfig && instConfig.tiles && instConfig.tiles.length > 0) {
             setConfig({ ...MASTER_DEFAULT_CONFIG, ...instConfig });
             try { localStorage.setItem(`fanforge_mc_draft_${userId}`, JSON.stringify(instConfig)); } catch (e) {}
@@ -97,6 +102,8 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         } else if (isMounted) {
           // If no active backend instance exists, reset to fresh MASTER_DEFAULT_CONFIG
           setConfig({ ...MASTER_DEFAULT_CONFIG });
+          setInstanceStatus('draft');
+          setInstanceId(null);
           try {
             localStorage.removeItem(`fanforge_mc_draft_${userId}`);
             localStorage.removeItem('fanforge_memory_customization');
@@ -111,7 +118,14 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
     };
 
     loadConfig();
-    return () => { isMounted = false; };
+    const handleSync = () => loadConfig();
+    window.addEventListener('fanforge_instances_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('fanforge_instances_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [user?.id]);
 
   const updateField = (field, value) => {
@@ -246,10 +260,11 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
 
       const searchParams = new URLSearchParams(window.location.search);
       const urlInstanceId = searchParams.get('instanceId');
+      const targetInstId = urlInstanceId || instanceId || undefined;
       const configWithBrand = { ...config, brandId: userId, userId };
 
       const res = await submitInstanceApi({
-        instanceId: urlInstanceId || undefined,
+        instanceId: targetInstId,
         templateId: 'memory-challenge',
         appId: 'memory-challenge',
         userId,
@@ -260,8 +275,10 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
         config: configWithBrand,
       });
 
-      toast.success(`Customization saved & submitted! ID: ${(res.instanceId || '').slice(0, 14)}... Waiting for Admin approval.`);
+      toast.success(`Customization saved & submitted! ID: ${(res.instanceId || res.id || '').slice(0, 14)}... Waiting for Admin approval.`);
       setSaved(true);
+      setInstanceStatus('pending');
+      if (res.instanceId || res.id) setInstanceId(res.instanceId || res.id);
       if (onSubmitted) onSubmitted();
       setTimeout(() => navigate('/my-engagements'), 1200);
     } catch (err) {
@@ -840,29 +857,58 @@ export default function MemoryChallengeConfig({ onSubmitted }) {
 
       {/* Sticky save bar */}
       <div className="sticky bottom-4 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm text-slate-500">
-            <strong className="text-slate-800">{config.tiles.length} tiles</strong> configured for {config.brandName || 'your brand'}.
-            {!tilesOk && <span className="text-amber-600 ml-2">⚠ Need {pairsNeeded} tiles for {config.gridCols}×{config.gridRows} grid.</span>}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="text-sm text-slate-500 flex items-center gap-3">
+            <div>
+              <strong className="text-slate-800">{config.tiles.length} tiles</strong> configured for {config.brandName || 'your brand'}.
+              {!tilesOk && <span className="text-amber-600 ml-2">⚠ Need {pairsNeeded} tiles for {config.gridCols}×{config.gridRows} grid.</span>}
+            </div>
+            {instanceStatus === 'approved' && (
+              <Badge variant="emerald" size="sm">✅ Approved by Admin</Badge>
+            )}
+            {(instanceStatus === 'published' || instanceStatus === 'launched') && (
+              <Badge variant="indigo" size="sm">🚀 Live & Published</Badge>
+            )}
+            {instanceStatus === 'pending' && (
+              <Badge variant="amber" size="sm">⏳ Under Admin Review</Badge>
+            )}
+            {instanceStatus === 'rejected' && (
+              <Badge variant="rose" size="sm">❌ Changes Requested</Badge>
+            )}
           </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={handleSaveAndSendForApproval}
               disabled={isSaving || !tilesOk}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg transition-all ${
-                saved
-                  ? 'bg-emerald-600 text-white'
+                instanceStatus === 'approved'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : instanceStatus === 'published' || instanceStatus === 'launched'
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                  : saved || instanceStatus === 'pending'
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white'
               } disabled:opacity-50`}
             >
               {isSaving ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : saved ? (
+              ) : instanceStatus === 'approved' ? (
                 <Check className="w-4 h-4" />
+              ) : saved || instanceStatus === 'pending' ? (
+                <Clock className="w-4 h-4" />
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              {isSaving ? 'Submitting...' : saved ? 'Submitted for Approval!' : 'Save & Send for Approval'}
+              {isSaving
+                ? 'Submitting...'
+                : instanceStatus === 'approved'
+                ? '✅ Approved! Re-submit Changes'
+                : instanceStatus === 'published' || instanceStatus === 'launched'
+                ? '🚀 Live! Re-submit Changes'
+                : saved || instanceStatus === 'pending'
+                ? '⏳ Submitted (Pending Review)'
+                : 'Save & Send for Approval'}
             </button>
           </div>
         </div>

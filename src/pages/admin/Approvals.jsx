@@ -142,7 +142,7 @@ export default function Approvals() {
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-indigo-500/20">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-3 border border-indigo-500/30">
-            <Shield className="w-3.5 h-3.5" /> Super Admin Governance Hub
+            <Shield className="w-3.5 h-3.5" /> Admin Governance Hub
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Brand Customization Approvals</h1>
           <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-xl">

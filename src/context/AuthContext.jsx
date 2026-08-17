@@ -85,11 +85,7 @@ export const AuthProvider = ({ children }) => {
 
   const deleteAccount = async () => {
     if (!user) return;
-    try {
-      await deleteUserApi(user.id);
-    } catch (e) {
-      // Offline fallback
-    }
+    await deleteUserApi(user.id);
     logout();
   };
 
