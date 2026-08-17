@@ -36,7 +36,20 @@ export default function MemoryChallengeDisplay({
       : instanceConfig || null
   );
 
-  const targetUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/fan-zone';
+  // Resolve which specific instance/brand THIS screen is displaying, using the
+  // same identity already trusted for scoping the Firebase leaderboard query
+  // below (see fetchScores' targetInstance/targetBrand). Encoding it into the
+  // QR means every fan who scans lands on this exact instance, never an
+  // unscoped list that could resolve to a different org's Memory Challenge.
+  const resolvedInstanceId = instanceId || instanceConfig?.instanceId || instanceConfig?.id || null;
+  const resolvedBrandId = brandId || instanceConfig?.brandId || instanceConfig?.userId || null;
+
+  const targetOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://fan-zone-five.vercel.app';
+  const targetParams = new URLSearchParams();
+  if (resolvedInstanceId) targetParams.set('instanceId', resolvedInstanceId);
+  if (resolvedBrandId) targetParams.set('brandId', resolvedBrandId);
+  const targetQuery = targetParams.toString();
+  const targetUrl = `${targetOrigin}/fan-zone${targetQuery ? `?${targetQuery}` : ''}`;
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}`;
 
   useEffect(() => {
@@ -177,8 +190,8 @@ export default function MemoryChallengeDisplay({
           {/* QR Code Glowing Frame */}
           <div className="relative p-3 bg-white rounded-2xl shadow-[0_0_0_3px_rgba(217,171,82,0.6),0_0_28px_rgba(217,171,82,0.35),0_0_60px_rgba(199,125,255,0.18)] transition-all">
             <img
-              src="/assets/memory_challenge_qr.png"
-              onError={(e) => { e.target.src = '/memory-qr.png'; }}
+              src={qrCodeImageUrl}
+              onError={(e) => { e.currentTarget.src = '/assets/memory_challenge_qr.png'; }}
               alt="Scan QR Code to Play Memory Challenge"
               className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl"
             />

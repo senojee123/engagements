@@ -42,7 +42,20 @@ export default function LaneDazeDisplay({
     }
   }, [instanceConfig]);
 
-  const fanzoneUrl = typeof window !== 'undefined' ? `${window.location.origin}/fan-zone` : 'https://fan-zone-five.vercel.app/';
+  // Resolve which specific instance/brand THIS screen is displaying, using the
+  // same identity already trusted for scoping the leaderboard query below
+  // (see fetchScores' targetInstance/targetBrand). Encoding it into the QR
+  // means every fan who scans lands on this exact instance, never an
+  // unscoped list that could resolve to a different org's Lane Dash.
+  const resolvedInstanceId = instanceId || instanceConfig?.instanceId || instanceConfig?.id || null;
+  const resolvedBrandId = brandId || instanceConfig?.brandId || instanceConfig?.userId || null;
+
+  const fanzoneOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://fan-zone-five.vercel.app';
+  const fanzoneParams = new URLSearchParams();
+  if (resolvedInstanceId) fanzoneParams.set('instanceId', resolvedInstanceId);
+  if (resolvedBrandId) fanzoneParams.set('brandId', resolvedBrandId);
+  const fanzoneQuery = fanzoneParams.toString();
+  const fanzoneUrl = `${fanzoneOrigin}/fan-zone${fanzoneQuery ? `?${fanzoneQuery}` : ''}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fanzoneUrl)}`;
 
   // Listen for brand changes & fetch real scores from Supabase API (Tenant Isolated)

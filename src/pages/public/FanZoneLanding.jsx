@@ -40,6 +40,14 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
     const searchParams = new URLSearchParams(window.location.search);
     const brandParam = searchParams.get('brandId') || searchParams.get('brand') || searchParams.get('userId');
     const targetBrand = brandParam || undefined;
+    // A QR code / embed link can pin this landing page to one exact,
+    // already-known instance (see LaneDazeDisplay/MemoryChallengeDisplay,
+    // which now encode it). brandId alone only narrows to one org — a brand
+    // can have several published instances of the same app (every publish
+    // mints a new UUID), so when instanceId is present we filter down to
+    // that exact one, defense-in-depth against showing multiple ambiguous
+    // cards for the same game type.
+    const targetInstanceId = searchParams.get('instanceId') || undefined;
 
     const queryParams = {};
     if (targetBrand) {
@@ -61,7 +69,10 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
               (i.brandName || '').toLowerCase().includes(targetBrand.toLowerCase())
           );
         }
-        
+        if (targetInstanceId) {
+          list = list.filter((i) => (i.instanceId || i.id) === targetInstanceId);
+        }
+
         // Filter unique instances
         const uniqueAppMap = new Map();
         list.forEach((inst) => {
@@ -90,7 +101,10 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
 
     fetchInstancesApi(queryParams)
       .then((data) => {
-        const list = data || [];
+        let list = data || [];
+        if (targetInstanceId) {
+          list = list.filter((i) => (i.instanceId || i.id) === targetInstanceId);
+        }
         const uniqueAppMap = new Map();
         list.forEach((inst) => {
           const key = inst.instanceId || inst.id;
