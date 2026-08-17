@@ -269,23 +269,26 @@ export default function Analytics() {
     };
   }, []);
 
+  // loadBrandInstances is triggered independently by a 3s interval, focus, storage,
+  // and a custom event — those calls can overlap, and without sequencing an older,
+  // slower response can resolve after a newer one and overwrite it with stale data
+  // (visible as the stats flickering between correct and stale). This counter makes
+  // only the most-recently-*initiated* call's result ever get applied.
+  const brandInstancesRequestIdRef = useRef(0);
+
   const loadBrandInstances = () => {
     const targetUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
-    fetchInstancesApi(
-      { userId: targetUserId, brandId: targetUserId },
-      (freshInstances) => {
-        // Fires once the background revalidation resolves — without this, a stale
-        // cached list could keep activeAppIds/activeInstanceIds wrong indefinitely,
-        // silently filtering out real Memory Challenge / Lane Dash scores below.
-        if (isMountedRef.current) setBrandInstances(freshInstances || []);
+    const requestId = ++brandInstancesRequestIdRef.current;
+
+    const applyIfCurrent = (data) => {
+      if (isMountedRef.current && requestId === brandInstancesRequestIdRef.current) {
+        setBrandInstances(data || []);
       }
-    )
-      .then((instances) => {
-        if (isMountedRef.current) setBrandInstances(instances || []);
-      })
-      .catch(() => {
-        if (isMountedRef.current) setBrandInstances([]);
-      });
+    };
+
+    fetchInstancesApi({ userId: targetUserId, brandId: targetUserId }, applyIfCurrent)
+      .then(applyIfCurrent)
+      .catch(() => applyIfCurrent([]));
   };
 
   useEffect(() => {
@@ -457,14 +460,14 @@ export default function Analytics() {
   const memoryBrand = memoryContext.activeBrand || DEFAULT_BRAND_KITS[0];
 
   const memorySessionsCount = brandFirebaseScores.length;
-  const topMemoryScore = brandFirebaseScores.length > 0 ? brandFirebaseScores[0].score : (leaderboard[0]?.score || 0);
-  const fastestTimeSeconds = brandFirebaseScores.length > 0 ? Math.min(...brandFirebaseScores.map((s) => s.seconds || 999)) : 13;
+  const topMemoryScore = brandFirebaseScores.length > 0 ? brandFirebaseScores[0].score : 0;
+  const fastestTimeSeconds = brandFirebaseScores.length > 0 ? Math.min(...brandFirebaseScores.map((s) => s.seconds || 999)) : 0;
   const avgTimeSeconds = brandFirebaseScores.length > 0
     ? Math.round(brandFirebaseScores.reduce((acc, s) => acc + (s.seconds || 0), 0) / brandFirebaseScores.length)
-    : 22;
+    : 0;
   const avgMovesCount = brandFirebaseScores.length > 0
     ? (brandFirebaseScores.reduce((acc, s) => acc + (s.moves || 0), 0) / brandFirebaseScores.length).toFixed(1)
-    : '11.1';
+    : '0.0';
 
   // 3. REAL LANE DASH METRICS (Tenant Isolated)
   const isLaneDashActive = currentRole !== 'Brand' || activeAppIds.has('lane-daze') || activeAppIds.has('lane-dash');
