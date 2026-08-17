@@ -339,7 +339,42 @@
       return div.innerHTML;
     }
 
-    loadScores();
+    async function submitPendingScore() {
+      try {
+        const pendingStr = sessionStorage.getItem('lane_dash_pending_score');
+        if (!pendingStr) return;
+        
+        // Remove it immediately so it doesn't double-submit on reload
+        sessionStorage.removeItem('lane_dash_pending_score');
+
+        const pending = JSON.parse(pendingStr);
+        if (!pending.name || typeof pending.score !== 'number') return;
+
+        let gameBrandId = 'default-brand';
+        let gameInstanceId = 'default-instance';
+        const urlParams = new URLSearchParams(window.location.search);
+        gameBrandId = urlParams.get('brandId') || urlParams.get('brand') || urlParams.get('userId') || 'default-brand';
+        gameInstanceId = urlParams.get('instanceId') || urlParams.get('id') || 'default-instance';
+
+        await client.from(window.GAME_CONFIG.SCORES_TABLE || 'scores').insert([
+          { 
+            player_name: pending.name, 
+            score: pending.score,
+            brand_id: gameBrandId,
+            instance_id: gameInstanceId
+          },
+        ]);
+      } catch (err) {
+        console.error('Failed to submit pending score:', err);
+      }
+    }
+
+    async function initLeaderboard() {
+      await submitPendingScore();
+      await loadScores();
+    }
+
+    initLeaderboard();
     setInterval(loadScores, 8000); // Poll every 8 seconds
   })();
 </script>

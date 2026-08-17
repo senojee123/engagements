@@ -1414,6 +1414,9 @@ document.getElementById('start-btn').addEventListener('click', tryStartFromNameE
 document.getElementById('restart-btn').addEventListener('click', startGame);
 
 function goToMainMenu() {
+  try {
+    sessionStorage.removeItem('lane_dash_pending_score');
+  } catch (e) {}
   Game.state = 'start';
   gameoverScreen.classList.add('hidden');
   startScreen.classList.remove('hidden');
@@ -1516,6 +1519,9 @@ function runCountdown() {
 function startGame() {
   if (Game.state === 'playing' || Game.state === 'countdown') return;
   if (countdownTimer) clearTimeout(countdownTimer);
+  try {
+    sessionStorage.removeItem('lane_dash_pending_score');
+  } catch (e) {}
   // BASE_SPEED, not 0 — the world not scrolling during the countdown is
   // already fully handled by Game.state !== 'playing' gating tick()'s
   // moveDelta block; Game.speed itself also feeds updateCamera()'s
@@ -1548,10 +1554,17 @@ function endGame() {
   if (isNew) Save.high = finalScore;
   Save.persist();
 
-  // Fire-and-forget — submitScore (engine/leaderboard-client.js) is async and never
-  // throws back into this function, so the game-over screen below renders
-  // immediately regardless of how long (or whether) the network call takes.
-  submitScore(playerCurrentName, finalScore);
+  // Save the score as pending to sessionStorage. It will only be submitted to
+  // Supabase if the user chooses to click "VIEW LEADERBOARD". If they restart
+  // or go to main menu, this pending score is cleared/discarded.
+  try {
+    sessionStorage.setItem('lane_dash_pending_score', JSON.stringify({
+      name: playerCurrentName,
+      score: finalScore
+    }));
+  } catch (e) {
+    console.error('Failed to save pending score to sessionStorage:', e);
+  }
 
   goScore.textContent = finalScore.toLocaleString();
   // show the sum, so the coins x multiplier rule is obvious
