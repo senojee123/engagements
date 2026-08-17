@@ -283,6 +283,7 @@ export default function Analytics() {
     const applyIfCurrent = (data) => {
       if (isMountedRef.current && requestId === brandInstancesRequestIdRef.current) {
         setBrandInstances(data || []);
+        setIsInstancesLoading(false);
       }
     };
 
@@ -297,7 +298,6 @@ export default function Analytics() {
   useEffect(() => {
     setIsInstancesLoading(true);
     loadBrandInstances();
-    const timer = setTimeout(() => setIsInstancesLoading(false), 500);
 
     const handleSync = () => loadBrandInstances();
     window.addEventListener('focus', handleSync);
@@ -307,7 +307,6 @@ export default function Analytics() {
     const interval = setInterval(loadBrandInstances, 3000);
 
     return () => {
-      clearTimeout(timer);
       clearInterval(interval);
       window.removeEventListener('focus', handleSync);
       window.removeEventListener('storage', handleSync);
