@@ -24,15 +24,22 @@ export default function FanZoneSplash({ children }) {
       {children}
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[100] flex flex-col items-center bg-white px-6 py-14 transition-opacity duration-300 ${
+          className={`fixed inset-0 z-[100] flex flex-col items-center justify-between bg-[#f4f2ee] px-6 py-16 transition-opacity duration-300 ${
             isFadingOut ? 'opacity-0' : 'opacity-100'
           }`}
         >
-          <h1 className="mt-6 text-4xl sm:text-5xl font-black tracking-tight text-slate-900">
-            Fan<span className="text-rose-600">Zone</span>
-          </h1>
+          {/* Spacer to push title to the middle */}
+          <div className="flex-1" />
 
-          <div className="flex-1 flex flex-col items-center justify-center gap-5">
+          {/* Centered Large Title */}
+          <div className="flex flex-col items-center justify-center text-center">
+            <h1 className="text-6xl sm:text-7xl font-black tracking-tight text-slate-950 select-none">
+              Fan<span className="text-rose-600">Zone</span>
+            </h1>
+          </div>
+
+          {/* Powered By section pushed to the bottom */}
+          <div className="flex-1 flex flex-col items-center justify-end gap-4 mt-8">
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
               Powered by
             </span>

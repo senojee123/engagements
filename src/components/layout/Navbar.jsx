@@ -4,12 +4,10 @@ import {
   Search,
   Bell,
   Menu,
-  Shield,
   User,
   Settings,
   LogOut,
   ChevronDown,
-  Check,
   Building2,
   Calendar,
   Gamepad2,
@@ -24,7 +22,7 @@ import Badge from '../ui/Badge';
 const MAX_RESULTS_PER_GROUP = 4;
 
 export default function Navbar({ isCollapsed, setIsMobileOpen }) {
-  const { user, currentRole, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { globalSearch, setGlobalSearch, organizations, events, notifications, markNotificationRead, markAllNotificationsRead } = useApp();
   const { templates } = useTemplates();
   const navigate = useNavigate();
