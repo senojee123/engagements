@@ -41,11 +41,11 @@ const CHARACTER_BASE = 'assets/character/';
 // from raw.githubusercontent.com on every session (~65MB combined), which
 // isn't a CDN and is slow/rate-limited under concurrent load from a shared
 // venue network. Same files, now served from this deployment directly.
-const MODEL_FILE = CHARACTER_BASE + 'Ch09_nonPBR.fbx';
+const MODEL_FILE = CHARACTER_BASE + 'Ch09_nonPBR.glb';
 const ANIM_FILES = {
-  run: CHARACTER_BASE + 'animations/Fast_Run.fbx',
-  jump: CHARACTER_BASE + 'animations/Jump.fbx',
-  roll: CHARACTER_BASE + 'animations/Quick_Roll_To_Run.fbx',
+  run: CHARACTER_BASE + 'animations/Fast_Run.glb',
+  jump: CHARACTER_BASE + 'animations/Jump.glb',
+  roll: CHARACTER_BASE + 'animations/Quick_Roll_To_Run.glb',
 };
 
 const FADE = 0.15;             // crossfade between actions (seconds)
@@ -71,13 +71,13 @@ Character.isActive = function () {
 // ---------------------------------------------------------------------------
 // LOADING HELPERS
 // ---------------------------------------------------------------------------
-function loadFBX(url, label) {
+function loadGLTF(url, label) {
   return new Promise((resolve) => {
-    new THREE.FBXLoader().load(
+    new THREE.GLTFLoader().load(
       url,
-      (obj) => {
+      (gltf) => {
         if (window.AssetLoader) AssetLoader.tick();
-        resolve(obj);
+        resolve(gltf);
       },
       undefined,
       (err) => {
@@ -244,11 +244,12 @@ Character.init = function (opts) {
   if (window.AssetLoader) AssetLoader.add(4);
 
   Character._loadPromise = Promise.all([
-    loadFBX(MODEL_FILE, 'character Ch09_nonPBR.fbx'),
-    loadFBX(ANIM_FILES.run, 'run animation (Fast_Run.fbx)'),
-    loadFBX(ANIM_FILES.jump, 'jump animation (Jump.fbx)'),
-    loadFBX(ANIM_FILES.roll, 'roll animation (Quick_Roll_To_Run.fbx)'),
-  ]).then(([model, runFbx, jumpFbx, rollFbx]) => {
+    loadGLTF(MODEL_FILE, 'character Ch09_nonPBR.glb'),
+    loadGLTF(ANIM_FILES.run, 'run animation (Fast_Run.glb)'),
+    loadGLTF(ANIM_FILES.jump, 'jump animation (Jump.glb)'),
+    loadGLTF(ANIM_FILES.roll, 'roll animation (Quick_Roll_To_Run.glb)'),
+  ]).then(([modelGltf, runGltf, jumpGltf, rollGltf]) => {
+    const model = modelGltf && modelGltf.scene;
     if (!model) {
       console.warn('[Character] character model missing — keeping placeholder character.');
       Character.ready = true;
@@ -258,8 +259,7 @@ Character.init = function (opts) {
 
     // The model's own baked take is Mixamo's reference pose, not gameplay —
     // drop it so it can never be bound to the mixer.
-    const discarded = (model.animations && model.animations.length) || 0;
-    model.animations = [];
+    const discarded = (modelGltf.animations && modelGltf.animations.length) || 0;
 
     const mats = convertToPhong(model);
     const info = normalize(model, targetHeight);
@@ -277,11 +277,14 @@ Character.init = function (opts) {
 
     Character.mixer = new THREE.AnimationMixer(model);
 
-    const sources = { run: runFbx, jump: jumpFbx, roll: rollFbx };
+    const sources = {
+      run: runGltf && runGltf.animations && runGltf.animations[0],
+      jump: jumpGltf && jumpGltf.animations && jumpGltf.animations[0],
+      roll: rollGltf && rollGltf.animations && rollGltf.animations[0],
+    };
     let bound = 0;
     Object.keys(sources).forEach((name) => {
-      const fbx = sources[name];
-      const clip = fbx && fbx.animations && fbx.animations[0];
+      const clip = sources[name];
       if (!clip) {
         console.warn('[Character] no AnimationClip in "%s" file — action unavailable.', name);
         return;
