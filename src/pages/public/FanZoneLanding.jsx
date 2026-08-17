@@ -544,7 +544,11 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
                 defaultTitle: 'Match stadium icon pairs and win points',
                 onClick: () => {
                   const instId = inst.instanceId || inst.id;
-                  const query = instId ? `?instanceId=${encodeURIComponent(instId)}` : '';
+                  const brandId = inst.brandId || inst.userId;
+                  const queryParams = new URLSearchParams();
+                  if (instId) queryParams.append('instanceId', instId);
+                  if (brandId) queryParams.append('brandId', brandId);
+                  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
                   window.location.href = `https://memory-challenge-b7b.pages.dev/${query}`;
                 },
                 isActive: activeMemoryComputed,
