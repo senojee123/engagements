@@ -41,6 +41,7 @@ import LivePollModerationPanel from '../../components/livePoll/LivePollModeratio
 import ReactionWallDisplay from '../../components/reactionWall/ReactionWallDisplay';
 import ReactionWallModerationPanel from '../../components/reactionWall/ReactionWallModerationPanel';
 import MemoryChallengeDisplay from '../../components/memoryChallenge/MemoryChallengeDisplay';
+import LaneDazeDisplay from '../../components/laneDaze/LaneDazeDisplay';
 import MemoryChallengeConfig, { MASTER_DEFAULT_CONFIG } from './MemoryChallengeConfig';
 import LaneDazeConfig from './LaneDazeConfig';
 import { useTemplates } from '../../context/TemplateContext';
