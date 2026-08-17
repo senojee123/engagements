@@ -322,6 +322,19 @@ export default function Analytics() {
   const [firebaseScores, setFirebaseScores] = useState([]);
   const [isFirebaseLoading, setIsFirebaseLoading] = useState(true);
 
+  // isInstancesLoading/isFirebaseLoading both cycle true/false on every poll (by
+  // design), so gating the displayed count on them directly would flicker every
+  // 3s. This instead latches true once, the first time both underlying fetches
+  // have completed at least once — before that, the count is meaningless (still
+  // 0 because data hasn't arrived yet, not because there's genuinely nothing to
+  // show), so render a loading state instead of a misleading 0.
+  const [hasLoadedMemoryStats, setHasLoadedMemoryStats] = useState(false);
+  useEffect(() => {
+    if (!isInstancesLoading && !isFirebaseLoading) {
+      setHasLoadedMemoryStats(true);
+    }
+  }, [isInstancesLoading, isFirebaseLoading]);
+
   const fetchFirebaseScores = () => {
     setIsFirebaseLoading(true);
     fetch(FIREBASE_SCORES_URL)
@@ -739,13 +752,15 @@ export default function Analytics() {
             </div>
             <div className="mt-3 flex items-baseline justify-between">
               <span className="text-2xl font-black text-slate-900 tracking-tight">
-                {memorySessionsCount} Live Games
+                {hasLoadedMemoryStats ? `${memorySessionsCount} Live Games` : '— Live Games'}
               </span>
               <Badge variant="indigo" size="sm">
-                Fastest: {fastestTimeSeconds}s
+                {hasLoadedMemoryStats ? `Fastest: ${fastestTimeSeconds}s` : 'Loading...'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Avg solve time: {avgTimeSeconds}s | Moves: {avgMovesCount}</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {hasLoadedMemoryStats ? `Avg solve time: ${avgTimeSeconds}s | Moves: ${avgMovesCount}` : 'Fetching live stats...'}
+            </p>
           </CardContent>
         </Card>
 
