@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -32,15 +32,29 @@ export default function Approvals() {
   const [selectedInstance, setSelectedInstance] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
+  // Guards state updates from the fetchInstancesApi background revalidation callback,
+  // which can resolve after this component has unmounted (e.g. user navigated away).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const loadInstances = async () => {
     setIsLoading(true);
     try {
-      const data = await fetchInstancesApi();
-      setInstances(data || []);
+      const data = await fetchInstancesApi({}, (freshData) => {
+        // Fires once the background revalidation resolves — without this, a stale
+        // cached list could be shown indefinitely even though fresher data exists.
+        if (isMountedRef.current) setInstances(freshData || []);
+      });
+      if (isMountedRef.current) setInstances(data || []);
     } catch (err) {
-      toast.error('Failed to load pending approvals.');
+      if (isMountedRef.current) toast.error('Failed to load pending approvals.');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   };
 
