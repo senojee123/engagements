@@ -30,17 +30,32 @@ else:
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-# Optimize engine parameters for serverless runtime and connection pooling
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args=connect_args)
 else:
-    # Use NullPool for serverless environments (like Vercel) to prevent connection exhaustion.
-    # It opens and closes connections on demand instead of keeping them open in a pool.
-    from sqlalchemy.pool import NullPool
+    # NullPool used to be used here to avoid connection exhaustion on serverless
+    # (Vercel): each request there can land on a separate, independently-scaled
+    # process, so every one of those processes trying to hold its own pool of
+    # connections multiplies out of control under load. That reasoning doesn't
+    # apply to a single persistent process (e.g. Render's web service, one
+    # process for the app's whole lifetime) -- there, NullPool just pays a full
+    # connection handshake on every single request instead of reusing a small,
+    # already-open pool across that one process's entire runtime. A bounded
+    # QueuePool (SQLAlchemy's default) is strictly better here and can't
+    # reintroduce the original multi-process exhaustion, since there's only
+    # ever one process holding it.
+    #
+    # If this backend is ever deployed back onto a serverless platform where
+    # requests can land on independently-scaled processes, this needs to
+    # revert to NullPool for that deployment -- a bounded pool is only correct
+    # for a single persistent process.
     engine = create_engine(
         DATABASE_URL,
         connect_args=connect_args,
-        poolclass=NullPool
+        pool_size=10,
+        max_overflow=10,
+        pool_recycle=300,
+        pool_pre_ping=True,
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
