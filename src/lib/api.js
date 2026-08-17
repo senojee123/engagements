@@ -219,7 +219,7 @@ const saveCachedInstance = (inst) => {
   } catch (e) {}
 };
 
-export const fetchInstancesApi = async (params = {}, onUpdate) => {
+export const fetchInstancesApi = async (params = {}, onUpdate, options = {}) => {
   const queryParams = new URLSearchParams();
   if (params.appId) queryParams.append('appId', params.appId);
   if (params.userId) queryParams.append('userId', params.userId);
@@ -317,7 +317,9 @@ export const fetchInstancesApi = async (params = {}, onUpdate) => {
   // If cache exists, return immediately to eliminate latency, then revalidate in the
   // background — hand the fresh result to onUpdate so the caller can re-render with it,
   // since the caller has already moved on with the stale cachedData returned below.
-  if (cachedData) {
+  // skipCache opts out of this for callers where a stale intermediate value would be
+  // actively wrong (e.g. driving tenant-isolation filtering), not just slightly late.
+  if (cachedData && !options.skipCache) {
     networkFetch()
       .then((freshData) => {
         if (typeof onUpdate === 'function' && Array.isArray(freshData)) {

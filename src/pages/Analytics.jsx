@@ -286,7 +286,10 @@ export default function Analytics() {
       }
     };
 
-    fetchInstancesApi({ userId: targetUserId, brandId: targetUserId }, applyIfCurrent)
+    // skipCache: this list drives which Firebase/Supabase scores count as "yours" —
+    // a stale intermediate value here isn't just late, it's actively wrong (shows 0
+    // for real data), so always resolve from a fresh network response.
+    fetchInstancesApi({ userId: targetUserId, brandId: targetUserId }, applyIfCurrent, { skipCache: true })
       .then(applyIfCurrent)
       .catch(() => applyIfCurrent([]));
   };
