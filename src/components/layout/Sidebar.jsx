@@ -33,8 +33,8 @@ const mainNavItems = [
 ];
 
 const marketplaceNavItems = [
-  { name: 'My Engagements', path: '/my-engagements', icon: Layers, disabled: false },
   { name: 'Engagement Library', path: '/library', icon: Gamepad2, disabled: false },
+  { name: 'My Engagements', path: '/my-engagements', icon: Layers, disabled: false },
   { name: 'Brand Engine', path: '/brands', icon: Shield, disabled: false },
 ];
 
