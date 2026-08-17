@@ -6,14 +6,18 @@ from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from database import engine, Base, get_db
+from database import engine, Base, get_db, DATABASE_URL
 import models
 import schemas
 from routers import auth, users, organizations, events, activities, notifications, templates, brand_kits, polls, reactions, instances
 from deps import get_current_user, is_owner_or_admin
 
-# Create database tables automatically on startup (preserves existing data across restarts)
-Base.metadata.create_all(bind=engine)
+# Auto-create tables for local SQLite dev only. In production (Postgres via
+# Supabase), the schema already exists — running this on every serverless
+# cold start would burn a pooled connection just to no-op-check tables that
+# are already there, which contributes to exhausting Supabase's connection cap.
+if DATABASE_URL.startswith("sqlite"):
+    Base.metadata.create_all(bind=engine)
 
 
 
