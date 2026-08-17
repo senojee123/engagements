@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -259,11 +259,33 @@ export default function Analytics() {
   const [brandInstances, setBrandInstances] = useState([]);
   const [isInstancesLoading, setIsInstancesLoading] = useState(false);
 
+  // Guards state updates from the fetchInstancesApi background revalidation callback,
+  // which can resolve after this component has unmounted (e.g. user navigated away).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const loadBrandInstances = () => {
     const targetUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
-    fetchInstancesApi({ userId: targetUserId, brandId: targetUserId })
-      .then((instances) => setBrandInstances(instances || []))
-      .catch(() => setBrandInstances([]));
+    fetchInstancesApi(
+      { userId: targetUserId, brandId: targetUserId },
+      (freshInstances) => {
+        // Fires once the background revalidation resolves — without this, a stale
+        // cached list could keep activeAppIds/activeInstanceIds wrong indefinitely,
+        // silently filtering out real Memory Challenge / Lane Dash scores below.
+        if (isMountedRef.current) setBrandInstances(freshInstances || []);
+      }
+    )
+      .then((instances) => {
+        if (isMountedRef.current) setBrandInstances(instances || []);
+      })
+      .catch(() => {
+        if (isMountedRef.current) setBrandInstances([]);
+      });
   };
 
   useEffect(() => {
