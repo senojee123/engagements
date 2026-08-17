@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import FanZoneLanding from './pages/public/FanZoneLanding';
+import FanZoneSplash from './components/FanZoneSplash';
 import { SelfieWallProvider } from './context/SelfieWallContext';
 import { LivePollProvider } from './context/LivePollContext';
 import { ReactionWallProvider } from './context/ReactionWallContext';
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <LivePollProvider>
             <ReactionWallProvider>
               <MemoryChallengeProvider>
-                <FanZoneLanding />
+                <FanZoneSplash>
+                  <FanZoneLanding />
+                </FanZoneSplash>
               </MemoryChallengeProvider>
             </ReactionWallProvider>
           </LivePollProvider>
