@@ -219,7 +219,7 @@ const saveCachedInstance = (inst) => {
   } catch (e) {}
 };
 
-export const fetchInstancesApi = async (params = {}) => {
+export const fetchInstancesApi = async (params = {}, onUpdate) => {
   const queryParams = new URLSearchParams();
   if (params.appId) queryParams.append('appId', params.appId);
   if (params.userId) queryParams.append('userId', params.userId);
@@ -314,9 +314,17 @@ export const fetchInstancesApi = async (params = {}) => {
     return merged;
   };
 
-  // If cache exists, return immediately to eliminate latency and update in background
+  // If cache exists, return immediately to eliminate latency, then revalidate in the
+  // background — hand the fresh result to onUpdate so the caller can re-render with it,
+  // since the caller has already moved on with the stale cachedData returned below.
   if (cachedData) {
-    networkFetch().catch(() => {});
+    networkFetch()
+      .then((freshData) => {
+        if (typeof onUpdate === 'function' && Array.isArray(freshData)) {
+          onUpdate(freshData);
+        }
+      })
+      .catch(() => {});
     return cachedData;
   }
 

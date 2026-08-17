@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Gamepad2,
@@ -34,16 +34,33 @@ export default function MyEngagements() {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
 
+  // Guards state updates from the fetchInstancesApi background revalidation callback,
+  // which can resolve after this component has unmounted (e.g. user navigated away).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const loadMyEngagements = async () => {
     setIsLoading(true);
     const targetUserId = user?.id || localStorage.getItem('fanforge_user_id') || 'default-user';
     try {
-      const instances = await fetchInstancesApi({ userId: targetUserId, brandId: targetUserId });
-      setMyInstances(instances || []);
+      const instances = await fetchInstancesApi(
+        { userId: targetUserId, brandId: targetUserId },
+        (freshInstances) => {
+          // Fires once the background revalidation resolves — without this, a stale
+          // cached list could be shown indefinitely even though fresher data exists.
+          if (isMountedRef.current) setMyInstances(freshInstances || []);
+        }
+      );
+      if (isMountedRef.current) setMyInstances(instances || []);
     } catch (err) {
-      toast.error('Unable to fetch your selected engagements.');
+      if (isMountedRef.current) toast.error('Unable to fetch your selected engagements.');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   };
 
