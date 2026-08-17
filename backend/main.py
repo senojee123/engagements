@@ -535,21 +535,12 @@ def get_game_config(
             return DEFAULT_MEMORY_CONFIG
         return {}
 
-    # Fallback to the most recent customized instance ONLY if no specific parameters were passed
-    inst = (
-        db.query(models.InstanceModel)
-        .filter(
-            (models.InstanceModel.app_id == game_id) | (models.InstanceModel.template_id == game_id)
-        )
-        .order_by(models.InstanceModel.created_at.desc())
-        .first()
-    )
-    if inst and inst.config_json:
-        try:
-            return json.loads(inst.config_json)
-        except Exception:
-            pass
-
+    # No instanceId and no brandId/userId — the caller told us nothing about which
+    # tenant they belong to, so there is no correct instance to serve. Falling back
+    # to "the most recently created instance for this game across the whole
+    # platform" used to leak one org's branding, logos and leaderboard config to
+    # anyone who scanned another org's QR code. Serve the neutral default instead,
+    # exactly like the instance-not-found and brand-not-found branches above.
     if game_id == "memory-challenge":
         return DEFAULT_MEMORY_CONFIG
     return {}
