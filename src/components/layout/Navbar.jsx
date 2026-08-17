@@ -24,17 +24,15 @@ import Badge from '../ui/Badge';
 const MAX_RESULTS_PER_GROUP = 4;
 
 export default function Navbar({ isCollapsed, setIsMobileOpen }) {
-  const { user, currentRole, availableRoles, switchRole, logout } = useAuth();
+  const { user, currentRole, logout } = useAuth();
   const { globalSearch, setGlobalSearch, organizations, events, notifications, markNotificationRead, markAllNotificationsRead } = useApp();
   const { templates } = useTemplates();
   const navigate = useNavigate();
 
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const roleRef = useRef(null);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
   const searchRef = useRef(null);
@@ -79,7 +77,6 @@ export default function Navbar({ isCollapsed, setIsMobileOpen }) {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (roleRef.current && !roleRef.current.contains(e.target)) setIsRoleDropdownOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setIsProfileDropdownOpen(false);
       if (notifRef.current && !notifRef.current.contains(e.target)) setIsNotifOpen(false);
       if (searchRef.current && !searchRef.current.contains(e.target)) setIsSearchOpen(false);
@@ -236,50 +233,6 @@ export default function Navbar({ isCollapsed, setIsMobileOpen }) {
 
         {/* Right Side: Role Switcher, Notifications, Profile */}
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Role Switcher Pill */}
-          <div className="relative" ref={roleRef}>
-            <button
-              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              aria-haspopup="true"
-              aria-expanded={isRoleDropdownOpen}
-              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50/90 hover:bg-indigo-100/90 border border-indigo-200/90 rounded-xl text-xs font-semibold text-indigo-700 transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Shield className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="hidden sm:inline text-slate-500 font-normal">Role:</span>
-              <span className="font-extrabold">{currentRole}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />
-            </button>
-
-            {isRoleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="px-3 py-1.5 border-b border-slate-100">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Switch Active User Role
-                  </p>
-                </div>
-                <div className="py-1">
-                  {availableRoles.map((role) => (
-                    <button
-                      key={role.id}
-                      onClick={() => {
-                        switchRole(role.id);
-                        setIsRoleDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                        currentRole === role.id ? 'bg-indigo-50/70 font-semibold text-indigo-700' : 'text-slate-700'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900">{role.name}</span>
-                        <span className="text-[10px] text-slate-500 line-clamp-1">{role.description}</span>
-                      </div>
-                      {currentRole === role.id && <Check className="w-4 h-4 text-indigo-600 shrink-0 ml-2" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Notifications Drawer Toggle */}
           <div className="relative" ref={notifRef}>
