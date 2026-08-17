@@ -37,11 +37,15 @@
 ============================================================================ */
 
 const CHARACTER_BASE = 'assets/character/';
-const MODEL_FILE = 'https://raw.githubusercontent.com/senojee123/engagements/main/large-assets/Ch09_nonPBR.fbx';
+// Self-hosted alongside the rest of the game's assets — was previously pulled
+// from raw.githubusercontent.com on every session (~65MB combined), which
+// isn't a CDN and is slow/rate-limited under concurrent load from a shared
+// venue network. Same files, now served from this deployment directly.
+const MODEL_FILE = CHARACTER_BASE + 'Ch09_nonPBR.fbx';
 const ANIM_FILES = {
   run: CHARACTER_BASE + 'animations/Fast_Run.fbx',
   jump: CHARACTER_BASE + 'animations/Jump.fbx',
-  roll: 'https://raw.githubusercontent.com/senojee123/engagements/main/large-assets/Quick_Roll_To_Run.fbx',
+  roll: CHARACTER_BASE + 'animations/Quick_Roll_To_Run.fbx',
 };
 
 const FADE = 0.15;             // crossfade between actions (seconds)
