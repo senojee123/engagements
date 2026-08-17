@@ -126,12 +126,15 @@ export default function LivePollDisplay({ isStandalonePage = false }) {
               <Vote className="w-3.5 h-3.5" /> LIVE MATCH DAY POLL
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight uppercase drop-shadow-md">
-              {activePoll?.question}
+              {activePoll?.question || 'No active poll right now'}
             </h1>
           </div>
 
           {/* Option Progress Bars */}
           <div className="space-y-3.5">
+            {!activePoll && (
+              <p className="text-sm text-slate-400">Waiting for the next poll to launch...</p>
+            )}
             {options.map((option, idx) => {
               const optId = String(option?.id || idx + 1);
               const optVotes = option?.votes || 0;

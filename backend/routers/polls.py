@@ -31,28 +31,16 @@ def list_polls(db: Session = Depends(get_db)):
     return [to_poll_response(p) for p in polls]
 
 
-@router.get("/active", response_model=schemas.PollResponseSchema)
+@router.get("/active", response_model=Optional[schemas.PollResponseSchema])
 def get_active_poll(db: Session = Depends(get_db)):
     poll = db.query(models.PollModel).filter(models.PollModel.is_active == True).first()
     if not poll:
         # Fallback to first available poll
         poll = db.query(models.PollModel).first()
     if not poll:
-        # Return fallback poll if table empty
-        return schemas.PollResponseSchema(
-            id="poll-mvp",
-            question="Who will score the winning goal in tonight's final half?",
-            category="Match Day Halftime Poll",
-            options=[
-                {"id": "opt-1", "text": "Alex Morgan (Apex)", "votes": 1420, "color": "emerald"},
-                {"id": "opt-2", "text": "Jordan Taylor (Strikers)", "votes": 980, "color": "indigo"},
-                {"id": "opt-3", "text": "Sarah Jenkins (United)", "votes": 410, "color": "amber"}
-            ],
-            totalVotes=2810,
-            isActive=True,
-            brandId="brand-cocacola",
-            createdAt=time.time()
-        )
+        # No polls exist yet — let the caller show a genuine "no active poll" state
+        # rather than fabricating one.
+        return None
     return to_poll_response(poll)
 
 
@@ -213,50 +201,11 @@ async def delete_poll(poll_id: str, db: Session = Depends(get_db), current_user:
 
 
 def seed_polls(db: Session):
+    # Schema migration only — no demo poll data is seeded. Polls start out
+    # genuinely empty until a real one is created; see get_active_poll().
     from sqlalchemy import text
     try:
         db.execute(text("ALTER TABLE polls ADD COLUMN category VARCHAR DEFAULT 'Match Day Halftime Poll'"))
         db.commit()
     except Exception:
         db.rollback()
-
-    try:
-        if db.query(models.PollModel).first():
-            return
-    except Exception:
-        db.rollback()
-
-    sample_poll = models.PollModel(
-
-        id="poll-mvp",
-        question="Who will score the winning goal in tonight's final half?",
-        category="Match Day Halftime Poll",
-        options=[
-            {"id": "opt-1", "text": "Alex Morgan (Apex)", "votes": 1420, "color": "emerald"},
-            {"id": "opt-2", "text": "Jordan Taylor (Strikers)", "votes": 980, "color": "indigo"},
-            {"id": "opt-3", "text": "Sarah Jenkins (United)", "votes": 410, "color": "amber"}
-        ],
-        total_votes=2810,
-        is_active=True,
-        brand_id="brand-cocacola",
-        created_at=time.time()
-    )
-
-    sample_poll_2 = models.PollModel(
-        id="poll-mvp-match",
-        question="Which team dominated mid-field possession in Quarter 2?",
-        category="Match Performance Poll",
-        options=[
-            {"id": "opt-a", "text": "Home Metropolis FC", "votes": 850, "color": "rose"},
-            {"id": "opt-b", "text": "Visiting City Strikers", "votes": 620, "color": "cyan"},
-            {"id": "opt-c", "text": "Even Match (50-50)", "votes": 230, "color": "emerald"}
-        ],
-        total_votes=1700,
-        is_active=False,
-        brand_id="brand-cocacola",
-        created_at=time.time() - 3600
-    )
-
-    db.add(sample_poll)
-    db.add(sample_poll_2)
-    db.commit()

@@ -935,39 +935,43 @@ function FanZoneLandingContent({ forcedAppId, instanceId } = {}) {
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                <h4 className="text-sm font-extrabold text-slate-900">
-                  {activePoll?.question || "Who will score the winning goal in tonight's final half?"}
-                </h4>
+                {activePoll ? (
+                  <>
+                    <h4 className="text-sm font-extrabold text-slate-900">
+                      {activePoll.question}
+                    </h4>
 
-                <div className="space-y-2">
-                  {(activePoll?.options || [
-                    { id: 'opt-1', text: 'Alex Morgan (Apex)' },
-                    { id: 'opt-2', text: 'Jordan Taylor (Strikers)' },
-                    { id: 'opt-3', text: 'Sarah Jenkins (United)' },
-                  ]).map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => {
-                        setSelectedOption(opt.id);
-                        setHasVoted(true);
-                        if (activePoll && submitVote) {
-                          submitVote(activePoll.id, opt.id);
-                        }
-                        toast.success(`Vote for ${opt.text} cast!`);
-                      }}
-                      className={`w-full p-3 rounded-xl border text-xs font-bold text-left transition-all ${selectedOption === opt.id
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                          : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100'
-                        }`}
-                    >
-                      ● {opt.text}
-                    </button>
-                  ))}
-                </div>
+                    <div className="space-y-2">
+                      {(activePoll.options || []).map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                            setSelectedOption(opt.id);
+                            setHasVoted(true);
+                            if (submitVote) {
+                              submitVote(activePoll.id, opt.id);
+                            }
+                            toast.success(`Vote for ${opt.text} cast!`);
+                          }}
+                          className={`w-full p-3 rounded-xl border text-xs font-bold text-left transition-all ${selectedOption === opt.id
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                              : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100'
+                            }`}
+                        >
+                          ● {opt.text}
+                        </button>
+                      ))}
+                    </div>
 
-                {hasVoted && (
-                  <p className="text-xs font-extrabold text-emerald-600 text-center pt-2">
-                    ✓ Vote Broadcasted Live to Big Screen!
+                    {hasVoted && (
+                      <p className="text-xs font-extrabold text-emerald-600 text-center pt-2">
+                        ✓ Vote Broadcasted Live to Big Screen!
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-500 text-center py-4">
+                    No active poll right now — check back soon!
                   </p>
                 )}
               </div>

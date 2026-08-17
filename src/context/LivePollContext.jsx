@@ -5,24 +5,9 @@ import { DEFAULT_BRAND_KITS } from '../data/brandEngineData';
 
 const LivePollContext = createContext(null);
 
-const INITIAL_FALLBACK_POLL = {
-  id: 'poll-mvp',
-  question: "Who will score the winning goal in tonight's final half?",
-  category: 'Match Day Halftime Poll',
-  options: [
-    { id: 'opt-1', text: 'Alex Morgan (Apex)', votes: 1420, color: 'emerald' },
-    { id: 'opt-2', text: 'Jordan Taylor (Strikers)', votes: 980, color: 'indigo' },
-    { id: 'opt-3', text: 'Sarah Jenkins (United)', votes: 410, color: 'amber' },
-  ],
-  totalVotes: 2810,
-  isActive: true,
-  brandId: 'brand-cocacola',
-  createdAt: Date.now() / 1000,
-};
-
 export const LivePollProvider = ({ children }) => {
-  const [polls, setPolls] = useState([INITIAL_FALLBACK_POLL]);
-  const [activePoll, setActivePoll] = useState(INITIAL_FALLBACK_POLL);
+  const [polls, setPolls] = useState([]);
+  const [activePoll, setActivePoll] = useState(null);
   const [isPollActive, setIsPollActiveState] = useState(() => {
     const saved = localStorage.getItem('fanforge_live_poll_active');
     return saved ? JSON.parse(saved) : false;
@@ -308,8 +293,8 @@ export const useLivePoll = () => {
   const context = useContext(LivePollContext);
   if (!context) {
     return {
-      polls: [INITIAL_FALLBACK_POLL],
-      activePoll: INITIAL_FALLBACK_POLL,
+      polls: [],
+      activePoll: null,
       isPollActive: false,
       activeBrand: DEFAULT_BRAND_KITS[0],
       setActiveBrand: () => {},
