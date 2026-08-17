@@ -34,13 +34,13 @@ connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite")
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args=connect_args)
 else:
+    # Use NullPool for serverless environments (like Vercel) to prevent connection exhaustion.
+    # It opens and closes connections on demand instead of keeping them open in a pool.
+    from sqlalchemy.pool import NullPool
     engine = create_engine(
         DATABASE_URL,
         connect_args=connect_args,
-        pool_size=10,
-        max_overflow=20,
-        pool_recycle=300,
-        pool_pre_ping=True
+        poolclass=NullPool
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
