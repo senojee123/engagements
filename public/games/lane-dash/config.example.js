@@ -25,4 +25,9 @@ window.GAME_CONFIG = {
   // multiple deployments off one Supabase project is just a matter of
   // giving each its own table name here.
   SCORES_TABLE: 'scores',
+
+  // Backend the branding config (logos, colors, billboards) is fetched from
+  // on every load — see branding-loader.js. Must point at wherever the
+  // FanForge backend is actually deployed for this environment.
+  BACKEND_API: 'YOUR_BACKEND_API_URL_HERE',
 };

@@ -1,5 +1,8 @@
 (function () {
-  const BACKEND_API = 'https://engagements-six.vercel.app';
+  // Was hardcoded here; now reads from config.js like the Supabase settings
+  // already do, so moving the backend only requires editing config.js's
+  // BACKEND_API — a deploy of this file is no longer needed on top of that.
+  const BACKEND_API = (window.GAME_CONFIG && window.GAME_CONFIG.BACKEND_API) || 'https://engagements-six.vercel.app';
 
   // Read active query parameters
   const urlParams = new URLSearchParams(window.location.search);
