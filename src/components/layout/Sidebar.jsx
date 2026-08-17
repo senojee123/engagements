@@ -169,24 +169,24 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
 
         {/* Navigation Body */}
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          {/* Core System */}
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Core OS
-              </div>
-            )}
-            {filteredMainNavItems.map(renderNavLink)}
-          </div>
-
           {/* Marketplace & Builder */}
-          <div className="space-y-1 pt-3 border-t border-slate-100">
+          <div className="space-y-1">
             {!isCollapsed && (
               <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Marketplace & Builder
               </div>
             )}
             {filteredMarketplaceNavItems.map(renderNavLink)}
+          </div>
+
+          {/* Core System */}
+          <div className="space-y-1 pt-3 border-t border-slate-100">
+            {!isCollapsed && (
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Core OS
+              </div>
+            )}
+            {filteredMainNavItems.map(renderNavLink)}
           </div>
 
           {/* Preferences */}
