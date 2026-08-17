@@ -83,6 +83,11 @@ class PollModel(Base):
     is_active = Column(Boolean, default=False)
     brand_id = Column(String, default="brand-cocacola")
     created_at = Column(Float, default=lambda: time.time())
+    # Optimistic-concurrency guard for cast_vote(): incremented on every
+    # successful vote write so concurrent read-modify-write races on the
+    # `options`/`total_votes` JSON blob are detected instead of silently
+    # clobbering each other. See seed_polls() migration + routers/polls.py.
+    version = Column(Integer, default=0)
 
 
 class ReactionModel(Base):

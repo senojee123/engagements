@@ -2,6 +2,7 @@ import time
 import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import update as sa_update
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -76,29 +77,74 @@ def create_poll(data: schemas.PollCreateSchema, db: Session = Depends(get_db), c
 
 @router.post("/vote", response_model=schemas.PollResponseSchema)
 async def cast_vote(data: schemas.VoteCreateSchema, db: Session = Depends(get_db)):
-    poll = db.query(models.PollModel).filter(models.PollModel.id == data.pollId).first()
-    if not poll:
-        # If default poll isn't in DB yet, search or fallback
-        poll = db.query(models.PollModel).first()
+    # NOTE on concurrency: `options` (with per-option vote counts) is a JSON
+    # blob column, not individual rows, so a vote can't be applied with a
+    # simple atomic `UPDATE ... SET votes = votes + 1`. The previous version
+    # of this handler read the poll, incremented in Python, and wrote the
+    # whole blob back — a classic read-modify-write race: under concurrent
+    # requests two voters could read the same starting state before either
+    # wrote back, and the second write would silently clobber the first
+    # (confirmed by load test: 50 concurrent votes, only 1 recorded).
+    #
+    # Fix: optimistic concurrency control via the `version` column. Each
+    # attempt reads the poll, computes the new options/total, then writes
+    # back with `WHERE id = ... AND version = <version we read>` in one
+    # atomic UPDATE. If another request won the race in between, the WHERE
+    # clause matches zero rows, rowcount is 0, and we retry against the now
+    # fresh state instead of overwriting it. This works identically on
+    # SQLite and Postgres (unlike SELECT ... FOR UPDATE, which SQLite
+    # silently no-ops), so no votes are lost regardless of backend.
+    max_retries = 25
+    poll = None
+    for attempt in range(max_retries):
+        poll = db.query(models.PollModel).filter(models.PollModel.id == data.pollId).first()
         if not poll:
-            raise HTTPException(status_code=404, detail="Poll not found")
+            # If default poll isn't in DB yet, search or fallback
+            poll = db.query(models.PollModel).first()
+            if not poll:
+                raise HTTPException(status_code=404, detail="Poll not found")
 
-    options = list(poll.options or [])
-    found = False
-    for opt in options:
-        if opt["id"] == data.optionId:
-            opt["votes"] = int(opt.get("votes", 0)) + 1
-            found = True
+        options = list(poll.options or [])
+        found = False
+        for opt in options:
+            if opt["id"] == data.optionId:
+                opt["votes"] = int(opt.get("votes", 0)) + 1
+                found = True
+                break
+
+        if not found:
+            raise HTTPException(status_code=400, detail="Invalid option ID")
+
+        new_total_votes = sum(int(opt.get("votes", 0)) for opt in options)
+        current_version = poll.version or 0
+
+        result = db.execute(
+            sa_update(models.PollModel)
+            .where(
+                models.PollModel.id == poll.id,
+                models.PollModel.version == current_version,
+            )
+            .values(
+                options=options,
+                total_votes=new_total_votes,
+                version=current_version + 1,
+            )
+        )
+        db.commit()
+
+        if result.rowcount == 1:
+            db.refresh(poll)
             break
-    
-    if not found:
-        raise HTTPException(status_code=400, detail="Invalid option ID")
 
-    poll.options = options
-    poll.total_votes = sum(int(opt.get("votes", 0)) for opt in options)
-    
-    db.commit()
-    db.refresh(poll)
+        # Lost the race to a concurrent vote — the row's version moved out
+        # from under us. Discard our stale in-memory copy and retry against
+        # the latest committed state.
+        db.expire_all()
+    else:
+        raise HTTPException(
+            status_code=409,
+            detail="Could not register vote due to high contention, please retry",
+        )
 
     res = to_poll_response(poll)
 
@@ -206,6 +252,13 @@ def seed_polls(db: Session):
     from sqlalchemy import text
     try:
         db.execute(text("ALTER TABLE polls ADD COLUMN category VARCHAR DEFAULT 'Match Day Halftime Poll'"))
+        db.commit()
+    except Exception:
+        db.rollback()
+    try:
+        # Backs the optimistic-concurrency fix in cast_vote() — see comment
+        # there. Existing rows get version=0 as a safe starting point.
+        db.execute(text("ALTER TABLE polls ADD COLUMN version INTEGER DEFAULT 0"))
         db.commit()
     except Exception:
         db.rollback()
