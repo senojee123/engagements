@@ -16,5 +16,5 @@ window.GAME_CONFIG = {
   // on every load — see branding-loader.js. Update this whenever the backend
   // moves; branding-loader.js no longer hardcodes it, so this is the only
   // place that needs to change.
-  BACKEND_API: 'https://engagements-six.vercel.app',
+  BACKEND_API: 'https://api.innovativeengagements.online',
 };
