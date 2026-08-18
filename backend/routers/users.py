@@ -120,4 +120,72 @@ def delete_user(user_id: str, db: Session = Depends(get_db), current_user: model
 
 
 def seed_users(db: Session):
-    pass
+    # Seed Super Admin
+    if not db.query(models.UserModel).filter_by(email="admin@fanforge.io").first():
+        db.add(models.UserModel(
+            id="usr-demo-001",
+            name="Alex Morgan",
+            email="admin@fanforge.io",
+            password_hash=hash_password("Password123!"),
+            company="Apex Sports Global",
+            role="Super Admin",
+            avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+            title="Head of Event Operations",
+            phone="+1 (555) 234-5678",
+            bio="Passionate about creating high-impact fan engagement experiences across global stadium tours and esports arenas.",
+            company_industry="Sports & Entertainment",
+            company_website="https://apexsports.example.com",
+            company_address="742 Event Way, San Francisco, CA 94107",
+            favorite_template_ids=["selfie-wall"],
+        ))
+
+    # Also check legacy email
+    if not db.query(models.UserModel).filter_by(email="alex.morgan@fanforge.io").first():
+        db.add(models.UserModel(
+            id="usr-demo-000",
+            name="Alex Morgan",
+            email="alex.morgan@fanforge.io",
+            password_hash=hash_password("password123"),
+            company="Apex Sports Global",
+            role="Super Admin",
+            avatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+            title="Head of Event Operations",
+        ))
+
+    # Seed Brand Manager
+    if not db.query(models.UserModel).filter_by(email="brand@cocacola.com").first():
+        db.add(models.UserModel(
+            id="usr-brand-001",
+            name="Sarah Jenkins",
+            email="brand@cocacola.com",
+            password_hash=hash_password("Password123!"),
+            company="Coca-Cola Company",
+            role="Brand",
+            avatar="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&q=80",
+            title="Senior Global Brand Manager",
+            phone="+1 (555) 890-1234",
+            bio="Managing high-throughput stadium brand activations, fan rewards, and custom engagement campaigns.",
+            company_industry="Consumer Goods / Beverages",
+            company_website="https://coca-cola.com",
+            company_address="One Coca-Cola Plaza, Atlanta, GA 30313",
+        ))
+
+    # Seed Developer
+    if not db.query(models.UserModel).filter_by(email="developer@fanforge.io").first():
+        db.add(models.UserModel(
+            id="usr-dev-001",
+            name="Dave Miller",
+            email="developer@fanforge.io",
+            password_hash=hash_password("Password123!"),
+            company="FanForge SDK Lab",
+            role="Developer",
+            avatar="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
+            title="Lead Engagement SDK Architect",
+            phone="+1 (555) 456-7890",
+            bio="Building high-performance 3D WebGL engagement templates, App ID registries, and iframe embedding systems.",
+            company_industry="Software Engineering",
+            company_website="https://developer.fanforge.io",
+            company_address="100 Innovation Way, San Jose, CA 95110",
+        ))
+
+    db.commit()

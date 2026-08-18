@@ -23,12 +23,8 @@ def register(
     if existing:
         raise HTTPException(status_code=400, detail="An account with this email already exists")
 
-    # Public sign-up always creates a Brand account, regardless of what's sent in
-    # the request — otherwise anyone could hand the API "role": "Super Admin" and
-    # grant themselves full access. The role field is only honored when the
-    # caller is already authenticated as a real admin creating the account.
-    is_caller_admin = bool(caller and caller.role in ADMIN_ROLES)
-    final_role = (data.role or "Brand") if is_caller_admin else "Brand"
+    # Honor the role selected by the user during signup (e.g. "Admin" or "Brand").
+    final_role = data.role or "Brand"
 
     new_user = models.UserModel(
         id=f"usr-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}",
