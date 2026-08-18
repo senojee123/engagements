@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Memory Challenge — Pizza Memory Game</title>
+<meta name="description" content="Flip the cards and find every matching pair in the Memory Challenge pizza-themed memory game!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #12131f;
+    --bg-1: #1a1c30;
+    --card-back-a: #232a52;
+    --card-back-b: #3a2350;
+    --gold: #d9ab52;
+    --accent: #ff6b35;
+    --jade: #6ee7b7;
+    --paper: #f5efe0;
+    --ink: #2a2118;
+    --muted: #a6a9c8;
+    --score-color: #ffd166;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    /* Respect device safe areas (notch, home indicator) */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% -10%, #262b4a 0%, var(--bg-0) 55%);
+    color: var(--paper);
+    font-family: 'Manrope', sans-serif;
+    overflow-x: hidden;
+    /* prevent iOS text-size inflation */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ─── Floating particles ─── */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .particle {
+    position: absolute;
+    bottom: -40px;
+    opacity: 0;
+    animation: rise linear infinite;
+    filter: drop-shadow(0 0 6px rgba(255,107,53,0.5));
+  }
+
+  @keyframes rise {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.55; }
+    90%  { opacity: 0.35; }
+    100% { transform: translateY(-110vh) translateX(20px); opacity: 0; }
+  }
+
+  /* ─── Layout ─── */
+  .stage {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: clamp(18px, 5vw, 40px) clamp(12px, 4vw, 24px) clamp(28px, 6vw, 64px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ─── Header ─── */
+  header {
+    position: relative;
+    text-align: center;
+    margin-bottom: clamp(12px, 3vw, 22px);
+    width: 100%;
+    /* side padding so trophy icon doesn't overlap title */
+    padding: 0 52px;
+  }
+
+  .trophy-btn {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(217,171,82,0.4);
+    color: var(--gold);
+    font-size: 1.2rem;
+    /* 44 px minimum tap target */
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: background 0.15s;
+  }
+  .trophy-btn:active { background: rgba(217,171,82,0.22); }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(1.4rem, 6vw, 2.6rem);
+    margin: 0 0 3px;
+    letter-spacing: 0.05em;
+    background: linear-gradient(180deg, var(--paper), var(--accent) 160%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: clamp(0.8rem, 3vw, 0.95rem);
+    margin: 0;
+  }
+
+  /* ─── Stats bar ─── */
+  .stats {
+    display: flex;
+    gap: clamp(14px, 5vw, 28px);
+    margin-bottom: clamp(14px, 4vw, 26px);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat-item { text-align: center; }
+
+  .stat-label {
+    display: block;
+    color: var(--muted);
+    font-size: clamp(0.6rem, 2.2vw, 0.72rem);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1px;
+  }
+
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    color: var(--gold);
+  }
+
+  .stat-value.score-val { color: var(--score-color); }
+
+  /* ─── Streak banner ─── */
+  .streak-banner {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    font-weight: 700;
+    color: var(--score-color);
+    background: rgba(255,209,102,0.12);
+    border: 1px solid rgba(255,209,102,0.35);
+    border-radius: 999px;
+    padding: 5px 18px;
+    margin-bottom: 12px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .streak-banner.show { opacity: 1; transform: scale(1); }
+
+  /* ─── Game board ─── */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(8px, 2.5vw, 16px);
+    perspective: 1000px;
+    width: 100%;
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .card.flipped, .card.matched { transform: rotateY(180deg); }
+
+  .card.matched .card-face.front {
+    box-shadow: 0 0 0 2px var(--jade), 0 0 18px rgba(110,231,183,0.5);
+  }
+  .card.matched { cursor: default; }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: clamp(8px, 2.5vw, 14px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+  }
+
+  /* Card back — styled ? card */
+  .card-face.back {
+    background: linear-gradient(160deg, var(--card-back-a), var(--card-back-b));
+    border: 2px solid rgba(217,171,82,0.45);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 3px 12px rgba(0,0,0,0.4);
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .card-face.back .q-mark {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.4rem, 5.5vw, 2.4rem);
+    font-weight: 700;
+    background: linear-gradient(180deg, #ffe08a, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+    animation: qpulse 3s ease-in-out infinite;
+  }
+
+  @keyframes qpulse {
+    0%,100% { opacity: 0.8; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.06); }
+  }
+
+  .card-face.back .q-dots { display: flex; gap: 4px; }
+  .card-face.back .q-dots span {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(217,171,82,0.5);
+  }
+
+  /* Card front */
+  .card-face.front {
+    background: var(--paper);
+    color: var(--ink);
+    transform: rotateY(180deg);
+    font-size: clamp(1.5rem, 6vw, 2.6rem);
+    border: 2px solid rgba(42,33,24,0.12);
+  }
+
+  /* ─── Win / Save overlays ─── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,20,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    padding: 16px;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .overlay-card {
+    text-align: center;
+    padding: clamp(24px, 6vw, 40px) clamp(20px, 6vw, 36px);
+    background: linear-gradient(160deg, var(--card-back-a), var(--card-back-b));
+    border: 1px solid rgba(217,171,82,0.4);
+    border-radius: 18px;
+    max-width: 380px;
+    width: 100%;
+  }
+
+  .overlay-card h2 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.4rem, 6vw, 1.8rem);
+    margin: 0 0 6px;
+    color: var(--accent);
+  }
+
+  .overlay-card p { color: var(--muted); margin: 0 0 16px; font-size: clamp(0.85rem, 3vw, 1rem); }
+
+  .overlay-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .score-highlight {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.8rem, 8vw, 2.4rem);
+    font-weight: 700;
+    color: var(--score-color);
+    margin: 0 0 16px;
+    display: block;
+  }
+
+  .score-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .play-again {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: clamp(0.9rem, 3.5vw, 1rem);
+    color: var(--bg-0);
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    /* 44 px min height for touch */
+    padding: 13px 28px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 4px 14px rgba(255,107,53,0.4);
+  }
+  .play-again:active { transform: scale(0.96); }
+
+  .name-entry {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .name-entry input {
+    flex: 1;
+    font-family: 'Manrope', sans-serif;
+    /* 44px min height + prevent iOS auto-zoom (font-size ≥ 16px) */
+    font-size: max(16px, clamp(0.88rem, 3.5vw, 0.95rem));
+    padding: 11px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(217,171,82,0.4);
+    background: rgba(255,255,255,0.06);
+    color: var(--paper);
+    outline: none;
+    min-width: 0;
+  }
+  .name-entry input::placeholder { color: var(--muted); }
+  .name-entry input:focus { border-color: var(--accent); }
+
+  .text-link {
+    display: block;
+    margin: 4px auto 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    text-decoration: underline;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    padding: 6px 0;
+  }
+  .text-link:active { color: var(--paper); }
+
+  .saved-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .saved-actions a.play-again { text-decoration: none; display: inline-block; }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.08) !important;
+    color: var(--paper) !important;
+    box-shadow: none !important;
+  }
+
+  /* ─── Minimal Instructions Loading Screen Overlay ─── */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: radial-gradient(ellipse at 50% -10%, #262b4a 0%, var(--bg-0, #12131f) 55%);
+    color: var(--paper, #f5efe0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(20px, 5vw, 40px);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+    overflow: hidden;
+    user-select: none;
+    --load-pct: 0%;
+  }
+
+  #loading-screen.fade-out {
+    opacity: 0;
+    transform: scale(1.04);
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  /* Top Floating Confetti Particles */
+  .confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    top: -20px;
+    border-radius: 3px;
+    opacity: 0.85;
+    animation: confettiFall linear infinite;
+  }
+
+  @keyframes confettiFall {
+    0% {
+      transform: translateY(0) rotate(0deg) scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translateY(200px) rotate(360deg) scale(0.6);
+      opacity: 0;
+    }
+  }
+
+  /* Center Content Card */
+  .loading-card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  #loading-brand-logo {
+    max-height: 48px;
+    max-width: 200px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  }
+
+  .loading-heading {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.2rem, 4vw, 1.6rem);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--paper, #f5efe0);
+    margin: 0 0 28px 0;
+    position: relative;
+  }
+
+  .loading-instructions-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .loading-instruction-line {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.75rem, 2.6vw, 0.92rem);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--paper, #f5efe0);
+    opacity: 0.9;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .loading-instruction-note {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    font-size: clamp(0.68rem, 2.2vw, 0.8rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted, #a6a9c8);
+    opacity: 0.7;
+    margin-top: 16px;
+  }
+
+  /* Bottom Progress Bar */
+  .loading-progress-container {
+    position: absolute;
+    bottom: max(36px, 5vh);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .loading-progress-track {
+    width: 170px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .loading-progress-fill {
+    height: 100%;
+    width: var(--load-pct, 0%);
+    background: linear-gradient(90deg, var(--gold, #d9ab52), var(--accent, #ff6b35));
+    border-radius: 999px;
+    box-shadow: 0 0 10px var(--accent, #ff6b35);
+    transition: width 0.08s ease-out;
+  }
+
+  /* ─── Reduced motion ─── */
+  @media (prefers-reduced-motion: reduce) {
+    .card, .particle, .q-mark { animation: none !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Minimal Instructions Loading Screen Overlay -->
+<div id="loading-screen">
+  <div class="confetti-container" id="confetti-container"></div>
+
+  <div class="loading-card-content">
+    <img id="loading-brand-logo" src="" alt="Brand Logo" style="display:none;" />
+    <h2 class="loading-heading">INSTRUCTIONS</h2>
+
+    <div class="loading-instructions-body">
+      <p class="loading-instruction-line" id="loading-line-1">FLIP CARDS TO FIND MATCHING PAIRS</p>
+      <p class="loading-instruction-line" id="loading-line-2">MATCH ALL PAIRS IN THE FEWEST MOVES</p>
+      <p class="loading-instruction-line" id="loading-line-3">TEST YOUR MEMORY & SET HIGH SCORES</p>
+      <p class="loading-instruction-note" id="loading-line-4">TAP ANY CARD TO START MATCHING</p>
+    </div>
+  </div>
+
+  <div class="loading-progress-container">
+    <div class="loading-progress-track">
+      <div class="loading-progress-fill" id="loading-bar-inner"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <header>
+    <a class="trophy-btn" href="leaderboard.html" title="View leaderboard">🏆</a>
+    <img id="brand-logo" src="" alt="Brand Logo" style="height:36px;object-fit:contain;display:none;margin:0 auto 6px;" />
+    <h1 id="game-title" style="margin:0 0 4px;">DIALOG MEMORY CHALLENGE</h1>
+    <p class="tagline" id="game-headline" style="font-size:1.1rem;font-weight:700;color:var(--paper);opacity:0.95;margin:0 0 2px;">Find all matching pairs!</p>
+    <p class="tagline" id="game-tagline" style="font-size:0.85rem;opacity:0.75;margin:0;">Flip the cards and match every pair!</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat-item">
+      <span class="stat-label">Score</span>
+      <span class="stat-value score-val" id="score">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Moves</span>
+      <span class="stat-value" id="moves">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Time</span>
+      <span class="stat-value" id="time">00:00</span>
+    </div>
+  </div>
+
+  <div class="streak-banner" id="streakBanner">🔥 3-in-a-row! +500 Bonus!</div>
+
+  <div class="board" id="board"></div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h2 id="win-message">🎉 You Win!</h2>
+    <p>All pairs matched!</p>
+    <span class="score-label">Your Score</span>
+    <span class="score-highlight" id="finalScore">0</span>
+    <div class="overlay-stats">
+      <div>
+        <span class="stat-label">Moves</span>
+        <span class="stat-value" id="finalMoves">0</span>
+      </div>
+      <div>
+        <span class="stat-label">Time</span>
+        <span class="stat-value" id="finalTime">00:00</span>
+      </div>
+    </div>
+    <div class="name-entry">
+      <input type="text" id="playerName" placeholder="Your name" maxlength="18" autocomplete="nickname">
+      <button class="play-again" id="saveScore">Save</button>
+    </div>
+    <button class="text-link" id="skipSave">Play again without saving</button>
+  </div>
+</div>
+
+<!-- Score saved overlay -->
+<div class="overlay" id="savedOverlay">
+  <div class="overlay-card">
+    <h2>Score Saved!</h2>
+    <p>Your score is on the leaderboard.</p>
+    <div class="saved-actions">
+      <a class="play-again" href="leaderboard.html">View Leaderboard</a>
+      <button class="play-again btn-secondary" id="playAgainFromSaved">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ─────────────────────────────────────────────────────────────
+  // FanForge Config API — fetch brand tile config dynamically
+  // ─────────────────────────────────────────────────────────────
+  const FANFORGE_API =
+    (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''))
+      ? 'http://localhost:8000'
+      : 'https://api.innovativeengagements.online';
+
+  // Fallback pizza-themed icons if no brand config is set
+  const DEFAULT_ICONS = ['🍕', '🥤', '🛵', '🧀', '🔥', '💵'];
+
+  const boardEl               = document.getElementById('board');
+  const movesEl               = document.getElementById('moves');
+  const timeEl                = document.getElementById('time');
+  const scoreEl               = document.getElementById('score');
+  const overlayEl             = document.getElementById('overlay');
+  const finalMovesEl          = document.getElementById('finalMoves');
+  const finalTimeEl           = document.getElementById('finalTime');
+  const finalScoreEl          = document.getElementById('finalScore');
+  const playerNameInput       = document.getElementById('playerName');
+  const saveScoreBtn          = document.getElementById('saveScore');
+  const skipSaveBtn           = document.getElementById('skipSave');
+  const savedOverlay          = document.getElementById('savedOverlay');
+  const playAgainFromSavedBtn = document.getElementById('playAgainFromSaved');
+  const streakBanner          = document.getElementById('streakBanner');
+  const headlineEl            = document.getElementById('game-headline');
+  const taglineEl             = document.getElementById('game-tagline');
+  const winMessageEl          = document.getElementById('win-message');
+
+  // Game state
+  let deck = [], flipped = [], matchedCount = 0;
+  let moves = 0, score = 0, streak = 0;
+  let timerId = null, seconds = 0;
+  let lockBoard = false, started = false, streakTimer = null;
+  let TILE_POOL = []; // Active tile pool (from config or defaults)
+  let COLS = 4, ROWS = 3;
+
+  const POINTS_PER_MATCH = 100;
+  const STREAK_THRESHOLD = 3;
+  const STREAK_BONUS     = 500;
+
+  /* ── Minimal Instructions Loading Screen Progress & Confetti ── */
+  const loadingScreenOverlay = document.getElementById('loading-screen');
+  let currentProgress = 0;
+  let loadingInterval = null;
+
+  function setLoadingProgress(pct) {
+    currentProgress = Math.min(100, Math.max(currentProgress, pct));
+    if (loadingScreenOverlay) {
+      loadingScreenOverlay.style.setProperty('--load-pct', `${currentProgress}%`);
+    }
+    if (currentProgress >= 100) {
+      if (loadingInterval) clearInterval(loadingInterval);
+      setTimeout(() => {
+        if (loadingScreenOverlay) loadingScreenOverlay.classList.add('fade-out');
+      }, 350);
+    }
+  }
+
+  function startLoadingAnimation() {
+    let target = 0;
+    loadingInterval = setInterval(() => {
+      if (target < 85) {
+        target += Math.random() * 14 + 6;
+      } else {
+        target += 5;
+      }
+      if (target >= 100) {
+        target = 100;
+      }
+      setLoadingProgress(target);
+    }, 50);
+  }
+
+  function initConfetti() {
+    const container = document.getElementById('confetti-container');
+    if (!container) return;
+    const colors = ['#d9ab52', '#ff6b35', '#6ee7b7', '#ffd166', '#a6a9c8', '#f5efe0'];
+    const count = 24;
+
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const color = colors[i % colors.length];
+      const isPill = i % 3 === 0;
+      const w = isPill ? (Math.random() * 8 + 10) : (Math.random() * 5 + 6);
+      const h = isPill ? (Math.random() * 3 + 4) : (Math.random() * 5 + 6);
+
+      piece.style.width = `${w}px`;
+      piece.style.height = `${h}px`;
+      piece.style.background = color;
+      piece.style.left = `${Math.random() * 95}%`;
+      piece.style.animationDuration = `${Math.random() * 2.5 + 2}s`;
+      piece.style.animationDelay = `${Math.random() * 2}s`;
+      container.appendChild(piece);
+    }
+  }
+
+  startLoadingAnimation();
+  initConfetti();
+
+  /* ── Utilities ── */
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function fmt(s) {
+    return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  /* ── Timer ── */
+  function startTimer() {
+    if (timerId) clearInterval(timerId);
+    seconds = 0;
+    timeEl.textContent = fmt(0);
+    timerId = setInterval(() => { seconds++; timeEl.textContent = fmt(seconds); }, 1000);
+  }
+  function stopTimer() { clearInterval(timerId); timerId = null; }
+
+  /* ── Streak banner ── */
+  function showStreakBanner() {
+    streakBanner.textContent = `🔥 ${streak}-in-a-row! +${STREAK_BONUS} pts!`;
+    streakBanner.classList.add('show');
+    if (streakTimer) clearTimeout(streakTimer);
+    streakTimer = setTimeout(() => streakBanner.classList.remove('show'), 2200);
+  }
+
+  let activeConfig = null;
+  window.applyConfig = applyConfig;
+
+  /* ── Apply brand config ── */
+  function applyConfig(rawConfig) {
+    if (!rawConfig) return;
+    const config = rawConfig.config || rawConfig;
+    if (config.game && config.game !== 'memory-challenge') return;
+    activeConfig = config;
+    window.applyConfig = applyConfig;
+
+    // Apply colors & background
+    if (config.backgroundImage) {
+      document.body.style.background = `url("${config.backgroundImage}") center/cover no-repeat`;
+    } else if (config.bgGradient) {
+      const gradientMap = {
+        'from-slate-950 via-indigo-950 to-slate-950': 'radial-gradient(ellipse at 50% -10%, #262b4a 0%, #12131f 55%)',
+        'from-purple-950 via-slate-950 to-indigo-950': 'radial-gradient(ellipse at 50% -10%, #3b0764 0%, #0f172a 55%)',
+        'from-emerald-950 via-slate-950 to-teal-950': 'radial-gradient(ellipse at 50% -10%, #064e3b 0%, #0f172a 55%)',
+        'from-red-950 via-slate-950 to-amber-950': 'radial-gradient(ellipse at 50% -10%, #450a0a 0%, #0f172a 55%)',
+        'from-slate-900 via-slate-950 to-slate-900': 'radial-gradient(ellipse at 50% -10%, #1e293b 0%, #020617 55%)',
+      };
+      document.body.style.background = gradientMap[config.bgGradient] || config.bgGradient;
+    } else if (config.backgroundColor) {
+      document.body.style.background = config.backgroundColor;
+      document.documentElement.style.setProperty('--bg-0', config.backgroundColor);
+    }
+
+    if (config.accentColor) {
+      document.documentElement.style.setProperty('--accent', config.accentColor);
+    }
+    if (config.brandColor) {
+      document.documentElement.style.setProperty('--gold', config.brandColor);
+      document.documentElement.style.setProperty('--score-color', config.brandColor);
+    }
+
+    // Apply text & title
+    const titleEl = document.getElementById('game-title');
+    if (titleEl) {
+      let t = config.gameTitle || config.title || 'DIALOG MEMORY CHALLENGE';
+      if (typeof t === 'string' && (t.toUpperCase().includes('LANE') || !t.toUpperCase().includes('MEMORY'))) {
+        t = 'DIALOG MEMORY CHALLENGE';
+      }
+      titleEl.textContent = t;
+      if (config.titleColor) {
+        titleEl.style.color = config.titleColor;
+      } else if (config.brandColor) {
+        titleEl.style.color = config.brandColor;
+      }
+    }
+
+    if (headlineEl) {
+      headlineEl.textContent = config.headline || 'Find all matching pairs!';
+    }
+    if (taglineEl) {
+      if (config.tagline) {
+        taglineEl.textContent = config.tagline;
+        taglineEl.style.display = 'block';
+      } else {
+        taglineEl.style.display = 'none';
+      }
+    }
+    if (winMessageEl && config.rewardText) winMessageEl.textContent = config.rewardText;
+
+    // Apply brand logo
+    const logoEl = document.getElementById('brand-logo');
+    const loadingBrandLogo = document.getElementById('loading-brand-logo');
+    if (logoEl) {
+      if (config.brandLogo) {
+        logoEl.src = config.brandLogo;
+        logoEl.style.display = 'block';
+      } else {
+        logoEl.style.display = 'none';
+      }
+    }
+    if (loadingBrandLogo) {
+      if (config.brandLogo) {
+        loadingBrandLogo.src = config.brandLogo;
+        loadingBrandLogo.style.display = 'block';
+      } else {
+        loadingBrandLogo.style.display = 'none';
+      }
+    }
+
+    // Apply grid size
+    if (config.gridCols) COLS = config.gridCols;
+    if (config.gridRows) ROWS = config.gridRows;
+    if (boardEl) {
+      boardEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+    }
+
+    // Extract tile pool from config
+    const tilesList = config.tiles || (config.config && config.config.tiles);
+    if (tilesList && tilesList.length > 0) {
+      TILE_POOL = tilesList;
+    } else {
+      TILE_POOL = DEFAULT_ICONS.map((em, i) => ({
+        id: `default-${i}`, label: em, content: em, type: 'emoji', imageUrl: '', backColor: i % 2 === 0 ? '#232a52' : '#3a2350'
+      }));
+    }
+
+    buildBoard();
+  }
+
+  /* ── Build card face HTML ── */
+  function buildCardFace(tile) {
+    if (tile.type === 'image' && tile.imageUrl) {
+      return `<img src="${tile.imageUrl}" alt="${tile.label || ''}" style="width:80%;height:80%;object-fit:contain;border-radius:8px;" />`;
+    }
+    return `<span style="font-size:clamp(1.5rem,6vw,2.6rem)">${tile.content || tile.label || '?'}</span>`;
+  }
+
+  /* ── Build board ── */
+  function buildBoard() {
+    stopTimer();
+    started = false; moves = 0; score = 0; streak = 0;
+    matchedCount = 0; flipped = []; lockBoard = false;
+
+    movesEl.textContent = '0';
+    scoreEl.textContent = '0';
+    timeEl.textContent  = '00:00';
+    overlayEl.classList.remove('show');
+    streakBanner.classList.remove('show');
+
+    const TOTAL_PAIRS = Math.floor((COLS * ROWS) / 2);
+
+    // Pick from tile pool (cycle if not enough tiles)
+    const pool = TILE_POOL.length > 0 ? TILE_POOL : DEFAULT_ICONS.map((em, i) => ({
+      id: `d${i}`, content: em, type: 'emoji', imageUrl: '', backColor: '#232a52'
+    }));
+
+    const chosen = [];
+    for (let i = 0; i < TOTAL_PAIRS; i++) {
+      chosen.push(pool[i % pool.length]);
+    }
+    deck = shuffle([...chosen, ...chosen]);
+
+    boardEl.innerHTML = '';
+
+    deck.forEach((tile, index) => {
+      const card = document.createElement('div');
+      card.className    = 'card';
+      card.dataset.icon = tile.id || tile.content || tile.imageUrl;
+      let bColor = tile.backColor;
+      if (!bColor && activeConfig) {
+        if (activeConfig.useDualColors && activeConfig.cardBackColor2) {
+          bColor = (index % 2 === 0) ? (activeConfig.cardBackColor || '#232a52') : activeConfig.cardBackColor2;
+        } else {
+          bColor = activeConfig.cardBackColor || '#232a52';
+        }
+      }
+      if (!bColor) bColor = (index % 2 === 0) ? '#232a52' : '#3a2350';
+
+      card.innerHTML = `
+        <div class="card-face back" style="background:linear-gradient(160deg, ${bColor}, ${bColor}cc)">
+          <span class="q-mark">?</span>
+          <div class="q-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="card-face front" style="background:#f5efe0;display:flex;align-items:center;justify-content:center;">
+          ${buildCardFace(tile)}
+        </div>
+      `;
+      card.addEventListener('click', () => onCardClick(card));
+      boardEl.appendChild(card);
+    });
+  }
+
+  /* ── Card interaction ── */
+  function onCardClick(card) {
+    if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+    if (flipped.length === 2) return;
+
+    if (!started) { started = true; startTimer(); }
+
+    card.classList.add('flipped');
+    flipped.push(card);
+
+    if (flipped.length === 2) {
+      moves++;
+      movesEl.textContent = moves;
+      checkMatch();
+    }
+  }
+
+  function checkMatch() {
+    const [a, b] = flipped;
+    if (a.dataset.icon === b.dataset.icon) {
+      a.classList.add('matched');
+      b.classList.add('matched');
+      matchedCount++;
+      streak++;
+      score += POINTS_PER_MATCH;
+
+      const TOTAL_PAIRS = Math.floor((COLS * ROWS) / 2);
+      if (streak > 0 && streak % STREAK_THRESHOLD === 0) {
+        score += STREAK_BONUS;
+        showStreakBanner();
+      }
+
+      scoreEl.textContent = score;
+      flipped = [];
+
+      if (matchedCount === TOTAL_PAIRS) {
+        stopTimer();
+        finalMovesEl.textContent = moves;
+        finalTimeEl.textContent  = fmt(seconds);
+        finalScoreEl.textContent = score;
+        playerNameInput.value    = '';
+        setTimeout(() => {
+          overlayEl.classList.add('show');
+          playerNameInput.focus();
+        }, 500);
+      }
+    } else {
+      streak = 0;
+      lockBoard = true;
+      setTimeout(() => {
+        a.classList.remove('flipped');
+        b.classList.remove('flipped');
+        flipped   = [];
+        lockBoard = false;
+      }, 800);
+    }
+  }
+
+  /* ── Save score: Firebase (shared) + localStorage (fallback) ── */
+  function saveScoreToBoard(key, entry) {
+    if (typeof window.firebaseSaveScore === 'function') {
+      window.firebaseSaveScore(entry);
+    }
+    try {
+      const scores = JSON.parse(localStorage.getItem('memoryScores_' + key)) || [];
+      scores.push(entry);
+      scores.sort((a, b) => b.score - a.score || a.seconds - b.seconds);
+      localStorage.setItem('memoryScores_' + key, JSON.stringify(scores));
+    } catch (e) {}
+  }
+
+  /* ── Button listeners ── */
+  saveScoreBtn.addEventListener('click', () => {
+    const name = playerNameInput.value.trim() || 'Anonymous';
+    saveScoreToBoard('medium', { name, score, seconds, moves });
+    overlayEl.classList.remove('show');
+    savedOverlay.classList.add('show');
+  });
+
+  skipSaveBtn.addEventListener('click', () => {
+    overlayEl.classList.remove('show');
+    buildBoard();
+  });
+
+  playAgainFromSavedBtn.addEventListener('click', () => {
+    savedOverlay.classList.remove('show');
+    buildBoard();
+  });
+
+  // Ambient particles disabled (floating objects removed)
+
+  // ─────────────────────────────────────────────────────────────
+  // 1. FETCH CONFIG FROM FANFORGE API ON LOAD
+  // ─────────────────────────────────────────────────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const qInstanceId = urlParams.get('instanceId') || urlParams.get('id');
+  const qBrandId = urlParams.get('brandId') || urlParams.get('userId') || urlParams.get('brand');
+  const rawC = urlParams.get('c') || urlParams.get('config');
+
+  if (rawC) {
+    try {
+      const decodedStr = atob(decodeURIComponent(rawC));
+      const decodedConfig = JSON.parse(decodedStr);
+      if (decodedConfig && (decodedConfig.tiles || decodedConfig.gameTitle || decodedConfig.headline)) {
+        applyConfig(decodedConfig);
+      }
+    } catch (e) {
+      try {
+        const decodedConfig = JSON.parse(decodeURIComponent(rawC));
+        if (decodedConfig) applyConfig(decodedConfig);
+      } catch (err) {}
+    }
+  }
+
+  const queryParts = [];
+  if (qInstanceId) queryParts.push(`instanceId=${encodeURIComponent(qInstanceId)}`);
+  if (qBrandId) queryParts.push(`brandId=${encodeURIComponent(qBrandId)}`);
+  const queryPath = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+
+  const primaryApi = FANFORGE_API;
+  const fallbackApi = 'http://localhost:8000';
+
+  // Build cache key matching the main app
+  const cacheKey = qInstanceId
+    ? `fanforge_game_config_${qInstanceId}`
+    : qBrandId
+    ? `fanforge_game_config_${qBrandId}_memory-challenge`
+    : `fanforge_game_config_memory-challenge`;
+
+  // Clear any legacy/stale cached items in localStorage that contain LANE
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.includes('fanforge_game_config') || k.includes('lane'))) {
+        const v = localStorage.getItem(k);
+        if (v && (v.includes('LANE') || v.includes('lane-daze') || v.includes('lane-dash'))) {
+          localStorage.removeItem(k);
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Attempt to load from cache immediately to eliminate loading latency
+  let hasLoadedFromCache = false;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const parsedConfig = JSON.parse(cached);
+      if (parsedConfig && parsedConfig.game === 'memory-challenge') {
+        applyConfig(parsedConfig);
+        hasLoadedFromCache = true;
+      }
+    }
+  } catch (e) {}
+
+  function fetchConfigFrom(apiUrl) {
+    const ts = `_t=${Date.now()}`;
+    const fullPath = queryPath ? `${queryPath}&${ts}` : `?${ts}`;
+    return fetch(`${apiUrl}/api/game-config/memory-challenge${fullPath}`, { cache: 'no-store' })
+      .then((r) => {
+        if (!r.ok) throw new Error('Config not found');
+        return r.json();
+      })
+      .then((config) => {
+        if (config) {
+          applyConfig(config);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(config));
+          } catch (e) {}
+          return true;
+        }
+        return false;
+      });
+  }
+
+  fetchConfigFrom(primaryApi).catch(() => {
+    fetchConfigFrom(fallbackApi).catch(() => {
+      if (!hasLoadedFromCache && TILE_POOL.length === 0) {
+        TILE_POOL = DEFAULT_ICONS.map((em, i) => ({
+          id: `default-${i}`, content: em, type: 'emoji', imageUrl: '', backColor: i % 2 === 0 ? '#232a52' : '#3a2350'
+        }));
+        buildBoard();
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 2. WEBSOCKET — Live config hot-reload without page refresh
+  // ─────────────────────────────────────────────────────────────
+  function connectWS(apiUrl = primaryApi) {
+    try {
+      const wsUrl = `${apiUrl.replace(/^http/, 'ws')}/ws`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'CONFIG_UPDATED' && msg.game === 'memory-challenge') {
+            if (!qBrandId || !msg.brandId || msg.brandId === qBrandId) {
+              applyConfig(msg.config);
+            }
+          }
+        } catch (e) {}
+      };
+
+      ws.onerror = () => {
+        if (apiUrl !== fallbackApi) {
+          connectWS(fallbackApi);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(() => connectWS(apiUrl), 3000);
+      };
+    } catch (e) {
+      if (apiUrl !== fallbackApi) {
+        connectWS(fallbackApi);
+      }
+    }
+  }
+  connectWS(primaryApi);
+
+  // Preserve query parameters when navigating to leaderboard
+  if (window.location.search) {
+    document.querySelectorAll('a[href="leaderboard.html"]').forEach((link) => {
+      link.href = 'leaderboard.html' + window.location.search;
+    });
+  }
+
+})();
+</script>
+<!-- Firebase: push score & sync dynamic game config to shared Realtime Database -->
+<script type="module">
+  import { initializeApp }               from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getDatabase, ref, push, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDTHb7X6tE3yLFIr7BiKKNfiM8KQNGKHHg",
+    authDomain:        "memory-challenge-9cfa8.firebaseapp.com",
+    databaseURL:       "https://memory-challenge-9cfa8-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "memory-challenge-9cfa8",
+    storageBucket:     "memory-challenge-9cfa8.firebasestorage.app",
+    messagingSenderId: "761387825435",
+    appId:             "1:761387825435:web:3dc674f9885a99165dfbbe"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // Read once at module load so every score/config write below can tag
+  // itself with which brand's launched instance this game session is for.
+  const urlParams   = new URLSearchParams(window.location.search);
+  const qInstanceId = urlParams.get('instanceId') || urlParams.get('id');
+  const qBrandId    = urlParams.get('brandId') || urlParams.get('userId') || urlParams.get('brand');
+
+  /* Exposed globally so the game IIFE can call it */
+  window.firebaseSaveScore = function (entry) {
+    const payload = {
+      name:      entry.name,
+      score:     entry.score,
+      moves:     entry.moves,
+      seconds:   entry.seconds,
+      timestamp: Date.now()
+    };
+    if (qInstanceId) payload.instanceId = qInstanceId;
+    if (qBrandId) payload.brandId = qBrandId;
+    push(ref(db, 'scores'), payload).catch(err => console.warn('Firebase write failed:', err));
+  };
+
+  /* Exposed globally for saving dynamic game config */
+  window.firebaseSaveConfig = function (cfg) {
+    set(ref(db, 'gameConfig'), cfg).catch(err => console.warn('Firebase config write failed:', err));
+  };
+
+  /* Listen for real-time cloud config updates */
+  onValue(ref(db, 'gameConfig'), (snapshot) => {
+    const cfg = snapshot.val();
+    if (!cfg) return;
+    if (cfg.game && cfg.game !== 'memory-challenge') return;
+
+    // If we are looking for a specific instance/brand, ignore updates from other games
+    if (qInstanceId && cfg.instanceId !== qInstanceId) {
+      return;
+    }
+    if (qBrandId && cfg.brandId !== qBrandId) {
+      return;
+    }
+
+    if (window.applyConfig) {
+      window.applyConfig(cfg);
+      try {
+        const cacheKey = qInstanceId
+          ? `fanforge_game_config_${qInstanceId}`
+          : qBrandId
+          ? `fanforge_game_config_${qBrandId}_memory-challenge`
+          : `fanforge_game_config_memory-challenge`;
+        localStorage.setItem(cacheKey, JSON.stringify(cfg));
+      } catch (e) {}
+    }
+  });
+</script>
+</body>
+</html>
+

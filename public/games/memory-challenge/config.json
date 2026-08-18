@@ -1,0 +1,29 @@
+{
+  "game": "memory-challenge",
+  "brandId": "dialog",
+  "brandName": "Dialog",
+  "brandColor": "#d9ab52",
+  "brandLogo": "",
+  "gameTitle": "DIALOG MEMORY CHALLENGE",
+  "headline": "Find all matching pairs!",
+  "tagline": "Flip the cards and match every pair!",
+  "rewardText": "🎉 You Win! Amazing memory!",
+  "gridCols": 4,
+  "gridRows": 3,
+  "backgroundColor": "#12131f",
+  "bgGradient": "from-slate-950 via-indigo-950 to-slate-950",
+  "backgroundImage": "",
+  "accentColor": "#ff6b35",
+  "titleColor": "#f5efe0",
+  "cardBackColor": "#232a52",
+  "cardBackColor2": "#3a2350",
+  "useDualColors": true,
+  "tiles": [
+    { "id": "t1", "label": "Tile 1", "content": "🍕", "type": "emoji", "imageUrl": "", "backColor": "#232a52" },
+    { "id": "t2", "label": "Tile 2", "content": "🥤", "type": "emoji", "imageUrl": "", "backColor": "#3a2350" },
+    { "id": "t3", "label": "Tile 3", "content": "🛵", "type": "emoji", "imageUrl": "", "backColor": "#232a52" },
+    { "id": "t4", "label": "Tile 4", "content": "🧀", "type": "emoji", "imageUrl": "", "backColor": "#3a2350" },
+    { "id": "t5", "label": "Tile 5", "content": "🔥", "type": "emoji", "imageUrl": "", "backColor": "#232a52" },
+    { "id": "t6", "label": "Tile 6", "content": "💵", "type": "emoji", "imageUrl": "", "backColor": "#3a2350" }
+  ]
+}
