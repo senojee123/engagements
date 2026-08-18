@@ -368,7 +368,8 @@ export default function Analytics() {
       .map((inst) => inst.instanceId || inst.id)
       .filter(Boolean);
 
-    let filterQuery = 'select=brand_id,score,instance_id,player_name,created_at&created_at=gt.2026-08-15T12:00:00Z';
+    // Only request fields needed to calculate stats (brand_id, score, instance_id) — player_name and created_at are omitted to save egress
+    let filterQuery = 'select=brand_id,score,instance_id&created_at=gt.2026-08-15T12:00:00Z';
 
     if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
       filterQuery += `&instance_id=eq.${selectedEngagement}`;
@@ -407,8 +408,18 @@ export default function Analytics() {
   useEffect(() => {
     fetchFirebaseScores();
     fetchSupabaseScores();
-    const intFirebase = setInterval(fetchFirebaseScores, 3000);
-    const intSupabase = setInterval(fetchSupabaseScores, 5000);
+    
+    // Check document.hidden to prevent background network polling when tab is not active/minimized
+    const intFirebase = setInterval(() => {
+      if (document.hidden) return;
+      fetchFirebaseScores();
+    }, 3000);
+    
+    const intSupabase = setInterval(() => {
+      if (document.hidden) return;
+      fetchSupabaseScores();
+    }, 5000);
+    
     return () => {
       clearInterval(intFirebase);
       clearInterval(intSupabase);
