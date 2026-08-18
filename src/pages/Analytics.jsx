@@ -361,7 +361,26 @@ export default function Analytics() {
 
   const fetchSupabaseScores = () => {
     setIsSupabaseLoading(true);
-    const url = 'https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?select=brand_id,score,instance_id,player_name,created_at&created_at=gt.2026-08-15T12:00:00Z';
+
+    const savedUserId = user?.id || localStorage.getItem('fanforge_user_id') || '';
+    const activeIds = brandInstances
+      .filter((inst) => (inst.status || '').toLowerCase() !== 'deleted')
+      .map((inst) => inst.instanceId || inst.id)
+      .filter(Boolean);
+
+    let filterQuery = 'select=brand_id,score,instance_id,player_name,created_at&created_at=gt.2026-08-15T12:00:00Z';
+
+    if (selectedEngagement !== 'all' && selectedEngagement !== 'lane-daze' && selectedEngagement !== 'lane-dash') {
+      filterQuery += `&instance_id=eq.${selectedEngagement}`;
+    } else if (currentRole === 'Brand') {
+      if (activeIds.length > 0) {
+        filterQuery += `&or=(brand_id.eq.${savedUserId},instance_id.in.(${activeIds.join(',')}))`;
+      } else {
+        filterQuery += `&brand_id=eq.${savedUserId}`;
+      }
+    }
+
+    const url = `https://awjaovibrslzghflwwin.supabase.co/rest/v1/scores?${filterQuery}`;
     const headers = {
       'apikey': 'sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg',
       'Authorization': 'Bearer sb_publishable_OPviUM9Hl4QCxv6F3v2nAQ_F9tgHYeg'
@@ -394,7 +413,7 @@ export default function Analytics() {
       clearInterval(intFirebase);
       clearInterval(intSupabase);
     };
-  }, []);
+  }, [selectedEngagement, currentRole, brandInstances]);
 
   const activeBrandInstances = brandInstances.filter(
     (inst) => (inst.status || '').toLowerCase() !== 'deleted'
